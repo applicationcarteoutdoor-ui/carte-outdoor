@@ -1,6 +1,6 @@
 # 🏔️ Carte Outdoor
 
-**➡️ Application en ligne : https://bidband4-stack.github.io/carte-outdoor/**
+**➡️ Application en ligne : https://applicationcarteoutdoor-ui.github.io/carte-outdoor/**
 (sur téléphone : ouvrez l'URL puis « Ajouter à l'écran d'accueil » pour l'installer)
 
 Application web de carte interactive de points d'intérêt outdoor :
@@ -41,7 +41,7 @@ qui vide le cache du service worker).
 ## Mettre à jour le site en ligne
 
 Le site est servi par GitHub Pages depuis la branche `main` du dépôt
-[bidband4-stack/carte-outdoor](https://github.com/bidband4-stack/carte-outdoor) :
+[applicationcarteoutdoor-ui/carte-outdoor](https://github.com/applicationcarteoutdoor-ui/carte-outdoor) :
 
 ```bash
 # 1. Une fois les modifications FINALISÉES : incrémenter VERSION dans sw.js
