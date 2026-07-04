@@ -1043,3 +1043,7 @@ dialog .panel-header { padding: 0 0 4px; }
 @media (prefers-reduced-motion: reduce) {
   .panel, .tuto-spot { transition: none; }
 }
+
+#banner-escalade {
+  display: none !important;
+}

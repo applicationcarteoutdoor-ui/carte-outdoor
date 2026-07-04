@@ -206,7 +206,7 @@ function rafraichir() {
     statusActif: state.statusFilters.size > 0,
   });
   setPoints(pointsVisibles(), state.statuses);
-  document.getElementById("banner-escalade").hidden =
+  document.getElementById("banner-escalade").hidden = 
     !state.activeThemes.has("escalade") || bandeauEscaladeFerme;
   storage.savePrefs({
     activeThemes: [...state.activeThemes],
