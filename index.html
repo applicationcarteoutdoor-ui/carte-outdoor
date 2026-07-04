@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="Carte interactive de points d'intérêt outdoor : via ferrata, escalade, refuges, châteaux, cités de caractère, GR…">
+  <title>Carte Outdoor</title>
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="vendor/markercluster/MarkerCluster.css">
+  <link rel="stylesheet" href="vendor/markercluster/MarkerCluster.Default.css">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Panneau gauche : recherche + catégories cochables -->
+  <aside id="sidebar" aria-label="Recherche et catégories">
+    <div class="sidebar-head">
+      <img src="icons/icon.svg" alt="" class="sidebar-logo">
+      <span class="sidebar-title">Carte Outdoor</span>
+      <button type="button" class="panel-close" title="Fermer" aria-label="Fermer le panneau">✕</button>
+    </div>
+
+    <div class="sidebar-search">
+      <input type="search" id="search-input" placeholder="Rechercher un point par nom…" aria-label="Rechercher un point par nom">
+      <div id="search-results" role="listbox"></div>
+    </div>
+
+    <nav class="cat-list" aria-label="Liste des catégories"></nav>
+
+    <div class="sidebar-actions">
+      <button type="button" id="btn-import-category" class="btn btn-secondary">＋ Importer une catégorie</button>
+      <button type="button" id="btn-export" class="btn btn-secondary">⬇ Exporter mes données</button>
+    </div>
+  </aside>
+
+  <!-- Carte plein écran -->
+  <div class="app-main">
+    <main id="map" aria-label="Carte des points d'intérêt"></main>
+  </div>
+
+  <!-- Ouverture du panneau (mobile) -->
+  <button type="button" id="btn-sidebar" class="fab fab-menu" title="Catégories et recherche" aria-label="Ouvrir les catégories">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+  </button>
+
+  <!-- Panneau des filtres (droite) -->
+  <div id="filter-panel" class="panel" aria-label="Filtres">
+    <div class="panel-header">
+      <h2>Filtres</h2>
+      <button type="button" class="panel-close" title="Replier les filtres" aria-label="Replier les filtres">✕</button>
+    </div>
+    <div class="filter-body">
+      <div class="filter-groups"></div>
+    </div>
+  </div>
+  <button type="button" id="btn-filters-reopen" hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg> Filtres
+  </button>
+
+  <!-- Boutons flottants : ajout de point (mis en avant), idées, tuto, position -->
+  <div class="fab-stack">
+    <button type="button" id="btn-add-point" class="fab fab-add" title="Ajouter un point sur la carte" aria-label="Ajouter un point">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 21.5S5 15.9 5 10a7 7 0 0 1 14 0c0 5.9-7 11.5-7 11.5z"/>
+        <path d="M12 7v6M9 10h6"/>
+      </svg>
+    </button>
+    <button type="button" id="btn-wc" class="fab fab-wc" title="Toilettes à moins de 1 km de moi" aria-label="Toilettes autour de moi"><span class="wc-runner" aria-hidden="true">🏃</span><span aria-hidden="true">🚻</span></button>
+    <button type="button" id="btn-ideas" class="fab" title="Boîte à idées" aria-label="Boîte à idées">💡</button>
+    <button type="button" id="btn-tuto" class="fab" title="Revoir le tuto" aria-label="Revoir le tuto">🎓</button>
+    <button type="button" id="btn-locate" class="fab" title="Ma position" aria-label="Afficher ma position">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+    </button>
+  </div>
+
+  <!-- Fiche détaillée d'un point -->
+  <aside id="details-panel" class="panel panel-details" aria-label="Fiche du point sélectionné">
+    <button type="button" class="panel-close" title="Fermer la fiche" aria-label="Fermer la fiche">✕</button>
+    <div class="panel-body"></div>
+  </aside>
+
+  <!-- Ajout d'un point -->
+  <dialog id="point-dialog" aria-labelledby="point-title">
+    <h2 id="point-title">➕ Ajouter un point</h2>
+    <p class="point-coords menu-note"></p>
+    <form class="point-form">
+      <label>Nom du point *
+        <input type="text" class="point-name" required maxlength="80" placeholder="Ex. Cascade secrète du vallon">
+      </label>
+      <label>Catégorie
+        <select class="point-theme"></select>
+      </label>
+      <div class="point-newcat" hidden>
+        <label>Nom de la nouvelle catégorie *
+          <input type="text" class="newcat-label" maxlength="40" placeholder="Ex. Coins à champignons">
+        </label>
+        <div class="editor-colors">
+          <label>Icône <input type="text" class="newcat-icon" maxlength="4" value="📍"></label>
+          <label>Couleur <input type="color" class="newcat-color" value="#7048b6"></label>
+        </div>
+      </div>
+      <label>Description (facultatif)
+        <textarea class="point-desc" rows="2"></textarea>
+      </label>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-secondary point-cancel">Annuler</button>
+        <button type="submit" class="btn">Ajouter le point</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Rapport d'import -->
+  <dialog id="import-dialog" aria-labelledby="import-title">
+    <h2 id="import-title">Import</h2>
+    <p class="import-filename"></p>
+    <p class="import-summary"></p>
+    <div class="import-theme" style="display:none">
+      <label for="import-theme-select">Ce fichier n'indique pas de catégorie, choisissez-en une :</label>
+      <select id="import-theme-select"></select>
+    </div>
+    <ul class="import-errors"></ul>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-secondary import-cancel">Annuler</button>
+      <button type="button" class="btn import-confirm">Importer</button>
+    </div>
+  </dialog>
+
+  <!-- Boîte à idées -->
+  <dialog id="ideas-dialog" aria-labelledby="ideas-title">
+    <div class="panel-header">
+      <h2 id="ideas-title">💡 Boîte à idées</h2>
+      <button type="button" class="panel-close ideas-close" title="Fermer" aria-label="Fermer">✕</button>
+    </div>
+    <p class="menu-note">Notez vos idées d'amélioration : elles sont conservées sur cet appareil,
+      et le bouton ci-dessous prépare un e-mail qui les regroupe toutes.</p>
+    <form class="ideas-form">
+      <textarea rows="3" placeholder="Votre idée…" required></textarea>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-secondary ideas-mail">📧 Envoyer par e-mail</button>
+        <button type="submit" class="btn">Enregistrer</button>
+      </div>
+    </form>
+    <div class="ideas-list"></div>
+  </dialog>
+
+  <!-- Bandeau discret : données escalade partielles (refermable) -->
+  <div id="banner-escalade" role="status" hidden>
+    <span>🧗 Spots d'escalade non exhaustifs : position au centre de la commune,
+      corde/approche renseignées sur ~1 spot sur 3 — à vérifier avant d'y aller.</span>
+    <button type="button" class="banner-close" title="Fermer" aria-label="Fermer ce message">✕</button>
+  </div>
+
+  <!-- Signalement d'un point (envoyé par e-mail : l'app est 100 % statique) -->
+  <dialog id="report-dialog" aria-labelledby="report-title">
+    <h2 id="report-title">📢 Signaler / corriger</h2>
+    <p class="report-point menu-note"></p>
+    <form class="report-form">
+      <label>Type de signalement
+        <select class="report-type">
+          <option value="Ouvert / praticable">✅ C'est ouvert / praticable</option>
+          <option value="Fermé / interdit">⛔ C'est fermé / interdit</option>
+          <option value="Position incorrecte">📍 La position est incorrecte</option>
+          <option value="Information erronée">✏️ Une information est erronée</option>
+          <option value="Autre remarque">💬 Autre remarque</option>
+        </select>
+      </label>
+      <label>Votre commentaire (facultatif)
+        <textarea class="report-text" rows="3" placeholder="Précisez ce qui doit être corrigé…"></textarea>
+      </label>
+      <p class="menu-note">Le signalement est conservé sur cet appareil et un e-mail
+        pré-rempli s'ouvre — il ne reste qu'à l'envoyer.</p>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-secondary report-cancel">Annuler</button>
+        <button type="submit" class="btn">📧 Préparer l'e-mail</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Avertissement d'activation de la catégorie Toilettes (~66 000 points) -->
+  <dialog id="wc-dialog" aria-labelledby="wc-title">
+    <h2 id="wc-title">🚻 Beaucoup de points !</h2>
+    <p class="menu-note">Risque de lag : pour éviter les ralentissements, pensez à zoomer
+      avant d'utiliser cette option. En cliquant sur le bouton
+      « <span class="wc-runner" aria-hidden="true">🏃</span>🚻 À moins de 1 km », vous pouvez zoomer sur
+      votre position et activer uniquement les toilettes à proximité.</p>
+    <div class="dialog-actions wc-actions">
+      <button type="button" class="btn btn-secondary wc-retour">Retour</button>
+      <button type="button" class="btn btn-secondary wc-proximite"><span class="wc-runner" aria-hidden="true">🏃</span>🚻 À moins de 1 km</button>
+      <button type="button" class="btn wc-valider">Valider</button>
+    </div>
+  </dialog>
+
+  <!-- Confirmation de suppression (le confirm() natif est ignoré dans
+       certains contextes : PWA installée, dialogues bloqués…) -->
+  <dialog id="confirm-dialog" aria-labelledby="confirm-message">
+    <p id="confirm-message" class="confirm-message"></p>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-secondary confirm-cancel">Annuler</button>
+      <button type="button" class="btn btn-danger confirm-ok">Supprimer</button>
+    </div>
+  </dialog>
+
+  <!-- Visite guidée -->
+  <div id="tuto-overlay" hidden></div>
+
+  <div id="toast" role="status" hidden></div>
+
+  <!-- Entrée fichier unique (tous formats) -->
+  <input type="file" id="file-import" accept=".geojson,.json,.csv,.gpx,.kml,.kmz" multiple hidden>
+
+  <!-- Librairies vendorées (fonctionnent hors-ligne) -->
+  <script src="vendor/leaflet/leaflet.js"></script>
+  <script src="vendor/markercluster/leaflet.markercluster.js"></script>
+  <script src="vendor/togeojson/togeojson.umd.js"></script>
+  <script src="vendor/fflate/fflate.min.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Aperçu double — Carte Outdoor</title>
+  <style>
+    :root { --accent: #2e7d52; --bord: #cdd6de; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, "Segoe UI", sans-serif; background: #eef2f5; color: #22313c; }
+
+    .barre {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      padding: 10px 16px; background: #fff; position: sticky; top: 0; z-index: 10;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    }
+    .barre h1 { font-size: 15px; margin: 0 8px 0 0; }
+    .barre label { font-size: 13px; display: inline-flex; align-items: center; gap: 5px; }
+    select, button { font: inherit; font-size: 13px; border: 1px solid var(--bord); background: #fff; border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+    button.primaire { background: var(--accent); color: #fff; border-color: var(--accent); }
+    button:hover { filter: brightness(1.05); }
+    .etat { font-size: 12px; color: #64748b; margin-left: auto; }
+
+    .scene { display: flex; gap: 24px; padding: 20px; align-items: flex-start; }
+    .cadre-entete { font-size: 13px; font-weight: 600; margin-bottom: 8px; display: flex; justify-content: space-between; gap: 12px; color: #475560; }
+
+    /* Ordinateur : l'iframe est TOUJOURS large de 1280 px (les media queries
+       voient donc la vraie mise en page bureau) puis mise à l'échelle pour
+       tenir dans la place disponible. */
+    .pc { flex: 1 1 auto; min-width: 0; }
+    .pc .viewport { overflow: hidden; border-radius: 12px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12); background: #fff; }
+    .pc .scaler { transform-origin: top left; }
+    .pc iframe { width: 1280px; height: 820px; border: 0; display: block; }
+
+    /* Téléphone : taille réelle du modèle choisi (échelle 1:1). */
+    .tel { flex: none; }
+    .tel .chassis { padding: 12px; background: #1e2933; border-radius: 30px; box-shadow: 0 6px 22px rgba(0, 0, 0, 0.25); }
+    .tel .ecran { border-radius: 20px; overflow: hidden; background: #fff; }
+    .tel iframe { border: 0; display: block; }
+  </style>
+</head>
+<body>
+  <div class="barre">
+    <h1>🗺️ Aperçu double</h1>
+    <label>📱 Modèle
+      <select id="modele">
+        <option value="375x812">iPhone SE/13 mini · 375×812</option>
+        <option value="390x844">iPhone 14 · 390×844</option>
+        <option value="360x800">Android · 360×800</option>
+        <option value="412x915">Pixel · 412×915</option>
+      </select>
+    </label>
+    <button class="primaire" id="recharger" title="Vide le cache du service worker puis recharge les deux vues (indispensable en dev)">🧹 Recharger (cache vidé)</button>
+    <label><input type="checkbox" id="auto"> Auto toutes les 5 s</label>
+    <span class="etat" id="etat"></span>
+  </div>
+
+  <div class="scene">
+    <div class="pc">
+      <div class="cadre-entete"><span>💻 Ordinateur</span><span id="pc-taille"></span></div>
+      <div class="viewport"><div class="scaler"><iframe id="frame-pc" src="../index.html"></iframe></div></div>
+    </div>
+    <div class="tel">
+      <div class="cadre-entete"><span>📱 Téléphone</span><span id="tel-taille"></span></div>
+      <div class="chassis"><div class="ecran"><iframe id="frame-tel" src="../index.html"></iframe></div></div>
+    </div>
+  </div>
+
+  <script>
+    const PC_L = 1280, PC_H = 820; // dimensions logiques du rendu « bureau »
+    const framePc = document.getElementById("frame-pc");
+    const frameTel = document.getElementById("frame-tel");
+    const etat = document.getElementById("etat");
+
+    // Met le cadre PC à l'échelle pour qu'il tienne dans la place restante,
+    // sans jamais changer sa largeur logique (1280 px) : la mise en page
+    // bureau reste fidèle quelle que soit la taille de la fenêtre.
+    function ajusterPc() {
+      const viewport = document.querySelector(".pc .viewport");
+      // Au tout premier rendu la place disponible n'est pas encore connue :
+      // on réessaie à la frame suivante plutôt que de calculer une échelle nulle.
+      if (viewport.clientWidth < 50) { requestAnimationFrame(ajusterPc); return; }
+      const echelle = Math.min(1, viewport.clientWidth / PC_L);
+      document.querySelector(".pc .scaler").style.transform = "scale(" + echelle + ")";
+      viewport.style.height = (PC_H * echelle) + "px";
+      document.getElementById("pc-taille").textContent =
+        PC_L + "×" + PC_H + " px" + (echelle < 1 ? " (affiché à " + Math.round(echelle * 100) + " %)" : "");
+    }
+
+    function appliquerModele() {
+      const [w, h] = document.getElementById("modele").value.split("x").map(Number);
+      frameTel.style.width = w + "px";
+      frameTel.style.height = h + "px";
+      document.getElementById("tel-taille").textContent = w + "×" + h + " px";
+      ajusterPc(); // la largeur du téléphone change la place restante pour le PC
+    }
+
+    // En dev, le service worker sert son pré-cache : pour voir ses dernières
+    // modifications, on le désinscrit et on vide les caches avant de recharger.
+    // Les iframes sont de même origine → leur contexte est accessible.
+    async function rechargerFraiche(frame) {
+      const w = frame.contentWindow;
+      try {
+        for (const reg of await w.navigator.serviceWorker.getRegistrations()) await reg.unregister();
+        for (const cle of await w.caches.keys()) await w.caches.delete(cle);
+      } catch (e) { /* SW indisponible : on recharge quand même */ }
+      w.location.reload();
+    }
+
+    async function rechargerLesDeux() {
+      await Promise.all([rechargerFraiche(framePc), rechargerFraiche(frameTel)]);
+      etat.textContent = "rechargé à " + new Date().toLocaleTimeString("fr-FR");
+    }
+
+    document.getElementById("modele").addEventListener("change", appliquerModele);
+    document.getElementById("recharger").addEventListener("click", rechargerLesDeux);
+    window.addEventListener("resize", ajusterPc);
+
+    let minuteur = null;
+    document.getElementById("auto").addEventListener("change", (e) => {
+      clearInterval(minuteur);
+      if (e.target.checked) minuteur = setInterval(rechargerLesDeux, 5000);
+    });
+
+    appliquerModele();
+    window.addEventListener("load", ajusterPc);
+  </script>
+</body>
+</html>

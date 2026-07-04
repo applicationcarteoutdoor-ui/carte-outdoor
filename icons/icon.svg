@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Icône de l'application : montagnes stylisées sur fond bleu nuit -->
+  <rect width="512" height="512" rx="96" fill="#1d3557"/>
+  <circle cx="380" cy="140" r="52" fill="#f4d35e"/>
+  <path d="M60 400 L200 170 L280 300 L330 230 L452 400 Z" fill="#e9ecef"/>
+  <path d="M60 400 L200 170 L245 245 L170 400 Z" fill="#adb5bd"/>
+  <path d="M186 193 L200 170 L214 193 L200 210 Z" fill="#ffffff"/>
+  <circle cx="256" cy="430" r="26" fill="#e63946" stroke="#ffffff" stroke-width="10"/>
+</svg>

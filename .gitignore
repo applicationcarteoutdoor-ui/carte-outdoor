@@ -1,0 +1,11 @@
+# Sources personnelles (117 Mo) : restent uniquement sur ce PC
+Donné/
+
+# Outillage local Claude Code
+.claude/
+Claude Setup.exe
+
+# Caches du pipeline de données (se reconstruisent via tools/build_data.py)
+tools/__pycache__/
+tools/*.json
+tools/*.html

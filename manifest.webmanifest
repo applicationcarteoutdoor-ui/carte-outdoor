@@ -1,0 +1,17 @@
+{
+  "name": "Carte Outdoor — points d'intérêt rando",
+  "short_name": "Carte Outdoor",
+  "description": "Carte interactive de points d'intérêt outdoor : via ferrata, escalade, refuges, cascades, sentiers…",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#1d3557",
+  "background_color": "#ffffff",
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
