@@ -918,7 +918,9 @@ dialog .panel-header { padding: 0 0 4px; }
   top: 10px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1150;
+  /* au-dessus des panneaux (filtres 1250, fiche 1360) : cocher Escalade
+     ouvre le panneau de filtres, qui recouvrait la croix de fermeture */
+  z-index: 1400;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -937,8 +939,9 @@ dialog .panel-header { padding: 0 0 4px; }
   border: none;
   color: #fff;
   cursor: pointer;
-  font-size: 14px;
-  padding: 4px 8px;
+  font-size: 15px;
+  min-width: 38px;
+  min-height: 38px;
   opacity: 0.8;
 }
 #banner-escalade .banner-close:hover { opacity: 1; }

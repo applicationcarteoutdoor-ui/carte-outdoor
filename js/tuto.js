@@ -85,7 +85,9 @@ const ETAPES = [
     titre: "Idées et position",
     texte:
       "💡 pour noter vos idées d'amélioration, 🎓 pour revoir ce tuto, ◎ pour afficher votre position. " +
-      "L'application fonctionne aussi hors connexion : les zones déjà consultées restent visibles. Bonne exploration !",
+      "L'application fonctionne aussi hors connexion : les zones déjà consultées restent visibles. " +
+      "Astuce : ajoutez cette carte à votre écran d'accueil pour y accéder comme une vraie application. " +
+      "Bonne exploration !",
   },
 ];
 
