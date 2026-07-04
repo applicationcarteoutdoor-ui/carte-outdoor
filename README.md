@@ -1,5 +1,8 @@
 # 🏔️ Carte Outdoor
 
+**➡️ Application en ligne : https://bidband4-stack.github.io/carte-outdoor/**
+(sur téléphone : ouvrez l'URL puis « Ajouter à l'écran d'accueil » pour l'installer)
+
 Application web de carte interactive de points d'intérêt outdoor :
 via ferrata (liens directs viaferrata-fr.net), escalade, grottes et
 cathédrales (fiches et photos Wikipédia), châteaux, cités de caractère,
@@ -29,13 +32,30 @@ python tools/dev_server.py 8124
 indispensable pour voir vos modifications immédiatement pendant le
 développement. En production c'est le service worker qui gère le cache.)
 
-## Héberger
+## Prévisualiser PC + mobile côte à côte
 
-Copiez le dossier tel quel sur GitHub Pages, Netlify, Vercel… Chemins
-relatifs : un sous-dossier fonctionne aussi. HTTPS requis pour le hors-ligne.
+Pendant que le serveur local tourne : http://localhost:8124/dev/apercu.html
+(rendu bureau 1280 px et rendu téléphone au choix, bouton de rechargement
+qui vide le cache du service worker).
 
-> **Après chaque mise à jour des fichiers, incrémentez `VERSION` dans
-> `sw.js`**, sinon les visiteurs gardent l'ancienne version en cache.
+## Mettre à jour le site en ligne
+
+Le site est servi par GitHub Pages depuis la branche `main` du dépôt
+[bidband4-stack/carte-outdoor](https://github.com/bidband4-stack/carte-outdoor) :
+
+```bash
+# 1. Une fois les modifications FINALISÉES : incrémenter VERSION dans sw.js
+# 2. Puis :
+git add -A
+git commit -m "Description de la mise à jour"
+git push
+# Pages redéploie en ~1 minute ; les visiteurs reçoivent la nouvelle
+# version automatiquement (rechargement au changement de service worker).
+```
+
+> **Ne poussez jamais sans avoir incrémenté `VERSION` dans `sw.js`** quand des
+> fichiers de l'application ont changé, sinon les visiteurs gardent l'ancienne
+> version en cache. (`Donné/` et les caches de `tools/` ne sont pas versionnés.)
 
 ## Interface
 
