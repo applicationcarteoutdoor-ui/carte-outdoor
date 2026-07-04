@@ -15,8 +15,8 @@ import { confirmer } from "./import-export.js";
 const PHOTO_MAX = 1024; // côté max (px) des photos stockées
 const PHOTO_QUALITE = 0.8;
 
-// Signalements : même adresse que la boîte à idées (app statique → mailto)
-const EMAIL_SIGNALEMENT = "bidband4@gmail.com";
+// Signalements : même adresse dédiée que la boîte à idées (app statique → mailto)
+const EMAIL_SIGNALEMENT = "Applicationcarteoutdoor@gmail.com";
 const KEY_SIGNALEMENTS = "carte-outdoor:signalements";
 
 let panel = null;

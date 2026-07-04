@@ -8,7 +8,7 @@
  */
 
 const KEY = "carte-outdoor:idees";
-const EMAIL = "bidband4@gmail.com";
+const EMAIL = "Applicationcarteoutdoor@gmail.com";
 
 let dialog = null;
 

@@ -62,7 +62,8 @@ let pointsToilettes = [];
 /** Indices du cycle « flèche ➤ » (clics successifs → point suivant). */
 const cycleUserPoint = {};
 
-/** Bandeau « données escalade partielles » : fermé une fois pour toutes. */
+/** Bandeau « données escalade partielles » : la croix le ferme, mais il
+ *  réapparaît à chaque nouvelle activation de la catégorie Escalade. */
 let bandeauEscaladeFerme = false;
 
 async function chargerPoints() {
@@ -466,7 +467,6 @@ function restaurerPrefs(prefs) {
   state.filtersCollapsed = prefs.filtersCollapsed === true;
   state.tracesVisible = prefs.tracesVisible !== false;
   state.grVisible = prefs.grVisible === true;
-  bandeauEscaladeFerme = prefs.bandeauEscaladeFerme === true;
 }
 
 async function demarrer() {
@@ -504,6 +504,7 @@ async function demarrer() {
       coche ? state.activeThemes.add(id) : state.activeThemes.delete(id);
       if (coche) {
         state.statusFilters.clear(); // exclusif avec le mode suivi
+        if (id === "escalade") bandeauEscaladeFerme = false; // le bandeau revient
         if (id === "toilettes" && !(await chargerToilettes())) {
           state.activeThemes.delete(id);
         }
@@ -628,8 +629,7 @@ async function demarrer() {
   initIdeas();
 
   document.querySelector("#banner-escalade .banner-close").addEventListener("click", () => {
-    bandeauEscaladeFerme = true;
-    storage.savePrefs({ bandeauEscaladeFerme: true });
+    bandeauEscaladeFerme = true; // volontairement non persisté : il reviendra
     document.getElementById("banner-escalade").hidden = true;
   });
 
