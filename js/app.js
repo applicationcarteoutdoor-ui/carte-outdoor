@@ -628,9 +628,18 @@ async function demarrer() {
   initToilettesProches();
   initIdeas();
 
-  document.querySelector("#banner-escalade .banner-close").addEventListener("click", () => {
-    bandeauEscaladeFerme = true; // volontairement non persisté : il reviendra
+  // Fermeture du bandeau escalade : clic N'IMPORTE OÙ sur le bandeau
+  // (pas seulement la croix) ou touche Échap. Volontairement non persisté :
+  // il revient à la prochaine activation de la catégorie.
+  const fermerBandeau = () => {
+    bandeauEscaladeFerme = true;
     document.getElementById("banner-escalade").hidden = true;
+  };
+  document.getElementById("banner-escalade").addEventListener("click", fermerBandeau);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !document.getElementById("banner-escalade").hidden) {
+      fermerBandeau();
+    }
   });
 
   // Étape « filtres » du tuto : elle montre TOUJOURS les filtres des via

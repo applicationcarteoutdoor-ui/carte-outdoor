@@ -921,6 +921,7 @@ dialog .panel-header { padding: 0 0 4px; }
   /* au-dessus des panneaux (filtres 1250, fiche 1360) : cocher Escalade
      ouvre le panneau de filtres, qui recouvrait la croix de fermeture */
   z-index: 1400;
+  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
