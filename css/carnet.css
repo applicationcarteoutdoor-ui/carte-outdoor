@@ -208,6 +208,10 @@
   position: relative; /* accueille la page de mesure de la pagination */
   perspective: 1600px;
   height: min(76dvh, 640px);
+  /* Centre la couverture (désormais à ratio fixe) et le livre ouvert */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Page invisible où la pagination mesure la place réelle des entrées */
@@ -300,6 +304,13 @@
 .carnet-couverture {
   position: relative;
   width: min(430px, 100%);
+  /* Ratio EXACT de la photo (760×992) : « background: cover » n'a plus rien à
+     recadrer → le « ? » de la plaque tombe au même % sur TOUS les écrans, donc
+     le médaillon logo reste bien placé aussi bien sur PC que sur téléphone
+     (correctif du décalage mobile). */
+  aspect-ratio: 760 / 992;
+  height: auto;
+  max-height: 100%;
   margin: 0 auto;
   border-radius: 10px 18px 18px 10px;
   cursor: pointer;
@@ -326,9 +337,11 @@
    toucher au grand symbole central. Serti d'un liseré de laiton. */
 .couv-logo {
   position: absolute;
-  top: 59%;
-  left: 64%; /* centré sur le « ? » pour le masquer entièrement */
-  width: 21%;
+  /* Coordonnées mesurées sur la photo (grille %) : le « ? » gravé est à
+     x≈67 % / y≈58 %. Stables car la couverture a le ratio de la photo. */
+  top: 58%;
+  left: 67%;
+  width: 20%;
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   object-fit: cover;
@@ -570,10 +583,12 @@
   background:
     linear-gradient(rgba(246, 240, 224, 0.35), rgba(246, 240, 224, 0.35)),
     url("../img/carnet-page-1.jpg") center / cover no-repeat;
-  background-color: #ece2c8;
+  /* Papier plus clair et plus chaud + halo bruni ADOUCI : la page respire
+     comme un vrai carnet plutôt qu'un grimoire noirci (rendu plus authentique). */
+  background-color: #f1e8d2;
   box-shadow:
-    inset 0 0 44px rgba(122, 85, 34, 0.28),
-    inset -3px 0 10px rgba(122, 85, 34, 0.14);
+    inset 0 0 40px rgba(122, 85, 34, 0.16),
+    inset -3px 0 10px rgba(122, 85, 34, 0.1);
   color: #3c2c14;
   transform: rotate(var(--pente, 0deg));
 }
@@ -772,6 +787,79 @@
 }
 
 .page-note-vide { opacity: 0.55; font-size: 1.2rem; }
+
+/* --- Édition dans le carnet : note modifiable, photo ajoutable/supprimable - */
+
+.page-note-bloc { position: relative; display: flex; align-items: flex-start; gap: 2px; }
+.page-note-bloc .page-note { flex: 1; min-width: 0; }
+
+.note-editer {
+  flex: none;
+  border: none;
+  background: transparent;
+  color: rgba(35, 70, 115, 0.55);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 6px 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.page-note-bloc:hover .note-editer,
+.note-editer:focus-visible { opacity: 1; }
+.note-editer:hover { color: #24466e; }
+
+.note-edit-champ {
+  width: 100%;
+  font-family: "Caveat", cursive;
+  font-size: 1.35rem;
+  line-height: 1.3;
+  color: var(--encre, #24466e);
+  background: rgba(255, 252, 242, 0.72);
+  border: 1px solid rgba(60, 90, 130, 0.4);
+  border-radius: 6px;
+  padding: 6px 8px;
+  resize: vertical;
+}
+.note-edit-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 4px; }
+
+.entree-ajout { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.entree-ajout .page-action { opacity: 0.7; }
+.entree-ajout .page-action:hover { opacity: 1; }
+.ajout-photo { cursor: pointer; }
+
+.page-photo-bloc { position: relative; display: inline-block; line-height: 0; }
+.photo-suppr {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid #fffdf4;
+  background: rgba(140, 44, 44, 0.92);
+  color: #fff;
+  font-size: 0.72rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.page-photo-bloc:hover .photo-suppr,
+.photo-suppr:focus-visible { opacity: 1; }
+
+/* Sur écran tactile, pas de survol : les commandes restent visibles */
+@media (hover: none) {
+  .note-editer,
+  .photo-suppr { opacity: 1; }
+}
+
+/* Grimoire sombre (mode nuit) : champ d'édition et crayon lisibles */
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit) .note-editer { color: rgba(220, 200, 150, 0.6); }
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit) .note-edit-champ {
+  background: rgba(20, 16, 10, 0.6);
+  border-color: rgba(200, 180, 130, 0.4);
+}
 
 .entree-actions {
   display: flex;
@@ -1151,6 +1239,113 @@
 .carnet-theme-nuit .carnet-recherche::placeholder { color: #8a7a52; }
 
 .carnet-theme-nuit .carnet-bandeau-activite {
+  background: linear-gradient(180deg, #2b2620, #221d16);
+  border-color: rgba(200, 180, 130, 0.3);
+  color: #e2d5b2;
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.45);
+}
+
+/* ==========================================================================
+   GRIMOIRE — VERSION SOMBRE, pilotée par le mode nuit de l'application.
+   Le MÊME grimoire (photos de couverture et de pages) est simplement
+   assombri et l'écriture passe en teinte claire : version sombre du même
+   design, automatiquement, sans changer de thème. Voyage, Nuit (thème
+   manuel) et Perso gardent leur propre aspect (exclus par :not()).
+   ========================================================================== */
+
+/* Couverture : la photo, voilée de sombre (le titre et le logo restent nets) */
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit):not(.carnet-couv-perso) .carnet-couverture {
+  background:
+    linear-gradient(rgba(8, 5, 2, 0.5), rgba(8, 5, 2, 0.5)),
+    url("../img/carnet-couverture.jpg") center / cover no-repeat,
+    linear-gradient(160deg, #2a1a0e, #170d05);
+  box-shadow:
+    inset 0 0 0 3px rgba(0, 0, 0, 0.6),
+    inset 0 0 60px rgba(0, 0, 0, 0.6),
+    0 24px 50px rgba(0, 0, 0, 0.7);
+}
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit) .couv-logo {
+  border-color: rgba(150, 146, 134, 0.9);
+}
+
+/* Pages : mêmes photos, voile sombre + écriture claire */
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit):not(.carnet-page-perso) .page-carnet {
+  background-image:
+    linear-gradient(rgba(20, 14, 7, 0.62), rgba(20, 14, 7, 0.62)),
+    url("../img/carnet-page-1.jpg");
+  background-color: #221a10;
+  color: #ece0c2;
+  box-shadow: inset 0 0 44px rgba(0, 0, 0, 0.5), inset -3px 0 10px rgba(0, 0, 0, 0.28);
+}
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit):not(.carnet-page-perso) .page-carnet.page-v2 {
+  background-image: linear-gradient(rgba(20, 14, 7, 0.62), rgba(20, 14, 7, 0.62)), url("../img/carnet-page-2.jpg");
+}
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit):not(.carnet-page-perso) .page-carnet.page-v3 {
+  background-image: linear-gradient(rgba(20, 14, 7, 0.62), rgba(20, 14, 7, 0.62)), url("../img/carnet-page-3.jpg");
+}
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit):not(.carnet-page-perso) .page-carnet.page-v4 {
+  background-image: linear-gradient(rgba(20, 14, 7, 0.62), rgba(20, 14, 7, 0.62)), url("../img/carnet-page-4.jpg");
+}
+
+/* Ombre de reliure assombrie (double page + page seule) */
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit):not(.carnet-page-perso) .carnet-pages.double .page-carnet:first-child {
+  box-shadow: inset 0 0 44px rgba(0, 0, 0, 0.5), inset -14px 0 22px -10px rgba(0, 0, 0, 0.62);
+}
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit):not(.carnet-page-perso) .carnet-pages.double .page-carnet:last-child {
+  box-shadow: inset 0 0 44px rgba(0, 0, 0, 0.5), inset 14px 0 22px -10px rgba(0, 0, 0, 0.62);
+}
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit):not(.carnet-page-perso) .carnet-pages:not(.double) .page-carnet {
+  box-shadow: inset 0 0 44px rgba(0, 0, 0, 0.5), inset 16px 0 22px -12px rgba(0, 0, 0, 0.62);
+}
+
+/* Épaisseur du bloc de feuilles (tranches) sombres */
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit) .carnet-pages {
+  box-shadow: 1px 1.5px 0 #38322a, 2px 3px 0 #322c24, 3px 4.5px 0 #2b261f, 4px 6px 0 #241f19, 5px 7.5px 0 rgba(0, 0, 0, 0.7);
+}
+
+/* Textes de page en teinte claire */
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit) .page-entete { border-bottom-color: rgba(200, 180, 130, 0.25); }
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit) .page-entete time,
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit) .page-fixer-date { color: #b9a678; }
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit) .page-cat { color: #a89263; }
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit) .page-titre { color: #eee2c0; }
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit) .page-mention { color: #9fc48f; }
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit) .entree + .entree::before { color: rgba(200, 180, 130, 0.45); }
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit) .page-numero { color: #8a7a52; }
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit) .page-photo { border-color: #3a352c; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7); }
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit) .page-tache {
+  background: radial-gradient(ellipse, rgba(190, 165, 110, 0.6), rgba(190, 165, 110, 0.18) 60%, transparent 75%);
+}
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit) .page-date-input {
+  background: rgba(20, 16, 10, 0.55);
+  border-color: rgba(200, 180, 130, 0.4);
+  color: #e2d5b2;
+}
+
+/* Boutons « à la plume » clairs sur page sombre */
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit) .page-action,
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit) .carnet-bouton {
+  border-color: rgba(220, 200, 150, 0.55);
+  color: #d9c79a;
+}
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit) .page-action:hover,
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit) .carnet-bouton:hover { background: rgba(220, 200, 150, 0.1); }
+
+/* Barre, flèches, recherche et bandeau en cuir sombre */
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit) .carnet-barre,
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit) .carnet-fleche {
+  background:
+    radial-gradient(ellipse at 15% 20%, rgba(120, 105, 80, 0.2), transparent 55%),
+    linear-gradient(160deg, #221c15 0%, #15100a 70%, #0d0a06 100%);
+}
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit) .carnet-recherche,
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit) .carnet-tri {
+  background: linear-gradient(180deg, #2b2620, #221d16);
+  border-color: rgba(0, 0, 0, 0.8);
+  color: #e2d5b2;
+}
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit) .carnet-recherche::placeholder { color: #8a7a52; }
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit) .carnet-bandeau-activite {
   background: linear-gradient(180deg, #2b2620, #221d16);
   border-color: rgba(200, 180, 130, 0.3);
   color: #e2d5b2;

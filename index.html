@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="vendor/markercluster/MarkerCluster.Default.css">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/carnet.css">
+  <link rel="stylesheet" href="css/oracle.css">
 </head>
 <body>
 
@@ -75,6 +76,7 @@
       </svg>
     </button>
     <button type="button" id="btn-carnet" class="fab fab-carnet" title="Mon carnet de sorties" aria-label="Ouvrir mon carnet de sorties">📖</button>
+    <button type="button" id="btn-oracle" class="fab fab-oracle" title="L'Oracle — que faire dans le coin ?" aria-label="L'Oracle : idées de sorties autour de moi">🔮</button>
     <button type="button" id="btn-wc" class="fab fab-wc" title="Toilettes à moins de 1 km de moi" aria-label="Toilettes autour de moi"><span class="wc-runner" aria-hidden="true">🏃</span><span aria-hidden="true">🚻</span></button>
     <button type="button" id="btn-ideas" class="fab" title="Boîte à idées" aria-label="Boîte à idées">💡</button>
     <button type="button" id="btn-tuto" class="fab" title="Revoir le tuto" aria-label="Revoir le tuto">🎓</button>
@@ -249,6 +251,63 @@
     <div class="dialog-actions">
       <button type="button" class="btn btn-secondary confirm-cancel">Annuler</button>
       <button type="button" class="btn btn-danger confirm-ok">Supprimer</button>
+    </div>
+  </dialog>
+
+  <!-- L'Oracle 🔮 : guide local par IA (js/oracle.js + css/oracle.css) -->
+  <dialog id="oracle-dialog" class="oracle-dialog" aria-labelledby="oracle-titre">
+    <div class="oracle-panneau">
+      <header class="oracle-header">
+        <div class="oracle-boule" aria-hidden="true"><span class="oracle-boule-eclat"></span></div>
+        <div class="oracle-titres">
+          <h2 id="oracle-titre">L'Oracle</h2>
+          <p>Dis-moi où tu es, je révèle tout ce qu'il y a à faire autour.</p>
+        </div>
+        <button type="button" class="btn-icon oracle-cle-toggle" title="Clé API" aria-label="Réglages de la clé API">🔑</button>
+        <button type="button" class="btn-icon oracle-close" title="Fermer" aria-label="Fermer l'Oracle">✕</button>
+      </header>
+
+      <div class="oracle-corps">
+        <aside class="oracle-historique" aria-label="Consultations passées">
+          <h3>Consultations</h3>
+          <div class="oracle-histo-liste"></div>
+        </aside>
+
+        <div class="oracle-principal">
+          <form class="oracle-form">
+            <input type="text" inputmode="numeric" class="oracle-cp" placeholder="Code postal (ex. 05100)"
+                   aria-label="Code postal" maxlength="5" autocomplete="off">
+            <button type="button" class="oracle-position" title="Utiliser ma position" aria-label="Utiliser ma position">📍</button>
+            <button type="submit" class="oracle-consulter">🔮 Consulter</button>
+          </form>
+
+          <!-- Panneau clés & moteur (affiché d'office au premier usage) -->
+          <div class="oracle-cle-panneau" hidden>
+            <h3>🔑 Clés &amp; moteur IA</h3>
+            <p class="oracle-note">Renseigne la clé du ou des fournisseurs que tu veux utiliser (tu peux en
+              mettre plusieurs et changer de moteur quand tu veux). Chaque clé reste <strong>uniquement sur
+              cet appareil</strong>, n'est envoyée qu'à son fournisseur en HTTPS chiffré, et n'est jamais
+              incluse dans tes sauvegardes.</p>
+            <div class="oracle-moteur">
+              <label class="oracle-champ">Fournisseur utilisé
+                <select class="oracle-fournisseur"></select>
+              </label>
+              <label class="oracle-champ">Modèle
+                <select class="oracle-modele"></select>
+              </label>
+            </div>
+            <div class="oracle-cles"></div>
+            <p class="oracle-note">Pense à fixer un plafond de dépense chez ton fournisseur. Pour retirer une
+              clé, vide son champ puis Enregistre.</p>
+            <div class="oracle-cle-actions">
+              <button type="button" class="btn oracle-cle-effacer">Tout effacer</button>
+              <button type="button" class="btn oracle-cle-enregistrer">Enregistrer</button>
+            </div>
+          </div>
+
+          <div class="oracle-reponse" aria-live="polite"></div>
+        </div>
+      </div>
     </div>
   </dialog>
 

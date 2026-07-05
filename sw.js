@@ -14,7 +14,7 @@
  *    pour invalider l'ancien cache.
  */
 
-const VERSION = "v31";
+const VERSION = "v33";
 const CACHE_SHELL = `carte-outdoor-shell-${VERSION}`;
 const CACHE_TUILES = "carte-outdoor-tuiles-v1";
 const MAX_TUILES = 600;
@@ -27,9 +27,11 @@ const SHELL = [
   "./manifest.webmanifest",
   "./css/styles.css",
   "./css/carnet.css",
+  "./css/oracle.css",
   "./fonts/caveat.woff2",
   "./js/app.js",
   "./js/carnet.js",
+  "./js/oracle.js",
   "./js/map.js",
   "./js/filters.js",
   "./js/details.js",

@@ -36,6 +36,7 @@ import { initGpx, setAllTracesVisible } from "./gpx.js";
 import { initAddPoint } from "./addpoint.js";
 import { initTuto, startTuto } from "./tuto.js";
 import { initIdeas } from "./ideas.js";
+import { initOracle } from "./oracle.js";
 import { initCarnet, exporterCarnetPDF, ouvrirCarnetPourPoint } from "./carnet.js";
 import { SUR_ANDROID, SUR_IOS } from "./config/platform.js";
 
@@ -867,6 +868,7 @@ async function demarrer() {
   initGeolocalisation();
   initToilettesProches();
   initIdeas();
+  initOracle();
   initInstallation();
   initReglages();
   initModeNuit(prefs);

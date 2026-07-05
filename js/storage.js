@@ -308,6 +308,16 @@ export async function deleteJournalEntry(pointId, entryId) {
   return entries;
 }
 
+/** Modifie une entrée du carnet d'un point (ex. corriger le texte d'une note
+ *  ou retirer sa photo) — fusionne `patch` dans l'entrée d'id `entryId`. */
+export async function updateJournalEntry(pointId, entryId, patch) {
+  const entries = (await getJournal(pointId)).map((e) =>
+    e.id === entryId ? { ...e, ...patch } : e
+  );
+  await transaction(STORE_JOURNAL, "readwrite", (store) => store.put({ pointId, entries }));
+  return entries;
+}
+
 /** Supprime tout le carnet d'un point (quand le point lui-même est supprimé). */
 export async function deleteJournal(pointId) {
   return transaction(STORE_JOURNAL, "readwrite", (store) => store.delete(pointId));

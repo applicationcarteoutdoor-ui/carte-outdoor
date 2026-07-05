@@ -485,12 +485,17 @@ function graine(texte) {
 }
 
 function encreAleatoire(alea) {
-  switch (themeCarnet.theme) {
-    case "nuit": // craie et ivoire sur papier sombre
-      return `hsl(${(38 + alea() * 14).toFixed(0)}, ${(26 + alea() * 18).toFixed(0)}%, ${(76 + alea() * 10).toFixed(0)}%)`;
-    default: // encre BLEUE (plume) — couleur de base de l'écriture
-      return `hsl(${(210 + alea() * 22).toFixed(0)}, ${(38 + alea() * 20).toFixed(0)}%, ${(22 + alea() * 9).toFixed(0)}%)`;
+  // Papier sombre = craie : soit le thème Nuit (manuel), soit le Grimoire
+  // quand l'application est en mode nuit (le grimoire suit le mode jour/nuit).
+  const sombre =
+    themeCarnet.theme === "nuit" ||
+    (themeCarnet.theme === "grimoire" && document.body.classList.contains("mode-nuit"));
+  if (sombre) {
+    // craie et ivoire sur papier sombre
+    return `hsl(${(38 + alea() * 14).toFixed(0)}, ${(26 + alea() * 18).toFixed(0)}%, ${(76 + alea() * 10).toFixed(0)}%)`;
   }
+  // encre BLEUE (plume) — couleur de base de l'écriture
+  return `hsl(${(210 + alea() * 22).toFixed(0)}, ${(38 + alea() * 20).toFixed(0)}%, ${(22 + alea() * 9).toFixed(0)}%)`;
 }
 
 /** Une entrée : un lieu à une date, avec ses notes/photos et ses actions.
@@ -505,12 +510,31 @@ function htmlEntree(g, pourImpression = false) {
 
   const photos = g.notes
     .filter((n) => n.photo)
-    .map((n) => `<img class="page-photo" src="${n.photo}" alt="Photo de ${esc(g.nom)}" loading="lazy" style="transform:rotate(${((alea() - 0.5) * 4).toFixed(1)}deg)">`)
+    .map((n) => {
+      const img = `<img class="page-photo" src="${n.photo}" alt="Photo de ${esc(g.nom)}" loading="lazy" style="transform:rotate(${((alea() - 0.5) * 4).toFixed(1)}deg)">`;
+      return pourImpression
+        ? img
+        : `<span class="page-photo-bloc">${img}<button type="button" class="photo-suppr" data-note="${esc(n.id)}" data-point="${esc(g.pointId)}" title="Retirer la photo" aria-label="Retirer la photo">✕</button></span>`;
+    })
     .join("");
   const notes = g.notes
     .filter((n) => n.text)
-    .map((n) => `<p class="page-note">${esc(n.text)}</p>`)
+    .map((n) =>
+      pourImpression
+        ? `<p class="page-note">${esc(n.text)}</p>`
+        : `<div class="page-note-bloc" data-note="${esc(n.id)}" data-point="${esc(g.pointId)}"><p class="page-note">${esc(n.text)}</p><button type="button" class="note-editer" title="Modifier la note" aria-label="Modifier la note">✎</button></div>`
+    )
     .join("");
+
+  // Ajout d'une note ou d'une photo directement dans le carnet (sur ce lieu,
+  // à cette date). Absent de l'export PDF.
+  const dateAjout = g.date ? esc(g.date) : "";
+  const ajout = pourImpression
+    ? ""
+    : `<div class="entree-ajout">
+        <button type="button" class="page-action ajout-note" data-point="${esc(g.pointId)}" data-date="${dateAjout}">＋ Note</button>
+        <label class="page-action ajout-photo">＋ Photo<input type="file" accept="image/*" hidden data-point="${esc(g.pointId)}" data-date="${dateAjout}"></label>
+      </div>`;
 
   const actions = pourImpression
     ? ""
@@ -544,6 +568,7 @@ function htmlEntree(g, pourImpression = false) {
         : ""}
       ${photos ? `<div class="page-photos">${photos}</div>` : ""}
       ${notes}
+      ${ajout}
       ${actions}
     </section>`;
 }
@@ -626,6 +651,102 @@ function brancherPages(livre) {
       rendre();
     })
   );
+
+  // --- Édition dans le carnet : modifier une note, en ajouter, gérer les photos
+  livre.querySelectorAll(".note-editer").forEach((b) =>
+    b.addEventListener("click", () => {
+      const bloc = b.closest(".page-note-bloc");
+      ouvrirEditeurNote(
+        bloc,
+        bloc.dataset.point,
+        bloc.dataset.note,
+        bloc.querySelector(".page-note").textContent,
+        null
+      );
+    })
+  );
+  livre.querySelectorAll(".ajout-note").forEach((b) =>
+    b.addEventListener("click", () => {
+      const section = b.closest(".entree");
+      const bloc = document.createElement("div");
+      bloc.className = "page-note-bloc";
+      section.insertBefore(bloc, b.closest(".entree-ajout"));
+      ouvrirEditeurNote(bloc, b.dataset.point, null, "", b.dataset.date || null);
+    })
+  );
+  livre.querySelectorAll(".ajout-photo input").forEach((inp) =>
+    inp.addEventListener("change", async () => {
+      const fichier = inp.files[0];
+      if (!fichier) return;
+      try {
+        const photo = await redimensionnerPhoto(fichier);
+        await storage.addJournalEntry(inp.dataset.point, {
+          id: `j-${Date.now().toString(36)}`,
+          date: inp.dataset.date || null,
+          text: "",
+          photo,
+        });
+        toast("Photo ajoutée au carnet !");
+        await rafraichirEdition();
+      } catch {
+        toast("Photo illisible — essayez-en une autre.");
+      }
+    })
+  );
+  livre.querySelectorAll(".photo-suppr").forEach((b) =>
+    b.addEventListener("click", async () => {
+      if (!(await confirmer("Retirer cette photo du carnet ?"))) return;
+      const pointId = b.dataset.point;
+      const note = b.dataset.note;
+      // Si la note contient aussi du texte, on ne retire QUE la photo
+      const entree = (await storage.getJournal(pointId)).find((e) => e.id === note);
+      if (entree && entree.text) await storage.updateJournalEntry(pointId, note, { photo: null });
+      else await storage.deleteJournalEntry(pointId, note);
+      await rafraichirEdition();
+    })
+  );
+}
+
+/** Réaffiche le carnet après une modification (reste sur une page valide). */
+async function rafraichirEdition() {
+  const avant = indexPage;
+  await construireEntrees();
+  paginer();
+  indexPage = pagesListe.length ? Math.min(Math.max(1, avant), pagesListe.length) : 0;
+  rendre();
+}
+
+/** Éditeur inline d'une note : `noteId` null = création (à la date `dateAjout`). */
+function ouvrirEditeurNote(bloc, pointId, noteId, texteInitial, dateAjout) {
+  bloc.classList.add("note-edition");
+  bloc.innerHTML = `
+    <textarea class="note-edit-champ" rows="3" placeholder="Votre note…">${esc(texteInitial)}</textarea>
+    <div class="note-edit-actions">
+      <button type="button" class="page-action note-annuler">Annuler</button>
+      <button type="button" class="page-action note-ok">✓ Enregistrer</button>
+    </div>`;
+  const champ = bloc.querySelector(".note-edit-champ");
+  champ.focus();
+  champ.setSelectionRange(champ.value.length, champ.value.length);
+  bloc.querySelector(".note-annuler").addEventListener("click", () => rendre());
+  bloc.querySelector(".note-ok").addEventListener("click", async () => {
+    const texte = champ.value.trim();
+    if (noteId) {
+      if (texte) await storage.updateJournalEntry(pointId, noteId, { text: texte });
+      else await storage.deleteJournalEntry(pointId, noteId);
+    } else if (texte) {
+      await storage.addJournalEntry(pointId, {
+        id: `j-${Date.now().toString(36)}`,
+        date: dateAjout || null,
+        text: texte,
+        photo: null,
+      });
+    } else {
+      rendre(); // rien saisi : on annule proprement
+      return;
+    }
+    await rafraichirEdition();
+  });
 }
 
 /* ------------------------------------------------------------------ */
