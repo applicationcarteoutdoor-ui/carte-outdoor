@@ -23,6 +23,7 @@ CACHE_REFUGES = DOSSIER / "refuges-api.json"
 CACHE_WIKI = DOSSIER / "wiki-cache.json"
 CACHE_ALTI = DOSSIER / "alti-cache.json"
 CACHE_TOILETTES = DOSSIER / "toilettes-osm.json"
+CACHE_FICHES_VF = DOSSIER / "vf-fiches-cache.json"
 INDEX_GRGO = DOSSIER / "grgo-index.html"
 
 UA = {"User-Agent": "CarteOutdoor/1.0 (application personnelle de cartographie outdoor)"}
@@ -54,6 +55,57 @@ def normaliser(texte):
     texte = unicodedata.normalize("NFD", texte or "")
     texte = "".join(c for c in texte if unicodedata.category(c) != "Mn")
     return re.sub(r"[^a-z0-9]", "", texte.lower())
+
+
+# ---------------------------------------------------------------------------
+# Via ferrata : tyroliennes (fiches viaferrata-fr.net)
+# ---------------------------------------------------------------------------
+
+def _http_texte(url):
+    req = urllib.request.Request(url, headers=UA)
+    with urllib.request.urlopen(req, timeout=45) as r:
+        brut = r.read()
+    try:
+        return brut.decode("utf-8")
+    except UnicodeDecodeError:
+        return brut.decode("latin-1")  # le site est en latin-1
+
+
+def _parser_tyrolienne(html):
+    """Nombre de tyroliennes d'une fiche viaferrata-fr.net + poulie requise.
+
+    Le tableau d'équipements de la fiche a 4 colonnes fixes (Câbles/Barreaux,
+    Ponts, Échelles, Tyrolienne) : la 4e cellule (icône activite4.gif) contient
+    « x N » puis, si N > 0, le type de poulie. Seule la partie AVANT les
+    commentaires est lue : les visiteurs parlent souvent de tyroliennes.
+    Renvoie {"tyroliennes": N | None (info absente), "poulie": "…"}."""
+    coupe = html.lower().find("commentaire")
+    avant = html[:coupe] if coupe >= 0 else html
+    m = re.search(r"activite4\.gif.*?x\s*<font[^>]*>(\d+)</font>(.{0,600}?)</td>",
+                  avant, re.S)
+    if not m:
+        return {"tyroliennes": None, "poulie": ""}
+    p = re.search(r"Poulie[^<]*", m.group(2))
+    return {"tyroliennes": int(m.group(1)), "poulie": p.group(0).strip() if p else ""}
+
+
+def telecharger_fiches_vf(urls):
+    """Infos tyrolienne de chaque fiche (cache : une fiche n'est téléchargée
+    qu'une fois ; les échecs ne sont pas mis en cache et seront retentés)."""
+    cache = json.loads(CACHE_FICHES_VF.read_text(encoding="utf-8")) if CACHE_FICHES_VF.exists() else {}
+    a_faire = [u for u in urls if u not in cache]
+    if a_faire:
+        print(f"  fiches viaferrata-fr.net : {len(a_faire)} à télécharger…")
+    for i, url in enumerate(a_faire, 1):
+        try:
+            cache[url] = _parser_tyrolienne(_http_texte(url))
+        except Exception as e:
+            print(f"    ! {url[:70]} : {e}")
+        if i % 20 == 0 or i == len(a_faire):
+            CACHE_FICHES_VF.write_text(json.dumps(cache, ensure_ascii=False), encoding="utf-8")
+            print(f"    {i}/{len(a_faire)}")
+        time.sleep(0.4)
+    return cache
 
 
 # ---------------------------------------------------------------------------

@@ -36,11 +36,13 @@ const ETAPES = [
       "au même endroit, et ✎ personnalise le nom, les couleurs et l'icône de chaque catégorie.",
   },
   {
-    cible: "#btn-import-category",
-    titre: "Importer et exporter",
+    cible: "#btn-settings",
+    titre: "Les réglages ⚙️",
     texte:
-      "Importez vos propres points (GeoJSON, CSV, KML, KMZ) — les traces GPX s'importent depuis la " +
-      "ligne « Mes traces GPX ». Le bouton Exporter sauvegarde points, suivi, carnet et catégories personnalisées.",
+      "La roue en bas du panneau regroupe : l'import de vos propres points (GeoJSON, CSV, KML, KMZ), " +
+      "l'export de vos données (points, suivi, carnet, catégories), l'installation de l'application " +
+      "sur l'écran d'accueil et la vérification des mises à jour. " +
+      "Les traces GPX, elles, s'importent depuis la ligne « Mes traces GPX ».",
   },
   {
     cible: "#filter-panel",

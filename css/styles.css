@@ -99,10 +99,22 @@ h2, h3, h4 { font-weight: 650; }
   padding-top: 8px;
 }
 
-.sidebar-actions { flex: none; display: flex; flex-direction: column; gap: 6px; }
+/* Pied du panneau : roue des réglages + numéro de version (lu dans sw.js) */
+.sidebar-foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 4px;
+}
 
-/* Numéro de version (lu dans sw.js au démarrage) : discret, sous les boutons */
-.app-version { margin: 2px 0 0; text-align: center; font-size: 0.74rem; color: var(--text-2); }
+.btn-settings { font-size: 1.2rem; }
+.app-version { flex: 1; margin: 0; text-align: right; font-size: 0.74rem; color: var(--text-2); }
+
+/* Menu ⚙️ Réglages : import/export, installation, mise à jour */
+.settings-list { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; min-width: min(320px, 74vw); }
+.settings-list .btn { min-height: 44px; }
 
 .cat-bloc { flex: none; }
 
@@ -159,7 +171,6 @@ h2, h3, h4 { font-weight: 650; }
   flex: none;
 }
 
-#btn-import-category, #btn-export { min-height: 42px; }
 
 /* Volet des traces (sous « Mes traces GPX ») */
 .traces-volet {
@@ -1024,23 +1035,35 @@ dialog .panel-header { padding: 0 0 4px; }
   /* « Dézoome » le tiroir : tailles réduites, et un tiroir plus étroit
      laisse voir la carte (et le panneau des filtres) sur le côté */
   #sidebar {
-    width: min(272px, 86vw);
-    font-size: 0.86rem;
+    width: min(248px, 82vw);
+    font-size: 0.8rem;
     padding: 8px;
     gap: 6px;
   }
-  .sidebar-title { font-size: 0.98rem; }
-  .sidebar-logo { width: 28px; height: 28px; }
-  #search-input { min-height: 40px; }
-  .cat-check { min-height: 42px; gap: 8px; }
-  .group-icon { width: 27px; height: 27px; font-size: 13px; }
-  .group-count { font-size: 0.7rem; padding: 2px 7px; }
-  #btn-import-category, #btn-export, #btn-install { min-height: 40px; font-size: 0.86rem; }
+  .sidebar-title { font-size: 0.94rem; }
+  .sidebar-logo { width: 26px; height: 26px; }
+  #search-input { min-height: 38px; padding: 6px 10px; }
+  .cat-check { min-height: 38px; gap: 8px; }
+  .cat-label { padding: 4px 0; }
+  .group-icon { width: 24px; height: 24px; font-size: 12px; }
+  .group-count { font-size: 0.66rem; padding: 2px 6px; }
+  .cat-check input[type="checkbox"] { width: 17px; height: 17px; }
+  .btn-icon { min-width: 34px; min-height: 34px; }
 
   /* Les filtres s'ouvrent PAR-DESSUS le tiroir des catégories : sans cela
      ils apparaissaient derrière (tiroir 1350 > panneau 1250) et il fallait
      fermer le tiroir pour les voir. La croix « Replier » rend la main. */
-  #filter-panel { z-index: 1500; }
+  #filter-panel {
+    z-index: 1500;
+    width: min(300px, calc(100vw - 60px));
+  }
+  #filter-panel .panel-header h2 { font-size: 0.92rem; }
+  .filter-body { padding: 0 10px 10px; gap: 8px; }
+  .filter-cat h3 { font-size: 0.85rem; }
+  .filter-cat h3 .group-icon { width: 22px; height: 22px; font-size: 11px; }
+  .filter-cat h4, .filter-group h4 { font-size: 0.68rem; margin: 6px 0 4px; }
+  .chip { min-height: 32px; padding: 2px 10px; font-size: 0.78rem; }
+  .chip-mini { min-height: 29px; padding: 2px 9px; font-size: 0.74rem; }
 }
 
 /* --------------------------------------------------------------------------

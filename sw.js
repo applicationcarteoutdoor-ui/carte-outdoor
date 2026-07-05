@@ -14,7 +14,7 @@
  *    pour invalider l'ancien cache.
  */
 
-const VERSION = "v16";
+const VERSION = "v17";
 const CACHE_SHELL = `carte-outdoor-shell-${VERSION}`;
 const CACHE_TUILES = "carte-outdoor-tuiles-v1";
 const MAX_TUILES = 600;

@@ -36,6 +36,7 @@ export const THEMES = [
       { key: "denivele", label: "Dénivelé" },
       { key: "duree", label: "Durée" },
       { key: "materiel", label: "Matériel requis" },
+      { key: "tyrolienne", label: "Tyrolienne" },
     ],
     filters: [
       {
@@ -46,6 +47,16 @@ export const THEMES = [
         options: [
           { value: "F" }, { value: "PD" }, { value: "AD" },
           { value: "D" }, { value: "TD" }, { value: "ED" },
+        ],
+      },
+      {
+        key: "tyrolienne",
+        label: "Tyrolienne",
+        type: "value",
+        field: "tyrolienne_type",
+        options: [
+          { value: "oui", label: "Avec tyrolienne", icon: "🚡" },
+          { value: "non", label: "Sans" },
         ],
       },
     ],

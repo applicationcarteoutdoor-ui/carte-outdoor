@@ -36,7 +36,7 @@ import { initGpx, setAllTracesVisible } from "./gpx.js";
 import { initAddPoint } from "./addpoint.js";
 import { initTuto, startTuto } from "./tuto.js";
 import { initIdeas } from "./ideas.js";
-import { SUR_IOS } from "./config/platform.js";
+import { SUR_ANDROID, SUR_IOS } from "./config/platform.js";
 
 /** État global de l'application. */
 const state = {
@@ -447,15 +447,28 @@ function initInstallation() {
   dlg.querySelector(".install-ok").addEventListener("click", () => dlg.close());
 
   bouton.addEventListener("click", async () => {
-    // Android / Chrome : la vraie invite d'installation du navigateur
+    // L'invite du navigateur peut arriver quelques secondes après le
+    // chargement : on lui laisse jusqu'à 2 s avant le mode d'emploi.
+    for (let i = 0; i < 20 && !evenementInstallation; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    // Android / Chrome : la vraie invite d'installation du navigateur.
+    // L'événement ne sert qu'UNE fois (re-prompter la même instance lève une
+    // erreur) : on le consomme ; le navigateur en émettra un nouveau au besoin.
     if (evenementInstallation) {
-      evenementInstallation.prompt();
-      const { outcome } = await evenementInstallation.userChoice;
-      if (outcome === "accepted") evenementInstallation = null; // consommée
+      const invite = evenementInstallation;
+      evenementInstallation = null;
+      invite.prompt();
+      await invite.userChoice;
       return;
     }
-    // iPhone/iPad (Apple n'offre aucune invite) ou invite indisponible :
-    // mode d'emploi adapté à la plateforme
+    // Pas d'invite : sur Android c'est presque toujours que l'application
+    // est DÉJÀ installée (Chrome ne la repropose pas) — on le vérifie quand
+    // le navigateur sait répondre (nécessite related_applications du manifest).
+    let dejaInstallee = false;
+    try {
+      dejaInstallee = ((await navigator.getInstalledRelatedApps?.()) || []).length > 0;
+    } catch { /* détection indisponible : message générique */ }
     dlg.querySelector(".install-steps").innerHTML = SUR_IOS
       ? `<p>Sur iPhone / iPad, l'installation passe par <strong>Safari</strong> :</p>
          <ol>
@@ -464,11 +477,64 @@ function initInstallation() {
            <li>Choisissez <strong>« Sur l'écran d'accueil »</strong> (ou « Ajouter à l'écran d'accueil »).</li>
            <li>Touchez <strong>Ajouter</strong> : l'icône apparaît comme une vraie application.</li>
          </ol>`
+      : dejaInstallee
+      ? `<p><strong>✅ L'application est déjà installée sur cet appareil</strong> :
+         retrouvez son icône sur votre écran d'accueil.</p>
+         <p>Le navigateur ne propose pas de la réinstaller.</p>`
+      : SUR_ANDROID
+      ? `<p>Le navigateur ne propose pas l'installation automatique pour le moment.
+         C'est presque toujours que l'application est <strong>déjà installée</strong> :
+         vérifiez votre écran d'accueil.</p>
+         <p>Sinon : menu <strong>⋮</strong> du navigateur →
+         <strong>« Ajouter à l'écran d'accueil »</strong> → <strong>Installer</strong>.</p>`
       : `<p>Ouvrez le <strong>menu de votre navigateur</strong> (⋮ ou ≡) puis choisissez
          <strong>« Installer l'application »</strong> ou <strong>« Ajouter à l'écran d'accueil »</strong>.</p>`;
     dlg.showModal();
   });
 }
+
+/* ------------------------------------------------------------------ */
+/* Menu ⚙️ Réglages + vérification de mise à jour                      */
+/* ------------------------------------------------------------------ */
+
+function initReglages() {
+  const dlg = document.getElementById("settings-dialog");
+  document.getElementById("btn-settings").addEventListener("click", () => dlg.showModal());
+  dlg.querySelector(".settings-close").addEventListener("click", () => dlg.close());
+  // Chaque action referme le menu (l'import ouvre un sélecteur de fichier,
+  // l'installation son propre dialogue, la vérification un toast…)
+  for (const bouton of dlg.querySelectorAll(".settings-list .btn")) {
+    bouton.addEventListener("click", () => dlg.close());
+  }
+  document.getElementById("btn-update").addEventListener("click", verifierMiseAJour);
+}
+
+/** Force une vérification de mise à jour : le navigateur va rechercher
+ *  sw.js sur le réseau (sans cache) ; si la VERSION a changé, le nouveau
+ *  service worker s'installe et la page se recharge toute seule
+ *  (controllerchange, en place depuis la v9). */
+async function verifierMiseAJour() {
+  toast("Vérification de la mise à jour…");
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) {
+      toast("Vérification impossible dans ce contexte.");
+      return;
+    }
+    await reg.update();
+    if (reg.installing || reg.waiting) {
+      toast("Nouvelle version trouvée ! Installation… la page va se recharger toute seule.");
+    } else {
+      toast(`Vous avez déjà la dernière version (${versionLocale}).`);
+    }
+  } catch {
+    toast("Vérification impossible : êtes-vous connecté à Internet ?");
+  }
+}
+
+/** Version qui tourne actuellement (affichée en pied de panneau et utilisée
+ *  par « Vérifier la mise à jour »). */
+let versionLocale = "?";
 
 /** Affiche le numéro de version, lu dans sw.js : une seule source à
  *  incrémenter, et chacun peut vérifier quelle version tourne chez lui. */
@@ -476,7 +542,10 @@ async function afficherVersion() {
   try {
     const texte = await (await fetch("sw.js")).text();
     const version = texte.match(/VERSION = "(v[^"]+)"/)?.[1];
-    if (version) document.getElementById("app-version").textContent = `version ${version}`;
+    if (version) {
+      versionLocale = version;
+      document.getElementById("app-version").textContent = `version ${version}`;
+    }
   } catch {
     /* hors-ligne avant toute mise en cache : pas de numéro, tant pis */
   }
@@ -691,6 +760,7 @@ async function demarrer() {
   initToilettesProches();
   initIdeas();
   initInstallation();
+  initReglages();
   afficherVersion();
 
   // Fermeture du bandeau escalade : clic N'IMPORTE OÙ sur le bandeau

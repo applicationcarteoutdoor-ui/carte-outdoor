@@ -252,6 +252,31 @@ def convertir_via_ferrata(fiches):
                 },
             },
         })
+
+    # Tyroliennes : lues dans le tableau d'équipements des fiches
+    # viaferrata-fr.net (cache tools/vf-fiches-cache.json). Les points sans
+    # fiche exploitable restent sans info (exclus du filtre « Tyrolienne »).
+    urls_fiches = sorted({u for f in features
+                          for u in [f["properties"]["link"]]
+                          + [l["url"] for l in f["properties"]["links"]]
+                          if "via-ferrata-" in u})
+    infos_vf = enr.telecharger_fiches_vf(urls_fiches)
+    for f in features:
+        p = f["properties"]
+        connus = [infos_vf[u] for u in [p["link"]] + [l["url"] for l in p["links"]]
+                  if "via-ferrata-" in u
+                  and infos_vf.get(u, {}).get("tyroliennes") is not None]
+        if not connus:
+            continue
+        total = sum(i["tyroliennes"] for i in connus)
+        if total:
+            poulies = sorted({i["poulie"].lower() for i in connus if i["poulie"]})
+            p["details"]["tyrolienne"] = f"Oui ({total})" + (
+                f" — {', '.join(poulies)}" if poulies else "")
+            p["details"]["tyrolienne_type"] = "oui"
+        else:
+            p["details"]["tyrolienne"] = "Non"
+            p["details"]["tyrolienne_type"] = "non"
     return features, erreurs
 
 
