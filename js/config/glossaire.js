@@ -7,6 +7,8 @@
  * automatiquement une infobulle au survol.
  */
 
+import { echapper } from "../util.js";
+
 export const GLOSSAIRE = {
   // Cotations via ferrata (échelle Hüsler adaptée)
   F: "Facile",
@@ -29,11 +31,6 @@ export function definir(terme) {
   return GLOSSAIRE[terme] || "";
 }
 
-function echapper(texte) {
-  const div = document.createElement("div");
-  div.textContent = texte ?? "";
-  return div.innerHTML;
-}
 
 // Termes triés du plus long au plus court pour que « D+ » gagne sur « D »
 const TERMES = Object.keys(GLOSSAIRE).sort((a, b) => b.length - a.length);

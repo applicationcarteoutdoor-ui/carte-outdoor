@@ -22,18 +22,13 @@ import {
 } from "./config/themes.js";
 import * as storage from "./storage.js";
 import { renderTracksInto, tracksCount } from "./gpx.js";
+import { esc } from "./util.js";
 
 let panel = null;
 let cb = {}; // {onToggleTheme, onToggleGr, onToggleTraces, onThemesChanged}
 let etatCourant = null; // dernier état reçu de app.js (pour re-rendre)
 let editionEnCours = null;
 let tracesDepliees = false;
-
-function esc(texte) {
-  const div = document.createElement("div");
-  div.textContent = texte ?? "";
-  return div.innerHTML;
-}
 
 export function initSidebar(callbacks) {
   cb = callbacks;

@@ -12,16 +12,11 @@
 
 import { THEMES, getTheme } from "./config/themes.js";
 import { definir } from "./config/glossaire.js";
+import { esc } from "./util.js";
 
 let panel = null;
 let boutonReouvrir = null;
 let cb = {}; // {onFilterToggle, onFilterReset, onCollapse}
-
-function esc(texte) {
-  const div = document.createElement("div");
-  div.textContent = texte ?? "";
-  return div.innerHTML;
-}
 
 export function initFilters(callbacks) {
   cb = callbacks;

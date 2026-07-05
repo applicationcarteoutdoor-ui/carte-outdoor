@@ -39,6 +39,7 @@ import { initIdeas } from "./ideas.js";
 import { initOracle } from "./oracle.js";
 import { initCarnet, exporterCarnetPDF, ouvrirCarnetPourPoint } from "./carnet.js";
 import { SUR_ANDROID, SUR_IOS } from "./config/platform.js";
+import { esc } from "./util.js";
 
 /** État global de l'application. */
 const state = {
@@ -200,7 +201,9 @@ function pointsVisibles() {
 /* Rendu global + persistance                                           */
 /* ------------------------------------------------------------------ */
 
-function rafraichir() {
+/** Rendu du panneau gauche (catégories + suivi). Regroupé ici car appelé
+ *  à l'identique par rafraichir() et par changerStatut(). */
+function rendreSidebar() {
   renderSidebar({
     counts: compteursParTheme(),
     userPointCounts: compteursPointsUtilisateur(),
@@ -210,6 +213,10 @@ function rafraichir() {
     grVisible: state.grVisible,
     tracesVisible: state.tracesVisible,
   });
+}
+
+function rafraichir() {
+  rendreSidebar();
   renderFilters({
     activeThemes: state.activeThemes,
     filterSelections: state.filterSelections,
@@ -253,15 +260,7 @@ async function changerStatut(pointId, statut) {
   if (avant === "fait" && statut !== "fait") await storage.deleteSortieDuJour(pointId);
   setPoints(pointsVisibles(), state.statuses);
   refreshDetailsIfOpen(pointId, statut);
-  renderSidebar({
-    counts: compteursParTheme(),
-    userPointCounts: compteursPointsUtilisateur(),
-    activeThemes: state.activeThemes,
-    statusFilters: state.statusFilters,
-    statusCounts: compteursParStatut(),
-    grVisible: state.grVisible,
-    tracesVisible: state.tracesVisible,
-  });
+  rendreSidebar();
 }
 
 function allerAuPoint(feature) {
@@ -333,8 +332,8 @@ function initRecherche() {
       item.type = "button";
       item.className = "search-result";
       item.innerHTML =
-        `<span class="group-icon" style="--pin-color:${theme.color};--pin-text:${theme.textColor}" aria-hidden="true">${theme.icon}</span>` +
-        `<span class="search-result-text"><strong></strong><small>${theme.label}</small></span>`;
+        `<span class="group-icon" style="--pin-color:${esc(theme.color)};--pin-text:${esc(theme.textColor)}" aria-hidden="true">${esc(theme.icon)}</span>` +
+        `<span class="search-result-text"><strong></strong><small>${esc(theme.label)}</small></span>`;
       item.querySelector("strong").textContent = f.properties.name;
       item.addEventListener("click", () => {
         input.value = "";

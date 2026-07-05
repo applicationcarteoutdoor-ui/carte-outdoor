@@ -21,6 +21,7 @@
  */
 
 import { toast, confirmer } from "./import-export.js";
+import { esc } from "./util.js";
 
 const KEY_CLES = "carte-outdoor:oracle-cles"; // { anthropic, openai, google }
 const KEY_MODELE = "carte-outdoor:oracle-modele"; // { provider, model }
@@ -88,21 +89,10 @@ const FOURNISSEURS = {
     ],
     appeler: appelerGoogle,
   },
-  openai: {
-    nom: "OpenAI (GPT)",
-    lien: "https://platform.openai.com/api-keys",
-    placeholder: "sk-…",
-    // OpenAI n'envoie pas d'en-têtes CORS : impossible de l'appeler directement
-    // depuis un navigateur (vérifié). Reste proposé, mais avec un avertissement.
-    avert: "⚠️ OpenAI n'autorise pas l'appel direct depuis un navigateur : cette clé ne fonctionnera probablement pas ici. Préfère Claude ou Gemini.",
-    modeles: [
-      { id: "gpt-4o", label: "GPT-4o — recommandé" },
-      { id: "gpt-4o-mini", label: "GPT-4o mini — économique" },
-      { id: "gpt-4.1", label: "GPT-4.1" },
-      { id: "gpt-4.1-mini", label: "GPT-4.1 mini" },
-    ],
-    appeler: appelerOpenAI,
-  },
+  // OpenAI a été retiré volontairement : son API n'envoie pas d'en-têtes CORS,
+  // donc impossible de l'appeler directement depuis un navigateur (vérifié) —
+  // il aurait fallu un serveur relais, ce qui exposerait la clé. Claude et
+  // Gemini, eux, autorisent l'appel direct.
 };
 
 const FOURNISSEUR_DEFAUT = "anthropic";
@@ -146,42 +136,6 @@ async function appelerAnthropic({ cle, model, message, signal }) {
     }
   }
   return { texte: texte.trim(), sources: citees.length ? citees : trouvees.slice(0, 8) };
-}
-
-/* --- OpenAI (Responses API + outil web_search_preview) ------------- */
-async function appelerOpenAI({ cle, model, message, signal }) {
-  const res = await fetchIA(
-    "https://api.openai.com/v1/responses",
-    {
-      method: "POST",
-      signal,
-      headers: { "content-type": "application/json", Authorization: `Bearer ${cle}` },
-      body: JSON.stringify({
-        model,
-        instructions: SYSTEME,
-        input: message,
-        tools: [{ type: "web_search_preview" }],
-        max_output_tokens: 2800,
-      }),
-    },
-    "OpenAI"
-  );
-  const data = await lireJSON(res, "OpenAI");
-  let texte = "";
-  const sources = [];
-  const vus = new Set();
-  for (const item of data.output || []) {
-    if (item.type !== "message") continue;
-    for (const c of item.content || []) {
-      if (c.type === "output_text") {
-        texte += c.text || "";
-        for (const a of c.annotations || []) {
-          if (a.type === "url_citation") ajouter(sources, vus, a.url, a.title);
-        }
-      }
-    }
-  }
-  return { texte: texte.trim(), sources };
 }
 
 /* --- Google (generateContent + grounding google_search) ------------ */
@@ -252,11 +206,6 @@ let elHisto = null;
 let timerLoader = null;
 let enCours = false;
 
-function esc(t) {
-  const d = document.createElement("div");
-  d.textContent = t ?? "";
-  return d.innerHTML;
-}
 function lire(key, defaut) {
   try {
     const v = localStorage.getItem(key);
@@ -438,7 +387,11 @@ function rendreSources(sources) {
 
 function etatVide() {
   elReponse.innerHTML =
-    '<div class="oracle-vide"><div class="oracle-vide-boule">🔮</div>' +
+    '<div class="oracle-vide">' +
+    '<div class="oracle-cristal" aria-hidden="true">' +
+    '<span class="oc-sphere"><span class="oc-brume"></span><span class="oc-reflet"></span></span>' +
+    '<span class="oc-socle"></span>' +
+    "</div>" +
     "<p>Entre un code postal (ou touche 📍) et laisse l'Oracle révéler tout ce qu'il y a à faire dans les environs.</p></div>";
 }
 
@@ -703,6 +656,16 @@ export function initOracle() {
   document.getElementById("btn-oracle").addEventListener("click", ouvrir);
   dialog.querySelector(".oracle-close").addEventListener("click", () => dialog.close());
   dialog.querySelector(".oracle-cle-toggle").addEventListener("click", () => ouvrirPanneauCle());
+
+  // Fermeture en touchant le fond, hors de la fenêtre (indispensable sur
+  // mobile où le ✕ pouvait être difficile à atteindre — « impossible à fermer »).
+  dialog.addEventListener("click", (e) => {
+    if (e.target !== dialog) return; // clic sur le contenu : on ignore
+    const r = dialog.getBoundingClientRect();
+    const dehors =
+      e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+    if (dehors) dialog.close();
+  });
 
   dialog.querySelector(".oracle-form").addEventListener("submit", (e) => {
     e.preventDefault();

@@ -19,6 +19,7 @@ import * as storage from "./storage.js";
 import { getTheme } from "./config/themes.js";
 import { confirmer, toast } from "./import-export.js";
 import { redimensionnerPhoto } from "./details.js";
+import { esc } from "./util.js";
 
 let overlay = null;
 let cb = {}; // { getPoints, getStatuses, onVoirSurCarte }
@@ -247,12 +248,6 @@ function paginer() {
 /* ------------------------------------------------------------------ */
 /* Squelette de l'interface                                             */
 /* ------------------------------------------------------------------ */
-
-function esc(texte) {
-  const div = document.createElement("div");
-  div.textContent = texte ?? "";
-  return div.innerHTML;
-}
 
 function batirSquelette() {
   overlay.innerHTML = `

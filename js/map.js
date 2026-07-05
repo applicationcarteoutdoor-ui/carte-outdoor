@@ -6,13 +6,16 @@
  *  - les marqueurs sont créés UNE SEULE FOIS puis réutilisés à chaque
  *    changement de filtre (seule l'icône est régénérée si le statut ou la
  *    personnalisation de la catégorie a changé) ;
- *  - le clustering charge les marqueurs par petits paquets (chunkedLoading)
- *    pour ne jamais bloquer l'interface ;
+ *  - setPoints ajoute les marqueurs par tranches (triées par distance au
+ *    centre au-delà de 4 000 points) pour ne jamais bloquer l'interface —
+ *    surtout PAS le chunkedLoading de markercluster (il n'affiche RIEN avant
+ *    la fin du lot complet, voir setPoints) ;
  *  - markercluster ne rend que les marqueurs visibles à l'écran
  *    (removeOutsideVisibleBounds, comportement par défaut).
  */
 
 import { getTheme } from "./config/themes.js";
+import { echapper } from "./util.js";
 
 /* global L */
 
@@ -268,12 +271,6 @@ let grSelectionne = null; // tracé mis en évidence
 
 const GR_STYLE = { color: "#b02a2a", weight: 2.5, opacity: 0.75, dashArray: "6 4" };
 const GR_STYLE_ACTIF = { color: "#ff9500", weight: 5, opacity: 1, dashArray: null };
-
-function echapper(texte) {
-  const div = document.createElement("div");
-  div.textContent = texte ?? "";
-  return div.innerHTML;
-}
 
 /** Contenu de la bulle d'un GR : nom, distance, D+ estimé, liens. */
 function popupGr(p) {

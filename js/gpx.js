@@ -12,6 +12,7 @@
 
 import * as storage from "./storage.js";
 import { getMap } from "./map.js";
+import { esc } from "./util.js";
 
 /* global L */
 
@@ -157,12 +158,6 @@ function creerCouche(track) {
 /* ------------------------------------------------------------------ */
 /* Rendu de la liste des traces (onglet du panneau latéral)             */
 /* ------------------------------------------------------------------ */
-
-function esc(texte) {
-  const div = document.createElement("div");
-  div.textContent = texte ?? "";
-  return div.innerHTML;
-}
 
 /** Fixe le conteneur de rendu (appelé par le panneau latéral) puis rend. */
 export function renderTracksInto(element) {

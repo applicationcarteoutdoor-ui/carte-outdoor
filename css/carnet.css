@@ -919,8 +919,17 @@ body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit)
   .page-note { font-size: 1.3rem; }
 }
 
-/* Le bouton flottant du carnet, façon petit livre */
-.fab-carnet { font-size: 1.35rem; }
+/* Le bouton flottant du carnet : petit grimoire de cuir brun et or.
+   On neutralise le style stroke commun aux .fab svg (fill:none/stroke:current)
+   pour laisser parler les remplissages de l'icône. */
+.fab-carnet .icone-grimoire {
+  width: 25px;
+  height: 27px;
+  fill: initial;
+  stroke: none;
+  stroke-width: 0;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
+}
 
 /* --------------------------------------------------------------------------
    Export PDF : zone #carnet-print, invisible à l'écran, seule imprimée.

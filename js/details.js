@@ -12,6 +12,7 @@ import { glossaireHTML } from "./config/glossaire.js";
 import { SUR_ANDROID, SUR_IOS } from "./config/platform.js";
 import * as storage from "./storage.js";
 import { confirmer } from "./import-export.js";
+import { esc } from "./util.js";
 
 const PHOTO_MAX = 1024; // côté max (px) des photos stockées
 const PHOTO_QUALITE = 0.8;
@@ -27,12 +28,6 @@ let isUserPointCallback = null;
 let onDeletePointCallback = null;
 let onVoirCarnetCallback = null;
 let featureCourante = null;
-
-function esc(texte) {
-  const div = document.createElement("div");
-  div.textContent = texte ?? "";
-  return div.innerHTML;
-}
 
 export function initDetails({ onStatusChange, onClose, isUserPoint, onDeletePoint, onVoirCarnet }) {
   onStatusChangeCallback = onStatusChange;

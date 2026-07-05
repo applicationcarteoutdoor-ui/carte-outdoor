@@ -7,6 +7,8 @@
  * les recevoir automatiquement.
  */
 
+import { esc } from "./util.js";
+
 const KEY = "carte-outdoor:idees";
 const EMAIL = "Applicationcarteoutdoor@gmail.com";
 
@@ -22,12 +24,6 @@ function lireIdees() {
 
 function ecrireIdees(idees) {
   localStorage.setItem(KEY, JSON.stringify(idees));
-}
-
-function esc(texte) {
-  const div = document.createElement("div");
-  div.textContent = texte ?? "";
-  return div.innerHTML;
 }
 
 export function initIdeas() {
