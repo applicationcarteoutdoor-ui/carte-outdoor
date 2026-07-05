@@ -9,6 +9,7 @@
 
 import { getTheme } from "./config/themes.js";
 import { glossaireHTML } from "./config/glossaire.js";
+import { SUR_ANDROID, SUR_IOS } from "./config/platform.js";
 import * as storage from "./storage.js";
 import { confirmer } from "./import-export.js";
 
@@ -145,10 +146,8 @@ export function openDetails(feature, statut) {
     </div>
 
     <div class="details-route">
-      <a class="btn btn-route" target="_blank" rel="noopener"
-         href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}">🗺️ Google Maps</a>
-      <a class="btn btn-route" target="_blank" rel="noopener"
-         href="https://waze.com/ul?ll=${lat},${lon}&navigate=yes">🚗 Waze</a>
+      ${lienItineraireMaps(lat, lon)}
+      ${lienItineraireWaze(lat, lon)}
     </div>
 
     ${p.description ? `<p class="details-description">${glossaireHTML(p.description).replaceAll("\n", "<br>")}</p>` : ""}
@@ -193,6 +192,18 @@ export function openDetails(feature, statut) {
     });
   });
 
+  // iOS : si l'appli (Maps/Waze) n'est pas installée, son schéma ne fait
+  // rien — repli vers le site web si la page est toujours visible après 1,6 s
+  // (si l'appli s'est ouverte, la page est passée en arrière-plan).
+  panel.querySelectorAll(".btn-route[data-fallback]").forEach((a) => {
+    a.addEventListener("click", () => {
+      const secours = a.dataset.fallback;
+      setTimeout(() => {
+        if (!document.hidden) location.href = secours;
+      }, 1600);
+    });
+  });
+
   // Copie des coordonnées
   panel.querySelector(".btn-copy").addEventListener("click", async (e) => {
     try {
@@ -234,6 +245,46 @@ export function refreshDetailsIfOpen(pointId, statut) {
 /** Id du point dont la fiche est ouverte, ou null. */
 export function getOpenPointId() {
   return featureCourante ? featureCourante.properties.id : null;
+}
+
+/* ------------------------------------------------------------------ */
+/* Itinéraire : sur téléphone, ouvrir l'APPLI Maps/Waze plutôt que le site */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Bouton <a> d'itinéraire selon la plateforme :
+ *  - Android : URL intent — ouvre l'appli visée, avec repli vers le site
+ *    web intégré à l'URL si elle n'est pas installée ;
+ *  - iOS : schéma d'appli (comgooglemaps://, waze://) — pas de repli natif,
+ *    d'où le data-fallback exploité par une minuterie (voir openDetails) ;
+ *  - ailleurs (ordinateur) : le site web dans un nouvel onglet.
+ */
+function boutonItineraire(label, { web, android, ios }) {
+  if (SUR_ANDROID) return `<a class="btn btn-route" href="${esc(android)}">${label}</a>`;
+  if (SUR_IOS) return `<a class="btn btn-route" href="${esc(ios)}" data-fallback="${esc(web)}">${label}</a>`;
+  return `<a class="btn btn-route" target="_blank" rel="noopener" href="${esc(web)}">${label}</a>`;
+}
+
+function lienItineraireMaps(lat, lon) {
+  const web = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+  return boutonItineraire("🗺️ Google Maps", {
+    web,
+    android:
+      `intent://www.google.com/maps/dir/?api=1&destination=${lat},${lon}` +
+      `#Intent;scheme=https;package=com.google.android.apps.maps;S.browser_fallback_url=${encodeURIComponent(web)};end`,
+    ios: `comgooglemaps://?daddr=${lat},${lon}`,
+  });
+}
+
+function lienItineraireWaze(lat, lon) {
+  const web = `https://waze.com/ul?ll=${lat},${lon}&navigate=yes`;
+  return boutonItineraire("🚗 Waze", {
+    web,
+    android:
+      `intent://waze.com/ul?ll=${lat},${lon}&navigate=yes` +
+      `#Intent;scheme=https;package=com.waze;S.browser_fallback_url=${encodeURIComponent(web)};end`,
+    ios: `waze://?ll=${lat},${lon}&navigate=yes`,
+  });
 }
 
 /** Nom lisible du site d'un lien (ex. « viaferrata-fr.net »). */

@@ -36,6 +36,7 @@ import { initGpx, setAllTracesVisible } from "./gpx.js";
 import { initAddPoint } from "./addpoint.js";
 import { initTuto, startTuto } from "./tuto.js";
 import { initIdeas } from "./ideas.js";
+import { SUR_IOS } from "./config/platform.js";
 
 /** État global de l'application. */
 const state = {
@@ -65,6 +66,14 @@ const cycleUserPoint = {};
 /** Bandeau « données escalade partielles » : la croix le ferme, mais il
  *  réapparaît à chaque nouvelle activation de la catégorie Escalade. */
 let bandeauEscaladeFerme = false;
+
+/** Invite d'installation PWA (Android/Chrome) : capturée au niveau module —
+ *  beforeinstallprompt peut arriver avant la fin du démarrage. */
+let evenementInstallation = null;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault(); // pas de mini-bandeau du navigateur : notre bouton s'en charge
+  evenementInstallation = e;
+});
 
 async function chargerPoints() {
   let defauts = [];
@@ -420,6 +429,60 @@ function initToilettesProches() {
 }
 
 /* ------------------------------------------------------------------ */
+/* Installation sur l'écran d'accueil + numéro de version               */
+/* ------------------------------------------------------------------ */
+
+function initInstallation() {
+  const bouton = document.getElementById("btn-install");
+  // Déjà lancée depuis l'écran d'accueil : rien à installer
+  if (matchMedia("(display-mode: standalone)").matches || navigator.standalone === true) return;
+  bouton.hidden = false;
+
+  window.addEventListener("appinstalled", () => {
+    bouton.hidden = true;
+    toast("Application installée : retrouvez-la sur votre écran d'accueil !");
+  });
+
+  const dlg = document.getElementById("install-dialog");
+  dlg.querySelector(".install-ok").addEventListener("click", () => dlg.close());
+
+  bouton.addEventListener("click", async () => {
+    // Android / Chrome : la vraie invite d'installation du navigateur
+    if (evenementInstallation) {
+      evenementInstallation.prompt();
+      const { outcome } = await evenementInstallation.userChoice;
+      if (outcome === "accepted") evenementInstallation = null; // consommée
+      return;
+    }
+    // iPhone/iPad (Apple n'offre aucune invite) ou invite indisponible :
+    // mode d'emploi adapté à la plateforme
+    dlg.querySelector(".install-steps").innerHTML = SUR_IOS
+      ? `<p>Sur iPhone / iPad, l'installation passe par <strong>Safari</strong> :</p>
+         <ol>
+           <li>Ouvrez cette page dans <strong>Safari</strong> (si ce n'est pas déjà le cas).</li>
+           <li>Touchez le bouton <strong>Partager</strong> — le carré avec une flèche vers le haut, en bas de l'écran.</li>
+           <li>Choisissez <strong>« Sur l'écran d'accueil »</strong> (ou « Ajouter à l'écran d'accueil »).</li>
+           <li>Touchez <strong>Ajouter</strong> : l'icône apparaît comme une vraie application.</li>
+         </ol>`
+      : `<p>Ouvrez le <strong>menu de votre navigateur</strong> (⋮ ou ≡) puis choisissez
+         <strong>« Installer l'application »</strong> ou <strong>« Ajouter à l'écran d'accueil »</strong>.</p>`;
+    dlg.showModal();
+  });
+}
+
+/** Affiche le numéro de version, lu dans sw.js : une seule source à
+ *  incrémenter, et chacun peut vérifier quelle version tourne chez lui. */
+async function afficherVersion() {
+  try {
+    const texte = await (await fetch("sw.js")).text();
+    const version = texte.match(/VERSION = "(v[^"]+)"/)?.[1];
+    if (version) document.getElementById("app-version").textContent = `version ${version}`;
+  } catch {
+    /* hors-ligne avant toute mise en cache : pas de numéro, tant pis */
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* Géolocalisation                                                      */
 /* ------------------------------------------------------------------ */
 
@@ -627,6 +690,8 @@ async function demarrer() {
   initGeolocalisation();
   initToilettesProches();
   initIdeas();
+  initInstallation();
+  afficherVersion();
 
   // Fermeture du bandeau escalade : clic N'IMPORTE OÙ sur le bandeau
   // (pas seulement la croix) ou touche Échap. Volontairement non persisté :

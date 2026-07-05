@@ -37,6 +37,9 @@
     <div class="sidebar-actions">
       <button type="button" id="btn-import-category" class="btn btn-secondary">＋ Importer une catégorie</button>
       <button type="button" id="btn-export" class="btn btn-secondary">⬇ Exporter mes données</button>
+      <!-- Masqué quand l'app est déjà lancée depuis l'écran d'accueil -->
+      <button type="button" id="btn-install" class="btn btn-secondary" hidden>📲 Installer l'application</button>
+      <p id="app-version" class="app-version"></p>
     </div>
   </aside>
 
@@ -194,6 +197,16 @@
       <button type="button" class="btn btn-secondary wc-retour">Retour</button>
       <button type="button" class="btn btn-secondary wc-proximite"><span class="wc-runner" aria-hidden="true">🏃</span>🚻 À moins de 1 km</button>
       <button type="button" class="btn wc-valider">Valider</button>
+    </div>
+  </dialog>
+
+  <!-- Aide à l'installation sur l'écran d'accueil : affichée quand l'invite
+       native n'existe pas (iPhone/iPad) ou n'est pas disponible -->
+  <dialog id="install-dialog" aria-labelledby="install-title">
+    <h2 id="install-title">📲 Installer l'application</h2>
+    <div class="install-steps"></div>
+    <div class="dialog-actions">
+      <button type="button" class="btn install-ok">Compris</button>
     </div>
   </dialog>
 

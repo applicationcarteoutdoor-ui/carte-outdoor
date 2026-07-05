@@ -26,6 +26,12 @@
 
 * { box-sizing: border-box; }
 
+/* L'attribut hidden doit TOUJOURS l'emporter : sans cette règle, n'importe
+   quelle règle display (flex, grid…) posée sur l'élément le laisse visible
+   malgré hidden. Piège rencontré trois fois (.point-newcat, #banner-escalade
+   — « impossible de fermer la popup » v12→v15 —, #btn-filters-reopen). */
+[hidden] { display: none !important; }
+
 html, body {
   margin: 0;
   height: 100%;
@@ -94,6 +100,9 @@ h2, h3, h4 { font-weight: 650; }
 }
 
 .sidebar-actions { flex: none; display: flex; flex-direction: column; gap: 6px; }
+
+/* Numéro de version (lu dans sw.js au démarrage) : discret, sous les boutons */
+.app-version { margin: 2px 0 0; text-align: center; font-size: 0.74rem; color: var(--text-2); }
 
 .cat-bloc { flex: none; }
 
@@ -612,10 +621,6 @@ button.glossary-term { text-decoration: none; }
 
 .point-form textarea { resize: vertical; }
 
-/* [hidden] doit gagner : sans cette règle, le display:flex ci-dessous
-   rend les champs « nouvelle catégorie » visibles en permanence */
-.point-newcat[hidden] { display: none; }
-
 .point-newcat {
   display: flex;
   flex-direction: column;
@@ -918,9 +923,9 @@ dialog .panel-header { padding: 0 0 4px; }
   top: 10px;
   left: 50%;
   transform: translateX(-50%);
-  /* au-dessus des panneaux (filtres 1250, fiche 1360) : cocher Escalade
-     ouvre le panneau de filtres, qui recouvrait la croix de fermeture */
-  z-index: 1400;
+  /* au-dessus de TOUS les panneaux (tiroir 1350, filtres 1500 sur mobile,
+     fiche 1360) : cocher Escalade ouvre justement le panneau de filtres */
+  z-index: 1600;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1012,6 +1017,33 @@ dialog .panel-header { padding: 0 0 4px; }
 .tuto-actions .btn { min-height: 40px; padding: 6px 14px; }
 
 /* --------------------------------------------------------------------------
+   Petit écran : tiroir des catégories plus compact, filtres par-dessus
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 899px) {
+  /* « Dézoome » le tiroir : tailles réduites, et un tiroir plus étroit
+     laisse voir la carte (et le panneau des filtres) sur le côté */
+  #sidebar {
+    width: min(272px, 86vw);
+    font-size: 0.86rem;
+    padding: 8px;
+    gap: 6px;
+  }
+  .sidebar-title { font-size: 0.98rem; }
+  .sidebar-logo { width: 28px; height: 28px; }
+  #search-input { min-height: 40px; }
+  .cat-check { min-height: 42px; gap: 8px; }
+  .group-icon { width: 27px; height: 27px; font-size: 13px; }
+  .group-count { font-size: 0.7rem; padding: 2px 7px; }
+  #btn-import-category, #btn-export, #btn-install { min-height: 40px; font-size: 0.86rem; }
+
+  /* Les filtres s'ouvrent PAR-DESSUS le tiroir des catégories : sans cela
+     ils apparaissaient derrière (tiroir 1350 > panneau 1250) et il fallait
+     fermer le tiroir pour les voir. La croix « Replier » rend la main. */
+  #filter-panel { z-index: 1500; }
+}
+
+/* --------------------------------------------------------------------------
    Grand écran : panneau gauche fixe, fiche à droite
    -------------------------------------------------------------------------- */
 
@@ -1042,8 +1074,4 @@ dialog .panel-header { padding: 0 0 4px; }
 
 @media (prefers-reduced-motion: reduce) {
   .panel, .tuto-spot { transition: none; }
-}
-
-#banner-escalade {
-  display: none !important;
 }
