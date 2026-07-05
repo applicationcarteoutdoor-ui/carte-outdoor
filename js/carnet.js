@@ -3,13 +3,16 @@
  *
  * S'alimente tout seul : chaque passage d'un point à « fait » crée une
  * sortie horodatée (voir changerStatut dans app.js), et les notes/photos du
- * carnet par point (details.js) apparaissent aussi. Une PAGE = un lieu à une
- * date donnée (sortie « fait » et/ou notes du même jour).
+ * carnet par point (details.js) apparaissent aussi. Une ENTRÉE = un lieu à
+ * une date donnée ; les pages se REMPLISSENT : plusieurs entrées par page
+ * tant qu'il y a la place (pagination mesurée dans une page invisible aux
+ * dimensions réelles — les photos ont une hauteur CSS fixe pour que la
+ * mesure soit juste avant leur chargement).
  *
- * Le livre s'ouvre plein écran par-dessus la carte : couverture cuir,
- * pages jaunies aux imperfections pseudo-aléatoires (déterministes par page :
- * elles ne changent pas d'un feuilletage à l'autre), écriture manuscrite.
- * Une page à la fois sur petit écran, double page sur grand écran.
+ * Couverture cuir, pages jaunies aux imperfections pseudo-aléatoires
+ * (déterministes par page), écriture manuscrite. Une page à la fois sur
+ * petit écran, double page sur grand. Export PDF via l'impression du
+ * navigateur (zone #carnet-print + feuille @media print).
  */
 
 import * as storage from "./storage.js";
@@ -19,9 +22,11 @@ import { confirmer, toast } from "./import-export.js";
 let overlay = null;
 let cb = {}; // { getPoints, getStatuses, onVoirSurCarte }
 
-let pages = []; // pages du livre après filtres/tri (hors couverture)
+let entrees = []; // groupes (lieu, jour) après filtres/tri
+let pagesListe = []; // entrées réparties par page : [[entrée, …], …]
 let indexPage = 0; // 0 = couverture, 1..n = pages
 let animation = false;
+let minuterieResize = null;
 
 /** Filtres et tri courants (réinitialisés à chaque ouverture du carnet). */
 const vue = { recherche: "", tri: "date", favoris: false, activite: null };
@@ -39,6 +44,18 @@ export function initCarnet(callbacks) {
     if (e.key === "ArrowRight") tourner(1);
     if (e.key === "ArrowLeft") tourner(-1);
   });
+
+  // La répartition dépend de la taille des pages : on re-pagine au
+  // redimensionnement (rotation du téléphone, fenêtre redimensionnée…)
+  window.addEventListener("resize", () => {
+    if (overlay.hidden) return;
+    clearTimeout(minuterieResize);
+    minuterieResize = setTimeout(async () => {
+      paginer();
+      if (indexPage > pagesListe.length) indexPage = Math.max(1, pagesListe.length);
+      rendre();
+    }, 250);
+  });
 }
 
 export async function ouvrirCarnet() {
@@ -47,11 +64,12 @@ export async function ouvrirCarnet() {
     vue.recherche = "";
     vue.favoris = false;
     vue.activite = null;
-    await construirePages();
+    await construireEntrees();
     indexPage = 0; // toujours la couverture d'abord
     batirSquelette();
+    overlay.hidden = false; // la mesure des pages exige une mise en page réelle
+    paginer();
     rendre();
-    overlay.hidden = false;
   } catch (e) {
     console.error("Ouverture du carnet impossible :", e);
     toast("Impossible d'ouvrir le carnet — rechargez la page et réessayez.");
@@ -67,7 +85,7 @@ function fermerCarnet() {
 /* Données : sorties + notes regroupées par (lieu, jour)                */
 /* ------------------------------------------------------------------ */
 
-async function construirePages() {
+async function construireEntrees() {
   const sorties = await storage.seedSortiesDepuisStatuts();
   const journaux = await storage.getAllJournals().catch(() => ({}));
   const statuses = cb.getStatuses();
@@ -86,8 +104,8 @@ async function construirePages() {
   };
 
   for (const s of sorties) obtenir(s.pointId, s.date).sorties.push(s);
-  for (const [pointId, entrees] of Object.entries(journaux)) {
-    for (const e of entrees) obtenir(pointId, e.date).notes.push(e);
+  for (const [pointId, notes] of Object.entries(journaux)) {
+    for (const e of notes) obtenir(pointId, e.date).notes.push(e);
   }
 
   let liste = [...groupes.values()].filter((g) => parId.has(g.pointId));
@@ -97,6 +115,12 @@ async function construirePages() {
     g.theme = getTheme(g.feature.properties.theme);
     g.favori = statuses[g.pointId] === "favori";
   }
+
+  // Nombre d'entrées par lieu (pour « toutes mes sorties ici »), calculé
+  // AVANT les filtres pour rester exact quel que soit l'affichage
+  const parLieu = new Map();
+  for (const g of liste) parLieu.set(g.pointId, (parLieu.get(g.pointId) || 0) + 1);
+  for (const g of liste) g.nbEntreesLieu = parLieu.get(g.pointId) || 1;
 
   if (vue.activite) liste = liste.filter((g) => g.pointId === vue.activite);
   if (vue.favoris) liste = liste.filter((g) => g.favori);
@@ -124,14 +148,7 @@ async function construirePages() {
       : parDate
   );
 
-  // Nombre total de sorties par lieu (pour « autres sorties sur ce lieu »)
-  const parLieu = new Map();
-  for (const g of [...groupes.values()]) {
-    parLieu.set(g.pointId, (parLieu.get(g.pointId) || 0) + 1);
-  }
-  for (const g of liste) g.nbPagesLieu = parLieu.get(g.pointId) || 1;
-
-  pages = liste;
+  entrees = liste;
 }
 
 function normaliser(texte) {
@@ -139,6 +156,54 @@ function normaliser(texte) {
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase();
+}
+
+/* ------------------------------------------------------------------ */
+/* Pagination : on remplit chaque page tant qu'il y a la place          */
+/* ------------------------------------------------------------------ */
+
+function doublePage() {
+  return window.innerWidth >= 900;
+}
+
+function paginer() {
+  const livre = overlay.querySelector(".carnet-livre");
+  if (!livre) {
+    pagesListe = entrees.map((g) => [g]);
+    return;
+  }
+  // Page de mesure invisible, aux dimensions exactes d'une vraie page
+  // (même structure livre-ouvert → même géométrie, par construction)
+  const mesure = document.createElement("div");
+  mesure.className = "livre-ouvert carnet-mesure" + (doublePage() ? " double" : "");
+  mesure.innerHTML = doublePage()
+    ? '<div class="carnet-pages double"><article class="page-carnet"></article><article class="page-carnet"></article></div>'
+    : '<div class="carnet-pages"><article class="page-carnet"></article></div>';
+  livre.appendChild(mesure);
+  const page = mesure.querySelector(".page-carnet");
+  const hauteurMax = page.clientHeight;
+
+  pagesListe = [];
+  let courante = [];
+  const bac = document.createElement("div");
+  for (const g of entrees) {
+    bac.innerHTML = htmlEntree(g);
+    const bloc = bac.firstElementChild;
+    page.appendChild(bloc);
+    if (page.scrollHeight > hauteurMax + 2 && courante.length) {
+      // Déborde : l'entrée ouvre la page suivante (seule sur sa page si
+      // elle est trop grande à elle seule — la page défile alors).
+      bloc.remove();
+      pagesListe.push(courante);
+      courante = [];
+      page.textContent = "";
+      bac.innerHTML = htmlEntree(g);
+      page.appendChild(bac.firstElementChild);
+    }
+    courante.push(g);
+  }
+  if (courante.length) pagesListe.push(courante);
+  mesure.remove();
 }
 
 /* ------------------------------------------------------------------ */
@@ -163,13 +228,13 @@ function batirSquelette() {
         </select>
         <button type="button" class="carnet-favoris" aria-pressed="false"
                 title="N'afficher que les favoris">♥</button>
-        <button type="button" class="panel-close carnet-fermer" title="Fermer le carnet"
+        <button type="button" class="carnet-fermer" title="Fermer le carnet"
                 aria-label="Fermer le carnet">✕</button>
       </div>
       <div class="carnet-bandeau-activite" hidden>
         <span class="bandeau-texte"></span>
-        <button type="button" class="btn btn-secondary carnet-refait">＋ J'y suis retourné</button>
-        <button type="button" class="btn btn-secondary carnet-retour">↩ Tout le carnet</button>
+        <button type="button" class="carnet-bouton carnet-refait">＋ J'y suis retourné</button>
+        <button type="button" class="carnet-bouton carnet-retour">↩ Tout le carnet</button>
       </div>
       <div class="carnet-scene">
         <button type="button" class="carnet-fleche carnet-prec" aria-label="Page précédente">‹</button>
@@ -186,40 +251,37 @@ function batirSquelette() {
     if (e.target === overlay) fermerCarnet(); // clic sur le voile sombre
   });
 
+  const relancer = async () => {
+    await construireEntrees();
+    paginer();
+    indexPage = pagesListe.length ? 1 : 0;
+    rendre();
+  };
+
   const recherche = overlay.querySelector(".carnet-recherche");
-  recherche.addEventListener("input", async () => {
+  recherche.addEventListener("input", () => {
     vue.recherche = recherche.value.trim();
-    await construirePages();
-    indexPage = pages.length ? 1 : 0;
-    rendre();
+    relancer();
   });
-  overlay.querySelector(".carnet-tri").addEventListener("change", async (e) => {
+  overlay.querySelector(".carnet-tri").addEventListener("change", (e) => {
     vue.tri = e.target.value;
-    await construirePages();
-    indexPage = pages.length ? 1 : 0;
-    rendre();
+    relancer();
   });
-  overlay.querySelector(".carnet-favoris").addEventListener("click", async (e) => {
+  overlay.querySelector(".carnet-favoris").addEventListener("click", (e) => {
     vue.favoris = !vue.favoris;
     e.currentTarget.setAttribute("aria-pressed", String(vue.favoris));
     e.currentTarget.classList.toggle("actif", vue.favoris);
-    await construirePages();
-    indexPage = pages.length ? 1 : 0;
-    rendre();
+    relancer();
   });
-  overlay.querySelector(".carnet-retour").addEventListener("click", async () => {
+  overlay.querySelector(".carnet-retour").addEventListener("click", () => {
     vue.activite = null;
-    await construirePages();
-    indexPage = pages.length ? 1 : 0;
-    rendre();
+    relancer();
   });
   overlay.querySelector(".carnet-refait").addEventListener("click", async () => {
     if (!vue.activite) return;
     await storage.addSortie(vue.activite);
     toast("Sortie d'aujourd'hui ajoutée au carnet !");
-    await construirePages();
-    indexPage = 1;
-    rendre();
+    relancer();
   });
 
   // Feuilletage au doigt
@@ -242,43 +304,49 @@ function batirSquelette() {
 /* Rendu : couverture ou page(s) courante(s)                            */
 /* ------------------------------------------------------------------ */
 
-function doublePage() {
-  return window.innerWidth >= 900;
-}
-
 function rendre() {
   const livre = overlay.querySelector(".carnet-livre");
   const pied = overlay.querySelector(".carnet-pied");
   const bandeau = overlay.querySelector(".carnet-bandeau-activite");
 
   bandeau.hidden = !vue.activite;
-  if (vue.activite && pages.length) {
+  if (vue.activite && entrees.length) {
     bandeau.querySelector(".bandeau-texte").textContent =
-      `${pages[0].theme.icon} ${pages[0].nom} — ${pages.length} sortie(s)`;
+      `${entrees[0].theme.icon} ${entrees[0].nom} — ${entrees.length} sortie(s)`;
   }
 
   if (indexPage === 0) {
     livre.innerHTML = htmlCouverture();
     livre.querySelector(".carnet-couverture").addEventListener("click", () => tourner(1));
-    pied.textContent = pages.length
-      ? `${pages.length} page(s) — touchez la couverture pour ouvrir`
+    pied.textContent = pagesListe.length
+      ? `${entrees.length} sortie(s) sur ${pagesListe.length} page(s) — touchez la couverture pour ouvrir`
       : "Votre carnet attend sa première sortie : marquez une activité « ✓ Fait » !";
   } else {
     const morceaux = [htmlPage(indexPage)];
-    if (doublePage() && indexPage + 1 <= pages.length) morceaux.push(htmlPage(indexPage + 1));
-    else if (doublePage()) morceaux.push('<div class="page-carnet page-vide"></div>');
-    livre.innerHTML = `<div class="carnet-pages${doublePage() ? " double" : ""}">${morceaux.join("")}</div>`;
-    brancherPage(livre);
-    pied.textContent = doublePage() && indexPage + 1 <= pages.length
-      ? `pages ${indexPage}-${indexPage + 1} / ${pages.length}`
-      : `page ${indexPage} / ${pages.length}`;
+    if (doublePage()) {
+      morceaux.push(
+        indexPage + 1 <= pagesListe.length ? htmlPage(indexPage + 1) : '<div class="page-carnet page-vide"></div>'
+      );
+    }
+    // Le livre ouvert : couverture de cuir dépassant sous le bloc de pages,
+    // ruban marque-page — l'épaisseur vient des tranches en box-shadow.
+    livre.innerHTML = `
+      <div class="livre-ouvert${doublePage() ? " double" : ""}">
+        <div class="carnet-pages${doublePage() ? " double" : ""}">${morceaux.join("")}</div>
+        <i class="livre-signet" aria-hidden="true"></i>
+      </div>`;
+    brancherPages(livre);
+    pied.textContent =
+      doublePage() && indexPage + 1 <= pagesListe.length
+        ? `pages ${indexPage}-${indexPage + 1} / ${pagesListe.length}`
+        : `page ${indexPage} / ${pagesListe.length}`;
   }
 
   overlay.querySelector(".carnet-prec").disabled = indexPage === 0;
   // Depuis la couverture, une seule page suffit pour ouvrir (même en double
   // page) ; ensuite, on bloque quand la dernière page est déjà affichée.
   overlay.querySelector(".carnet-suiv").disabled =
-    indexPage === 0 ? pages.length === 0 : indexPage + (doublePage() ? 2 : 1) > pages.length;
+    indexPage === 0 ? pagesListe.length === 0 : indexPage + (doublePage() ? 2 : 1) > pagesListe.length;
 }
 
 /** Tourne la ou les pages avec l'animation de feuilletage (pli au dos). */
@@ -286,7 +354,7 @@ function tourner(sens) {
   if (animation) return;
   const pas = indexPage === 0 ? 1 : doublePage() ? 2 : 1;
   const cible = Math.max(0, indexPage + sens * pas);
-  if (cible === indexPage || (sens > 0 && cible > pages.length)) return;
+  if (cible === indexPage || (sens > 0 && cible > pagesListe.length)) return;
   const livre = overlay.querySelector(".carnet-livre");
   animation = true;
   livre.classList.add(sens > 0 ? "plie-avant" : "plie-arriere");
@@ -298,8 +366,8 @@ function tourner(sens) {
     setTimeout(() => {
       livre.classList.remove("deplie-avant", "deplie-arriere");
       animation = false;
-    }, 240);
-  }, 240);
+    }, 300);
+  }, 300);
 }
 
 /* ------------------------------------------------------------------ */
@@ -309,6 +377,11 @@ function tourner(sens) {
 function htmlCouverture() {
   return `
     <div class="carnet-couverture" role="button" tabindex="0" aria-label="Ouvrir le carnet">
+      <i class="couv-fermoir" aria-hidden="true"></i>
+      <i class="couv-coin coin-hg" aria-hidden="true"></i>
+      <i class="couv-coin coin-hd" aria-hidden="true"></i>
+      <i class="couv-coin coin-bg" aria-hidden="true"></i>
+      <i class="couv-coin coin-bd" aria-hidden="true"></i>
       <div class="couv-cadre">
         <svg class="couv-carte" viewBox="0 0 200 200" aria-hidden="true">
           <path class="grave" d="M30 150 Q60 120 80 130 T130 100 T175 60" fill="none"/>
@@ -325,7 +398,7 @@ function htmlCouverture() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Pages : une sortie (lieu + jour) par page                            */
+/* Entrées et pages                                                     */
 /* ------------------------------------------------------------------ */
 
 /** Générateur pseudo-aléatoire déterministe : les imperfections d'une page
@@ -343,22 +416,10 @@ function graine(texte) {
   };
 }
 
-function htmlPage(numero) {
-  const g = pages[numero - 1];
+/** Une entrée : un lieu à une date, avec ses notes/photos et ses actions.
+ *  `pourImpression` retire les boutons (export PDF). */
+function htmlEntree(g, pourImpression = false) {
   const alea = graine(g.cle);
-
-  // Imperfections : parfois présentes, parfois non — jamais identiques
-  let imperfections = "";
-  const nbTaches = Math.floor(alea() * 4); // 0 à 3 taches
-  for (let i = 0; i < nbTaches; i++) {
-    const taille = 14 + alea() * 60;
-    imperfections += `<i class="page-tache" style="left:${(alea() * 86).toFixed(1)}%;top:${(alea() * 88).toFixed(1)}%;width:${taille.toFixed(0)}px;height:${(taille * (0.6 + alea() * 0.8)).toFixed(0)}px;opacity:${(0.05 + alea() * 0.1).toFixed(2)};transform:rotate(${(alea() * 360).toFixed(0)}deg)"></i>`;
-  }
-  if (alea() < 0.3) {
-    imperfections += `<i class="page-trou" style="left:${(6 + alea() * 84).toFixed(1)}%;top:${(6 + alea() * 84).toFixed(1)}%;transform:scale(${(0.6 + alea() * 0.9).toFixed(2)})"></i>`;
-  }
-  if (alea() < 0.45) imperfections += `<i class="page-usure coin-${alea() < 0.5 ? "bd" : "hg"}"></i>`;
-
   const dateLisible = g.date
     ? new Date(g.date).toLocaleDateString("fr-FR", MOIS_JOURS)
     : "Date inconnue";
@@ -374,40 +435,69 @@ function htmlPage(numero) {
     .map((n) => `<p class="page-note">${esc(n.text)}</p>`)
     .join("");
 
+  const actions = pourImpression
+    ? ""
+    : `<div class="entree-actions">
+        <button type="button" class="page-action page-voir" data-cle="${esc(g.cle)}">🗺 Voir sur la carte</button>
+        ${g.nbEntreesLieu > 1 && !vue.activite
+          ? `<button type="button" class="page-action page-occurrences" data-point="${esc(g.pointId)}">📖 Toutes mes sorties ici (${g.nbEntreesLieu})</button>`
+          : ""}
+        ${sortieId
+          ? `<button type="button" class="page-action page-suppr" data-sortie="${esc(sortieId)}" data-nom="${esc(g.nom)}" title="Retirer cette sortie du carnet">🗑</button>`
+          : ""}
+      </div>`;
+
+  // Chaque entrée a SA teinte d'encre (sépia à brun sombre) : un carnet
+  // écrit au fil des ans n'a jamais deux encres parfaitement identiques.
+  const encre = `hsl(${(20 + alea() * 16).toFixed(0)}, ${(42 + alea() * 16).toFixed(0)}%, ${(16 + alea() * 9).toFixed(0)}%)`;
+
   return `
-    <article class="page-carnet" data-cle="${esc(g.cle)}"
-             style="--pente:${((alea() - 0.5) * 1.2).toFixed(2)}deg">
-      ${imperfections}
+    <section class="entree" style="--encre:${encre}">
       <header class="page-entete">
         <time>${esc(dateLisible)}</time>
-        <span class="page-cat" style="--pin-color:${g.theme.color}">${g.theme.icon} ${esc(g.theme.label)}</span>
+        <span class="page-cat">${g.theme.icon} ${esc(g.theme.label)}</span>
       </header>
       <h3 class="page-titre">${esc(g.nom)} ${g.favori ? '<span class="page-coeur" title="En favori">♥</span>' : ""}</h3>
       ${sortieFaite ? '<p class="page-mention">✓ Sortie faite</p>' : ""}
-      ${g.date === null && sortieId
+      ${g.date === null && sortieId && !pourImpression
         ? `<p class="page-fixer-date">Faite avant le carnet —
              <label>préciser la date : <input type="date" class="page-date-input" data-sortie="${esc(sortieId)}"
                max="${new Date().toISOString().slice(0, 10)}"></label></p>`
         : ""}
       ${photos ? `<div class="page-photos">${photos}</div>` : ""}
-      ${notes || '<p class="page-note page-note-vide">Aucune note ce jour-là…</p>'}
-      <footer class="page-pied">
-        <button type="button" class="page-action page-voir" data-cle="${esc(g.cle)}">🗺 Voir sur la carte</button>
-        ${g.nbPagesLieu > 1 && !vue.activite
-          ? `<button type="button" class="page-action page-occurrences" data-point="${esc(g.pointId)}">📖 Toutes mes sorties ici (${g.nbPagesLieu})</button>`
-          : ""}
-        ${sortieId
-          ? `<button type="button" class="page-action page-suppr" data-sortie="${esc(sortieId)}" data-nom="${esc(g.nom)}" title="Retirer cette sortie du carnet">🗑</button>`
-          : ""}
-        <span class="page-numero">— ${numero} —</span>
-      </footer>
+      ${notes}
+      ${actions}
+    </section>`;
+}
+
+function htmlPage(numero) {
+  const groupe = pagesListe[numero - 1];
+  const alea = graine(groupe.map((g) => g.cle).join("¤") + numero);
+
+  // Imperfections : parfois présentes, parfois non — jamais identiques
+  let imperfections = "";
+  const nbTaches = Math.floor(alea() * 4); // 0 à 3 taches
+  for (let i = 0; i < nbTaches; i++) {
+    const taille = 14 + alea() * 60;
+    imperfections += `<i class="page-tache" style="left:${(alea() * 86).toFixed(1)}%;top:${(alea() * 88).toFixed(1)}%;width:${taille.toFixed(0)}px;height:${(taille * (0.6 + alea() * 0.8)).toFixed(0)}px;opacity:${(0.05 + alea() * 0.1).toFixed(2)};transform:rotate(${(alea() * 360).toFixed(0)}deg)"></i>`;
+  }
+  if (alea() < 0.3) {
+    imperfections += `<i class="page-trou" style="left:${(6 + alea() * 84).toFixed(1)}%;top:${(6 + alea() * 84).toFixed(1)}%;transform:scale(${(0.6 + alea() * 0.9).toFixed(2)})"></i>`;
+  }
+  if (alea() < 0.45) imperfections += `<i class="page-usure coin-${alea() < 0.5 ? "bd" : "hg"}"></i>`;
+
+  return `
+    <article class="page-carnet" style="--pente:${((alea() - 0.5) * 1.2).toFixed(2)}deg">
+      ${imperfections}
+      ${groupe.map((g) => htmlEntree(g)).join("")}
+      <span class="page-numero">— ${numero} —</span>
     </article>`;
 }
 
-function brancherPage(livre) {
+function brancherPages(livre) {
   livre.querySelectorAll(".page-voir").forEach((b) =>
     b.addEventListener("click", () => {
-      const g = pages.find((p) => p.cle === b.dataset.cle);
+      const g = entrees.find((p) => p.cle === b.dataset.cle);
       if (!g) return;
       fermerCarnet();
       cb.onVoirSurCarte?.(g.feature);
@@ -416,8 +506,9 @@ function brancherPage(livre) {
   livre.querySelectorAll(".page-occurrences").forEach((b) =>
     b.addEventListener("click", async () => {
       vue.activite = b.dataset.point;
-      await construirePages();
-      indexPage = pages.length ? 1 : 0;
+      await construireEntrees();
+      paginer();
+      indexPage = pagesListe.length ? 1 : 0;
       rendre();
     })
   );
@@ -425,8 +516,9 @@ function brancherPage(livre) {
     b.addEventListener("click", async () => {
       if (!(await confirmer(`Retirer cette sortie à « ${b.dataset.nom} » du carnet ?`))) return;
       await storage.deleteSortie(b.dataset.sortie);
-      await construirePages();
-      if (indexPage > pages.length) indexPage = Math.max(pages.length, 0);
+      await construireEntrees();
+      paginer();
+      if (indexPage > pagesListe.length) indexPage = Math.max(pagesListe.length, 0);
       rendre();
     })
   );
@@ -437,9 +529,45 @@ function brancherPage(livre) {
         date: new Date(input.value + "T12:00:00").toISOString(),
       });
       toast("Date enregistrée !");
-      await construirePages();
+      await construireEntrees();
+      paginer();
       indexPage = 1;
       rendre();
     })
   );
+}
+
+/* ------------------------------------------------------------------ */
+/* Export PDF : zone d'impression + dialogue d'impression du navigateur */
+/* (« Enregistrer au format PDF » — aucune dépendance)                  */
+/* ------------------------------------------------------------------ */
+
+export async function exporterCarnetPDF() {
+  const memo = { ...vue };
+  vue.recherche = "";
+  vue.favoris = false;
+  vue.activite = null;
+  vue.tri = "date";
+  await construireEntrees();
+  Object.assign(vue, memo);
+  if (!entrees.length) {
+    toast("Carnet vide : rien à exporter pour le moment.");
+    return;
+  }
+
+  let zone = document.getElementById("carnet-print");
+  if (!zone) {
+    zone = document.createElement("div");
+    zone.id = "carnet-print";
+    document.body.appendChild(zone);
+  }
+  const date = new Date().toLocaleDateString("fr-FR", MOIS_JOURS);
+  zone.innerHTML =
+    `<div class="print-garde"><h1>Carnet de sorties</h1>
+      <p>Carte Outdoor — ${entrees.length} sortie(s), exporté le ${esc(date)}</p></div>` +
+    entrees.map((g) => htmlEntree(g, true)).join("");
+
+  // La zone est vidée après impression (libère les photos en mémoire)
+  window.addEventListener("afterprint", () => (zone.textContent = ""), { once: true });
+  window.print();
 }

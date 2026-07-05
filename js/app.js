@@ -36,7 +36,7 @@ import { initGpx, setAllTracesVisible } from "./gpx.js";
 import { initAddPoint } from "./addpoint.js";
 import { initTuto, startTuto } from "./tuto.js";
 import { initIdeas } from "./ideas.js";
-import { initCarnet } from "./carnet.js";
+import { initCarnet, exporterCarnetPDF } from "./carnet.js";
 import { SUR_ANDROID, SUR_IOS } from "./config/platform.js";
 
 /** État global de l'application. */
@@ -515,6 +515,7 @@ function initReglages() {
     bouton.addEventListener("click", () => dlg.close());
   }
   document.getElementById("btn-update").addEventListener("click", verifierMiseAJour);
+  document.getElementById("btn-export-pdf").addEventListener("click", exporterCarnetPDF);
 }
 
 /** Force une vérification de mise à jour : le navigateur va rechercher

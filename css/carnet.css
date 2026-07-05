@@ -16,11 +16,17 @@
   position: fixed;
   inset: 0;
   z-index: 1900; /* au-dessus du bandeau escalade (1600), sous le toast (2000) */
-  background: rgba(15, 18, 24, 0.72);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 10px;
+  /* Un bureau de bois sombre sous une lampe : lattes, grain, vignette.
+     Le livre est POSÉ quelque part, il ne flotte pas dans le vide. */
+  background:
+    radial-gradient(ellipse at 50% 38%, transparent 22%, rgba(0, 0, 0, 0.62) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012 0.28' numOctaves='3'/%3E%3CfeColorMatrix values='0 0 0 0 0.05 0 0 0 0 0.03 0 0 0 0 0.01 0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23b)'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(93deg, rgba(0, 0, 0, 0.26) 0 2px, transparent 2px 122px),
+    linear-gradient(100deg, #33251a 0%, #3c2c1c 28%, #2c2012 58%, #241a0d 100%);
 }
 
 .carnet-boite {
@@ -31,62 +37,134 @@
   max-height: 100dvh;
 }
 
-/* --- Barre du haut : recherche, tri, favoris, fermeture ------------------ */
+/* --- Barre du haut : bandeau de cuir assorti à la couverture -------------
+   Recherche et tri sur parchemin encastré, favori en cachet de cire,
+   fermeture en bouton de cuir — l'outillage fait partie du grimoire. */
 
 .carnet-barre {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background:
+    radial-gradient(ellipse at 15% 20%, rgba(126, 82, 45, 0.5), transparent 55%),
+    radial-gradient(ellipse at 85% 85%, rgba(30, 16, 8, 0.55), transparent 50%),
+    linear-gradient(160deg, #5c3a21 0%, #3a2110 70%, #2c180a 100%);
+  box-shadow:
+    inset 0 0 0 2px rgba(20, 10, 4, 0.55),
+    inset 0 0 24px rgba(0, 0, 0, 0.45),
+    0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* La couture sellier de la lanière de cuir */
+.carnet-barre::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px dashed rgba(214, 178, 118, 0.35);
+  border-radius: 9px;
+  pointer-events: none;
 }
 
 .carnet-recherche {
   flex: 1;
   min-width: 0;
-  min-height: 42px;
-  padding: 8px 14px;
-  border: none;
-  border-radius: 999px;
-  font: inherit;
-  background: var(--surface);
+  min-height: 40px;
+  padding: 4px 14px;
+  border: 1px solid rgba(20, 10, 4, 0.65);
+  border-radius: 8px;
+  font-family: "Caveat", cursive;
+  font-size: 1.2rem;
+  color: #3c2a10;
+  background: linear-gradient(180deg, #f4e7c3, #ead6a4);
+  box-shadow: inset 0 2px 6px rgba(60, 40, 10, 0.35);
 }
+
+.carnet-recherche::placeholder { color: #8a6428; opacity: 1; }
+.carnet-recherche:focus { outline: 2px solid rgba(223, 192, 138, 0.7); outline-offset: -1px; }
 
 .carnet-tri {
-  min-height: 42px;
-  border: none;
-  border-radius: 999px;
-  font: inherit;
-  background: var(--surface);
-  padding: 4px 10px;
+  min-height: 40px;
+  max-width: 34vw;
+  border: 1px solid rgba(20, 10, 4, 0.65);
+  border-radius: 8px;
+  font-family: "Caveat", cursive;
+  font-size: 1.1rem;
+  color: #3c2a10;
+  background: linear-gradient(180deg, #f4e7c3, #ead6a4);
+  box-shadow: inset 0 2px 6px rgba(60, 40, 10, 0.35);
+  padding: 4px 8px;
 }
 
+/* Favori : un cachet de cire qui s'allume quand le filtre est actif */
 .carnet-favoris {
-  min-width: 42px;
-  min-height: 42px;
-  border: none;
+  min-width: 40px;
+  min-height: 40px;
+  border: 1px solid rgba(214, 178, 118, 0.45);
   border-radius: 50%;
-  background: var(--surface);
+  background: rgba(244, 231, 195, 0.1);
   font-size: 1.05rem;
-  color: var(--text-2);
+  color: #dfc08a;
 }
 
-.carnet-favoris.actif { background: var(--favori); color: #fff; }
+.carnet-favoris.actif {
+  background: radial-gradient(circle at 35% 30%, #b2453f, #7c221d 75%);
+  border-color: #55130f;
+  color: #ffe3da;
+  /* un cachet de cire n'est jamais parfaitement rond */
+  border-radius: 48% 52% 55% 45% / 52% 46% 54% 48%;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.45), inset 0 -2px 4px rgba(255, 200, 180, 0.15);
+}
 
-.carnet-barre .panel-close { background: var(--surface); border-radius: 50%; }
+.carnet-fermer {
+  min-width: 40px;
+  min-height: 40px;
+  border: 1px solid rgba(214, 178, 118, 0.45);
+  border-radius: 50%;
+  background: rgba(244, 231, 195, 0.1);
+  color: #dfc08a;
+  font-size: 1rem;
+}
 
-/* --- Bandeau « toutes mes sorties sur ce lieu » --------------------------- */
+.carnet-favoris:hover, .carnet-fermer:hover { background: rgba(244, 231, 195, 0.22); }
+
+/* --- Bandeau « toutes mes sorties sur ce lieu » : bande de parchemin ------ */
 
 .carnet-bandeau-activite {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  background: var(--surface);
-  border-radius: var(--radius-s);
+  border-radius: 8px;
+  border: 1px solid rgba(20, 10, 4, 0.5);
+  background: linear-gradient(180deg, #f4e7c3, #e8d5a2);
+  box-shadow: inset 0 0 18px rgba(122, 85, 34, 0.25);
   padding: 8px 12px;
+  color: #3c2a10;
 }
 
-.carnet-bandeau-activite .bandeau-texte { flex: 1; font-weight: 600; min-width: 140px; }
-.carnet-bandeau-activite .btn { min-height: 38px; padding: 4px 12px; }
+.carnet-bandeau-activite .bandeau-texte {
+  flex: 1;
+  min-width: 140px;
+  font-family: "Caveat", cursive;
+  font-size: 1.3rem;
+}
+
+.carnet-bouton {
+  border: 1.6px solid rgba(90, 60, 20, 0.75);
+  background: transparent;
+  color: #5a3d16;
+  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  padding: 4px 14px;
+  min-height: 38px;
+  font-family: "Caveat", cursive;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.carnet-bouton:hover { background: rgba(90, 60, 20, 0.09); }
 
 /* --- Scène : flèches + livre --------------------------------------------- */
 
@@ -102,27 +180,97 @@
   flex: none;
   width: 40px;
   height: 64px;
-  border: none;
+  border: 1px solid rgba(214, 178, 118, 0.3);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.14);
-  color: #fff;
+  background:
+    radial-gradient(ellipse at 30% 25%, rgba(126, 82, 45, 0.55), transparent 60%),
+    linear-gradient(160deg, #4a2d17, #2c180a);
+  color: #dfc08a;
   font-size: 1.7rem;
   line-height: 1;
+  box-shadow: inset 0 0 0 1px rgba(20, 10, 4, 0.5), 0 6px 14px rgba(0, 0, 0, 0.4);
 }
 
+.carnet-fleche:hover:not(:disabled) { color: #f3d98c; border-color: rgba(214, 178, 118, 0.55); }
 .carnet-fleche:disabled { opacity: 0.25; cursor: default; }
 
 .carnet-livre {
   flex: 1;
   min-width: 0;
+  position: relative; /* accueille la page de mesure de la pagination */
   perspective: 1600px;
   height: min(76dvh, 640px);
+}
+
+/* Page invisible où la pagination mesure la place réelle des entrées */
+.carnet-mesure {
+  position: absolute !important;
+  inset: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* --- Le livre OUVERT : couverture de cuir qui dépasse sous les pages ------ */
+
+.livre-ouvert {
+  --livre-marge: 11px;
+  position: relative;
+  height: 100%;
+  width: min(100%, calc(460px + 2 * var(--livre-marge)));
+  margin: 0 auto;
+  padding: var(--livre-marge);
+  border-radius: 8px 14px 14px 8px;
+  background:
+    radial-gradient(ellipse at 20% 15%, rgba(126, 82, 45, 0.4), transparent 55%),
+    radial-gradient(ellipse at 80% 90%, rgba(24, 12, 5, 0.55), transparent 55%),
+    linear-gradient(160deg, #503219 0%, #3a2110 55%, #281607 100%);
+  box-shadow:
+    inset 0 0 0 2px rgba(20, 10, 4, 0.6),
+    inset 0 0 26px rgba(0, 0, 0, 0.5),
+    0 24px 48px rgba(0, 0, 0, 0.62),
+    0 6px 14px rgba(0, 0, 0, 0.45);
+}
+
+.livre-ouvert.double { width: min(100%, calc(940px + 2 * var(--livre-marge))); }
+
+/* Sillon central de la reliure entre les deux pages */
+.livre-ouvert.double::after {
+  content: "";
+  position: absolute;
+  top: var(--livre-marge);
+  bottom: calc(var(--livre-marge) + 6px);
+  left: 50%;
+  width: 26px;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(60, 38, 12, 0.18) 32%,
+    rgba(35, 20, 6, 0.4) 50%,
+    rgba(60, 38, 12, 0.18) 68%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+/* Le ruban marque-page qui pend du haut du livre */
+.livre-signet {
+  position: absolute;
+  top: 2px;
+  right: 15%;
+  width: 21px;
+  height: 38%;
+  background: linear-gradient(105deg, #a02c24 0%, #7c1d17 45%, #64130e 100%);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 9px), 50% 100%, 0 calc(100% - 9px));
+  box-shadow: inset -3px 0 5px rgba(0, 0, 0, 0.35);
+  filter: drop-shadow(2px 3px 3px rgba(0, 0, 0, 0.45));
+  pointer-events: none;
 }
 
 /* Feuilletage : le livre se plie vers la reliure puis se déplie */
 .carnet-pages, .carnet-couverture {
   height: 100%;
-  transition: transform 0.24s ease-in, opacity 0.24s ease-in;
+  transition: transform 0.3s ease-in, opacity 0.3s ease-in;
   transform-origin: left center;
 }
 
@@ -147,14 +295,15 @@
   to { transform: none; opacity: 1; }
 }
 
-.deplie-avant .carnet-pages { transform-origin: right center; animation: carnet-deplie-avant 0.24s ease-out; }
+.deplie-avant .carnet-pages { transform-origin: right center; animation: carnet-deplie-avant 0.3s ease-out; }
 .deplie-arriere .carnet-pages, .deplie-arriere .carnet-couverture {
-  animation: carnet-deplie-arriere 0.24s ease-out;
+  animation: carnet-deplie-arriere 0.3s ease-out;
 }
 
 /* --- Couverture : cuir ancien, carte gravée ------------------------------- */
 
 .carnet-couverture {
+  position: relative;
   width: min(430px, 100%);
   margin: 0 auto;
   border-radius: 10px 18px 18px 10px;
@@ -164,7 +313,7 @@
   align-items: center;
   justify-content: center;
   gap: 14px;
-  padding: 26px 22px;
+  padding: 26px 30px;
   background:
     radial-gradient(ellipse at 18% 12%, rgba(126, 82, 45, 0.55), transparent 55%),
     radial-gradient(ellipse at 85% 90%, rgba(30, 16, 8, 0.6), transparent 50%),
@@ -174,8 +323,87 @@
     inset 0 0 0 3px rgba(20, 10, 4, 0.55),
     inset 0 0 60px rgba(0, 0, 0, 0.55),
     inset 12px 0 18px -10px rgba(255, 220, 170, 0.18),
-    0 18px 50px rgba(0, 0, 0, 0.55);
-  border-left: 10px solid #241206; /* la reliure */
+    0 24px 50px rgba(0, 0, 0, 0.6);
+  border-left: 12px solid #241206; /* la reliure */
+}
+
+/* Grain du cuir (bruit SVG) + usure des bords : par-dessus les dégradés */
+.carnet-couverture::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='130'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='3'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.22 0 0 0 0 0.10 0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='130' height='130' filter='url(%23c)'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 0 0, rgba(0, 0, 0, 0.4), transparent 18%),
+    radial-gradient(ellipse at 100% 0, rgba(0, 0, 0, 0.35), transparent 16%),
+    radial-gradient(ellipse at 100% 100%, rgba(0, 0, 0, 0.42), transparent 20%),
+    radial-gradient(ellipse at 0 100%, rgba(0, 0, 0, 0.35), transparent 16%);
+  pointer-events: none;
+}
+
+/* Nerfs de reliure : les bourrelets horizontaux du dos du livre */
+.carnet-couverture::after {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 10%;
+  bottom: 10%;
+  width: 12px;
+  background: repeating-linear-gradient(
+    180deg,
+    transparent 0 calc(20% - 5px),
+    rgba(255, 220, 170, 0.14) calc(20% - 5px) calc(20% - 2px),
+    rgba(0, 0, 0, 0.5) calc(20% - 2px) 20%
+  );
+  pointer-events: none;
+}
+
+/* Coins ouvragés : équerres de laiton clouées */
+.couv-coin {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  border: 3px solid #8a6a2f;
+  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.55), 1px 1px 2px rgba(0, 0, 0, 0.5);
+  background:
+    radial-gradient(circle at 7px 7px, #caa85f 2.5px, transparent 3px),
+    linear-gradient(135deg, rgba(202, 168, 95, 0.35), transparent 60%);
+  pointer-events: none;
+}
+
+.couv-coin.coin-hg { top: 7px; left: 7px; border-right: none; border-bottom: none; border-radius: 8px 0 0 0; }
+.couv-coin.coin-hd { top: 7px; right: 7px; border-left: none; border-bottom: none; border-radius: 0 8px 0 0; transform: scaleX(-1); }
+.couv-coin.coin-bg { bottom: 7px; left: 7px; border-right: none; border-top: none; border-radius: 0 0 0 8px; transform: scaleY(-1); }
+.couv-coin.coin-bd { bottom: 7px; right: 7px; border-left: none; border-top: none; border-radius: 0 0 8px 0; transform: scale(-1); }
+
+/* Le fermoir de laiton, sangle de cuir comprise */
+.couv-fermoir {
+  position: absolute;
+  right: -7px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 68px;
+  border-radius: 6px 10px 10px 6px;
+  background: linear-gradient(90deg, #4a2d17, #38200e);
+  box-shadow: inset 0 0 0 2px rgba(20, 10, 4, 0.6), 2px 3px 5px rgba(0, 0, 0, 0.5);
+}
+
+.couv-fermoir::after {
+  content: "";
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 42px;
+  border-radius: 5px;
+  background:
+    radial-gradient(circle at 50% 24%, #1d1206 2.5px, transparent 3px),
+    radial-gradient(circle at 50% 76%, #1d1206 2.5px, transparent 3px),
+    linear-gradient(100deg, #d9b56a 0%, #a37f3c 45%, #6e5122 100%);
+  box-shadow: inset 0 1px 2px rgba(255, 240, 200, 0.5), inset 0 -2px 3px rgba(0, 0, 0, 0.45);
 }
 
 .couv-cadre {
@@ -206,9 +434,13 @@
   font-size: 2.3rem;
   line-height: 1.05;
   text-align: center;
-  color: #dfc08a;
-  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.8), -1px -1px 0 rgba(255, 235, 190, 0.15);
   font-weight: 700;
+  /* Feuille d'or : dégradé dans les lettres + ombre portée de dorure à chaud */
+  background: linear-gradient(168deg, #f0d68f 8%, #caa85f 38%, #8a6a2f 62%, #e8c877 88%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(1px 1.5px 0 rgba(0, 0, 0, 0.75));
 }
 
 .couv-sous-titre {
@@ -231,12 +463,17 @@
 .carnet-pages {
   display: flex;
   height: 100%;
-  width: min(460px, 100%);
-  margin: 0 auto;
-  filter: drop-shadow(0 16px 34px rgba(0, 0, 0, 0.5));
+  width: 100%;
+  /* L'épaisseur du livre : le bloc des feuilles sous la page courante,
+     rendu par des ombres nettes décalées (une « feuille » par cran) */
+  box-shadow:
+    1px 1.5px 0 #e3d0a4,
+    2px 3px 0 #d9c493,
+    3px 4.5px 0 #cdb582,
+    4px 6px 0 #bfa671,
+    5px 7.5px 0 rgba(60, 38, 12, 0.55);
+  border-radius: 3px 12px 12px 3px;
 }
-
-.carnet-pages.double { width: 100%; max-width: 940px; }
 
 .page-carnet {
   position: relative;
@@ -244,7 +481,7 @@
   min-width: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 20px 22px 14px;
+  padding: 18px 22px 36px; /* le bas est réservé au numéro de page */
   border-radius: 4px 14px 14px 4px;
   /* Papier NON uniforme : jaunissement irrégulier, bords brunis, grain */
   background:
@@ -276,6 +513,13 @@
 
 .page-vide { background-color: #e8d8ac; }
 
+/* Page seule (petit écran) : la reliure est à gauche → ombre du pli */
+.carnet-pages:not(.double) .page-carnet {
+  box-shadow:
+    inset 0 0 44px rgba(122, 85, 34, 0.28),
+    inset 16px 0 22px -12px rgba(70, 45, 15, 0.55);
+}
+
 /* Imperfections aléatoires (positionnées par carnet.js) */
 .page-tache {
   position: absolute;
@@ -306,7 +550,26 @@
 .page-usure.coin-bd { right: 0; bottom: 0; transform: rotate(180deg); }
 .page-usure.coin-hg { left: 0; top: 0; }
 
-/* Contenu d'une page */
+/* Contenu d'une page : plusieurs entrées, séparées d'un fleuron calligraphié */
+
+.entree + .entree {
+  position: relative;
+  margin-top: 20px;
+  padding-top: 18px;
+}
+
+.entree + .entree::before {
+  content: "———  ❦  ———";
+  position: absolute;
+  top: -2px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: rgba(107, 74, 28, 0.6);
+  pointer-events: none;
+}
 
 .page-entete {
   display: flex;
@@ -331,10 +594,10 @@
 }
 
 .page-titre {
-  margin: 10px 0 2px;
+  margin: 8px 0 2px;
   font-family: "Caveat", cursive;
   font-weight: 700;
-  font-size: 2rem;
+  font-size: 1.75rem;
   line-height: 1.05;
   color: #33230d;
 }
@@ -363,13 +626,17 @@
   color: inherit;
 }
 
-.page-photos { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
+.page-photos { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0; }
 
+/* Hauteur FIXE : la pagination mesure les pages avant le chargement des
+   photos — une hauteur connue d'avance rend la mesure exacte. */
 .page-photo {
-  max-width: min(230px, 100%);
-  max-height: 170px;
+  height: 140px;
+  width: auto;
+  max-width: 100%;
+  object-fit: cover;
   border: 6px solid #fffdf4;
-  border-bottom-width: 20px; /* façon polaroïd collé */
+  border-bottom-width: 18px; /* façon polaroïd collé */
   box-shadow: 0 4px 10px rgba(60, 40, 10, 0.4);
   border-radius: 2px;
 }
@@ -379,47 +646,55 @@
   font-size: 1.45rem;
   line-height: 1.35;
   margin: 8px 0;
-  color: #3c2a10;
+  color: var(--encre, #3c2a10); /* chaque entrée a sa teinte d'encre */
 }
 
 .page-note-vide { opacity: 0.55; font-size: 1.2rem; }
 
-.page-pied {
+.entree-actions {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 14px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(90, 60, 20, 0.25);
+  margin-top: 8px;
 }
 
+/* Boutons « tracés à la plume » : bordure volontairement irrégulière
+   (rayons asymétriques), écriture manuscrite, pas de fond */
 .page-action {
-  border: 1px solid rgba(90, 60, 20, 0.35);
-  background: rgba(255, 250, 235, 0.55);
+  border: 1.6px solid rgba(90, 60, 20, 0.75);
+  background: transparent;
   color: #5a3d16;
-  border-radius: 999px;
-  padding: 6px 12px;
-  min-height: 36px;
-  font-size: 0.8rem;
+  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  padding: 3px 14px;
+  min-height: 34px;
+  font-family: "Caveat", cursive;
+  font-size: 1.08rem;
   font-weight: 600;
 }
 
-.page-action:hover { background: rgba(255, 250, 235, 0.9); }
+.page-action:hover { background: rgba(90, 60, 20, 0.09); }
 
 .page-numero {
-  margin-left: auto;
+  position: absolute;
+  bottom: 8px;
+  left: 0;
+  right: 0;
+  text-align: center;
   font-family: "Caveat", cursive;
   font-size: 1.05rem;
   color: #8a6428;
+  pointer-events: none;
 }
 
 .carnet-pied {
   margin: 0;
   text-align: center;
-  color: rgba(255, 255, 255, 0.75);
-  font-size: 0.82rem;
+  font-family: "Caveat", cursive;
+  color: rgba(232, 208, 160, 0.85);
+  font-size: 1.15rem;
   min-height: 1.2em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
 /* --- Petit écran ----------------------------------------------------------- */
@@ -428,9 +703,93 @@
   #carnet-overlay { padding: 6px; }
   .carnet-fleche { width: 30px; height: 54px; font-size: 1.4rem; border-radius: 9px; }
   .carnet-livre { height: min(74dvh, 640px); }
-  .page-titre { font-size: 1.65rem; }
+  .livre-ouvert { --livre-marge: 8px; }
+  .page-carnet { padding: 14px 16px 32px; }
+  .page-titre { font-size: 1.55rem; }
   .page-note { font-size: 1.3rem; }
 }
 
 /* Le bouton flottant du carnet, façon petit livre */
 .fab-carnet { font-size: 1.35rem; }
+
+/* --------------------------------------------------------------------------
+   Export PDF : zone #carnet-print, invisible à l'écran, seule imprimée.
+   Le navigateur propose « Enregistrer au format PDF » dans son dialogue
+   d'impression — aucune dépendance. Style sobre : les fonds ne sont pas
+   toujours imprimés, tout doit rester lisible sans eux.
+   -------------------------------------------------------------------------- */
+
+#carnet-print { display: none; }
+
+@media print {
+  body > *:not(#carnet-print) { display: none !important; }
+
+  #carnet-print {
+    display: block;
+    font-family: Georgia, "Times New Roman", serif;
+    color: #2c1c0c;
+  }
+
+  #carnet-print .print-garde {
+    text-align: center;
+    margin-top: 34vh;
+    page-break-after: always;
+  }
+
+  #carnet-print .print-garde h1 {
+    font-family: "Caveat", cursive;
+    font-size: 34pt;
+    margin: 0 0 8pt;
+  }
+
+  #carnet-print .print-garde p { color: #6b4a1c; font-size: 11pt; }
+
+  #carnet-print .entree {
+    page-break-inside: avoid;
+    border-bottom: 1px dashed #a08050;
+    padding: 10pt 0 12pt;
+  }
+
+  #carnet-print .page-entete {
+    display: flex;
+    justify-content: space-between;
+    gap: 8pt;
+    font-size: 10pt;
+    color: #6b4a1c;
+    border-bottom: none;
+    padding: 0;
+  }
+
+  #carnet-print .page-titre {
+    font-family: "Caveat", cursive;
+    font-size: 20pt;
+    margin: 3pt 0;
+    color: #2c1c0c;
+  }
+
+  #carnet-print .page-coeur { color: #b0304f; }
+
+  #carnet-print .page-mention {
+    font-family: "Caveat", cursive;
+    font-size: 13pt;
+    color: #2f5d2a;
+    margin: 2pt 0;
+  }
+
+  #carnet-print .page-photos { display: flex; flex-wrap: wrap; gap: 8pt; margin: 6pt 0; }
+
+  #carnet-print .page-photo {
+    height: 150pt;
+    width: auto;
+    border: 1pt solid #c9b88f;
+    border-radius: 2pt;
+  }
+
+  #carnet-print .page-note {
+    font-family: "Caveat", cursive;
+    font-size: 14pt;
+    line-height: 1.35;
+    margin: 4pt 0;
+    color: #3c2a10;
+  }
+}
