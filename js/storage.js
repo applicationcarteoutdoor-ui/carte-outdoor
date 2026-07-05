@@ -18,10 +18,11 @@ const KEY_STATUSES = PREFIX + "statuses";
 const KEY_THEME_OVERRIDES = PREFIX + "themeOverrides";
 
 const DB_NAME = "carte-outdoor";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORE_POINTS = "userPoints"; // features GeoJSON importées (clé : properties.id)
 const STORE_TRACKS = "tracks"; // traces GPX/KML… (clé : id)
 const STORE_JOURNAL = "journal"; // carnet par point (clé : pointId)
+const STORE_CARNET = "carnet"; // réglages du carnet : thème + images (clé : cle)
 
 /* ------------------------------------------------------------------ */
 /* localStorage                                                         */
@@ -197,6 +198,9 @@ function ouvrirDB() {
         if (!db.objectStoreNames.contains(STORE_JOURNAL)) {
           db.createObjectStore(STORE_JOURNAL, { keyPath: "pointId" });
         }
+        if (!db.objectStoreNames.contains(STORE_CARNET)) {
+          db.createObjectStore(STORE_CARNET, { keyPath: "cle" });
+        }
       };
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
@@ -307,6 +311,22 @@ export async function deleteJournalEntry(pointId, entryId) {
 /** Supprime tout le carnet d'un point (quand le point lui-même est supprimé). */
 export async function deleteJournal(pointId) {
   return transaction(STORE_JOURNAL, "readwrite", (store) => store.delete(pointId));
+}
+
+/* ------------------------------------------------------------------ */
+/* Thème du carnet : prédéfini ou personnalisé (photos en dataURL)      */
+/* ------------------------------------------------------------------ */
+
+/** Réglage du carnet : { theme: "grimoire"|"voyage"|"nuit"|"perso",
+ *  couverture: dataURL|null, page: dataURL|null } — ou undefined. */
+export async function getCarnetTheme() {
+  return transaction(STORE_CARNET, "readonly", (store) => store.get("theme"));
+}
+
+export async function saveCarnetTheme(reglage) {
+  return transaction(STORE_CARNET, "readwrite", (store) =>
+    store.put({ cle: "theme", ...reglage })
+  );
 }
 
 /** Fusionne un carnet importé (sauvegarde) avec l'existant, sans doublons d'id. */

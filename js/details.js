@@ -25,6 +25,7 @@ let onStatusChangeCallback = null;
 let onCloseCallback = null;
 let isUserPointCallback = null;
 let onDeletePointCallback = null;
+let onVoirCarnetCallback = null;
 let featureCourante = null;
 
 function esc(texte) {
@@ -33,11 +34,12 @@ function esc(texte) {
   return div.innerHTML;
 }
 
-export function initDetails({ onStatusChange, onClose, isUserPoint, onDeletePoint }) {
+export function initDetails({ onStatusChange, onClose, isUserPoint, onDeletePoint, onVoirCarnet }) {
   onStatusChangeCallback = onStatusChange;
   onCloseCallback = onClose;
   isUserPointCallback = isUserPoint;
   onDeletePointCallback = onDeletePoint;
+  onVoirCarnetCallback = onVoirCarnet;
   panel = document.getElementById("details-panel");
   panel.querySelector(".panel-close").addEventListener("click", closeDetails);
   initSignalement();
@@ -164,7 +166,10 @@ export function openDetails(feature, statut) {
     </p>
 
     <section class="carnet" aria-label="Mon carnet">
-      <h3>📔 Mon carnet</h3>
+      <h3>📔 Mon carnet
+        <button type="button" class="btn-icon btn-voir-carnet"
+          title="Voir mes sorties ici dans le grand carnet">📖</button>
+      </h3>
       <div class="carnet-entries"></div>
       <form class="carnet-form">
         <textarea rows="2" placeholder="Une note, un souvenir… (date ajoutée automatiquement)"></textarea>
@@ -219,6 +224,11 @@ export function openDetails(feature, statut) {
   // l'utilisateur (les données par défaut ne sont pas supprimables une à une).
   panel.querySelector(".btn-delete-point")?.addEventListener("click", () => {
     onDeletePointCallback?.(feature);
+  });
+
+  // Passerelle vers le grand carnet : toutes mes sorties sur ce lieu
+  panel.querySelector(".btn-voir-carnet").addEventListener("click", () => {
+    onVoirCarnetCallback?.(p.id);
   });
 
   // Signalement (tous les points) : ouvre le dialogue pré-rempli
@@ -365,8 +375,9 @@ async function initCarnet(pointId) {
 /**
  * Redimensionne une photo côté client (max 1024 px, JPEG qualité 0.8)
  * pour ne pas faire gonfler IndexedDB. Retourne une dataURL.
+ * Exportée : le carnet s'en sert pour les images de thème personnalisé.
  */
-async function redimensionnerPhoto(fichier) {
+export async function redimensionnerPhoto(fichier) {
   const image = await new Promise((resolve, reject) => {
     const url = URL.createObjectURL(fichier);
     const img = new Image();

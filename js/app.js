@@ -36,7 +36,7 @@ import { initGpx, setAllTracesVisible } from "./gpx.js";
 import { initAddPoint } from "./addpoint.js";
 import { initTuto, startTuto } from "./tuto.js";
 import { initIdeas } from "./ideas.js";
-import { initCarnet, exporterCarnetPDF } from "./carnet.js";
+import { initCarnet, exporterCarnetPDF, ouvrirCarnetPourPoint } from "./carnet.js";
 import { SUR_ANDROID, SUR_IOS } from "./config/platform.js";
 
 /** État global de l'application. */
@@ -507,7 +507,10 @@ function initInstallation() {
 
 function initReglages() {
   const dlg = document.getElementById("settings-dialog");
-  document.getElementById("btn-settings").addEventListener("click", () => dlg.showModal());
+  document.getElementById("btn-settings").addEventListener("click", () => {
+    majStatutStockage();
+    dlg.showModal();
+  });
   dlg.querySelector(".settings-close").addEventListener("click", () => dlg.close());
   // Chaque action referme le menu (l'import ouvre un sélecteur de fichier,
   // l'installation son propre dialogue, la vérification un toast…)
@@ -516,6 +519,99 @@ function initReglages() {
   }
   document.getElementById("btn-update").addEventListener("click", verifierMiseAJour);
   document.getElementById("btn-export-pdf").addEventListener("click", exporterCarnetPDF);
+}
+
+/** Mode nuit de l'application : couleurs sombres + tuiles de carte
+ *  assombries (voir styles.css). Préférence mémorisée. */
+function initModeNuit(prefs) {
+  const bouton = document.getElementById("btn-mode-nuit");
+  let actif = prefs.modeNuit === true;
+  const appliquer = () => {
+    document.body.classList.toggle("mode-nuit", actif);
+    bouton.textContent = actif ? "☀️ Mode jour" : "🌙 Mode nuit";
+  };
+  appliquer();
+  bouton.addEventListener("click", () => {
+    actif = !actif;
+    appliquer();
+    storage.savePrefs({ modeNuit: actif });
+  });
+}
+
+/** Renseigne la ligne d'état du stockage dans ⚙️ Réglages : protection
+ *  anti-effacement + date de dernière sauvegarde. */
+async function majStatutStockage() {
+  const el = document.getElementById("storage-status");
+  let persistant = false;
+  try {
+    persistant = (await navigator.storage?.persisted?.()) === true;
+  } catch {
+    /* API absente */
+  }
+  const prefs = await storage.getPrefs();
+  const dateSauv = prefs.dernierExport
+    ? new Date(prefs.dernierExport).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
+    : "jamais";
+  el.innerHTML =
+    `${persistant ? "🔒 Données protégées contre l'effacement automatique." : "⚠️ Le navigateur pourrait effacer les données sous contrainte d'espace — pensez à sauvegarder."}` +
+    `<br>Dernière sauvegarde : <strong>${dateSauv}</strong>.`;
+}
+
+/* ------------------------------------------------------------------ */
+/* Protection des données : anti-éviction + rappel de sauvegarde        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Les données de l'utilisateur (sorties, carnet, points, statuts) vivent
+ * dans le navigateur de l'appareil. Deux protections :
+ *  1. `navigator.storage.persist()` demande au navigateur de NE PAS les
+ *     effacer automatiquement pour libérer de la place (éviction) ;
+ *  2. un rappel invite à exporter une sauvegarde de temps en temps — seul
+ *     rempart en cas de changement d'appareil ou de nettoyage manuel.
+ * Depuis le correctif du service worker (v27), aucune manipulation de type
+ * « vider les données du site » n'est plus nécessaire pour les mises à jour.
+ */
+async function initProtectionDonnees(prefs, premiereVisite) {
+  // 1) Stockage persistant (souvent accordé d'office pour une PWA installée)
+  try {
+    if (navigator.storage?.persist && !(await navigator.storage.persisted())) {
+      await navigator.storage.persist();
+    }
+  } catch {
+    /* API indisponible : on continue sans */
+  }
+
+  // 2) Rappel de sauvegarde
+  const dlg = document.getElementById("backup-dialog");
+  dlg.querySelector(".backup-plus-tard").addEventListener("click", () => {
+    dlg.close();
+    storage.savePrefs({ dernierRappelSauvegarde: Date.now() });
+  });
+  dlg.querySelector(".backup-maintenant").addEventListener("click", () => {
+    dlg.close();
+    document.getElementById("btn-export").click(); // exporter() note la date
+  });
+
+  // Pas de rappel à la toute première visite (aucune donnée, et il y a le tuto)
+  if (premiereVisite) return;
+  const sorties = await storage.getSorties().catch(() => []);
+  const aDesDonnees =
+    state.userPointIds.size > 0 ||
+    sorties.length > 0 ||
+    Object.keys(state.statuses).length > 0;
+  if (!aDesDonnees) return;
+
+  const DELAI = 14 * 24 * 60 * 60 * 1000; // 14 jours
+  const dernier = Math.max(prefs.dernierExport || 0, prefs.dernierRappelSauvegarde || 0);
+  if (Date.now() - dernier < DELAI) return;
+
+  document.getElementById("backup-message").textContent = prefs.dernierExport
+    ? "Votre dernière sauvegarde commence à dater."
+    : "Vous avez des données enregistrées, mais aucune sauvegarde n'a encore été faite.";
+  // Léger différé : ne pas surgir en plein chargement de la carte
+  setTimeout(() => {
+    if (!dlg.open) dlg.showModal();
+  }, 1800);
 }
 
 /** Force une vérification de mise à jour : le navigateur va rechercher
@@ -732,6 +828,7 @@ async function demarrer() {
     onClose: clearHighlight,
     isUserPoint: (id) => state.userPointIds.has(id),
     onDeletePoint: supprimerPoint,
+    onVoirCarnet: ouvrirCarnetPourPoint,
   });
 
   initImportExport({
@@ -742,6 +839,7 @@ async function demarrer() {
       journal: await storage.getAllJournals().catch(() => ({})),
       customThemes: await storage.getCustomThemes().catch(() => []),
       sorties: await storage.getSorties().catch(() => []),
+      carnetTheme: await storage.getCarnetTheme().catch(() => null),
     }),
     onImportedPoints: apresImportPoints,
     onImportedTraces: () => {
@@ -771,6 +869,8 @@ async function demarrer() {
   initIdeas();
   initInstallation();
   initReglages();
+  initModeNuit(prefs);
+  initProtectionDonnees(prefs, premiereVisite);
   afficherVersion();
   initCarnet({
     getPoints: () => state.allPoints,
@@ -825,19 +925,38 @@ async function demarrer() {
   // Tuto lancé automatiquement à la toute première connexion (skippable)
   if (premiereVisite) setTimeout(startTuto, 600);
 
-  // Hors-ligne : service worker (chemin relatif pour GitHub Pages)
+  // Hors-ligne + MISE À JOUR AUTOMATIQUE (aucune action de l'utilisateur)
   if ("serviceWorker" in navigator) {
-    // Après une mise à jour (nouvelle VERSION dans sw.js), la page recharge
-    // dès que le nouveau SW prend la main : les visiteurs voient la dernière
-    // version au premier chargement, sans second F5 manuel.
+    // Quand le nouveau service worker prend la main (nouvelle VERSION de
+    // sw.js), la page se recharge d'elle-même → les visiteurs voient la
+    // dernière version, y compris le nouveau design du carnet, sans rien
+    // faire. Le pré-cache force le réseau (cache:"reload", v27) : les
+    // fichiers au nom inchangé mais au contenu modifié (img/carnet-*.jpg)
+    // sont donc bien rafraîchis.
     let avaitControleur = !!navigator.serviceWorker.controller;
+    let rechargeEnCours = false;
     navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (avaitControleur) location.reload();
+      if (avaitControleur && !rechargeEnCours) {
+        rechargeEnCours = true; // garde-fou anti double-rechargement
+        location.reload();
+      }
       avaitControleur = true;
     });
-    navigator.serviceWorker.register("sw.js").catch((e) => {
-      console.warn("Service worker non enregistré :", e);
-    });
+
+    navigator.serviceWorker
+      .register("sw.js")
+      .then((reg) => {
+        // Par défaut le navigateur ne cherche une nouvelle version qu'au
+        // (re)chargement de la page. On vérifie AUSSI à chaque retour de
+        // l'application au premier plan et une fois par heure : une appli
+        // installée qui reste ouverte se met alors à jour toute seule.
+        const verifier = () => reg.update().catch(() => {});
+        document.addEventListener("visibilitychange", () => {
+          if (!document.hidden) verifier();
+        });
+        setInterval(verifier, 60 * 60 * 1000);
+      })
+      .catch((e) => console.warn("Service worker non enregistré :", e));
   }
 }
 

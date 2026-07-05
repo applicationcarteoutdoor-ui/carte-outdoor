@@ -14,7 +14,7 @@
  *    pour invalider l'ancien cache.
  */
 
-const VERSION = "v21";
+const VERSION = "v31";
 const CACHE_SHELL = `carte-outdoor-shell-${VERSION}`;
 const CACHE_TUILES = "carte-outdoor-tuiles-v1";
 const MAX_TUILES = 600;
@@ -56,6 +56,11 @@ const SHELL = [
   "./icons/icon.svg",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
+  "./img/carnet-couverture.jpg",
+  "./img/carnet-page-1.jpg",
+  "./img/carnet-page-2.jpg",
+  "./img/carnet-page-3.jpg",
+  "./img/carnet-page-4.jpg",
 ];
 
 /** Hôtes des serveurs de tuiles (cache dédié). */
@@ -67,10 +72,33 @@ const HOTES_TUILES = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_SHELL).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting())
-  );
+  event.waitUntil(precacherShell().then(() => self.skipWaiting()));
 });
+
+/**
+ * Pré-cache le shell en forçant `cache: "reload"` : chaque fichier est
+ * re-téléchargé depuis le RÉSEAU, jamais depuis le cache HTTP du navigateur.
+ *
+ * ⚠️ Indispensable : `cache.addAll()` passe par le cache HTTP. Un fichier
+ * dont le CONTENU change sans que son NOM change (ex. img/carnet-*.jpg
+ * remplacées d'une version à l'autre) était alors recopié PÉRIMÉ dans le
+ * nouveau cache — la VERSION montait mais les pixels restaient anciens
+ * (bug « couverture avec le bureau » constaté en v24→v26).
+ */
+async function precacherShell() {
+  const cache = await caches.open(CACHE_SHELL);
+  await Promise.all(
+    SHELL.map(async (url) => {
+      try {
+        const reponse = await fetch(new Request(url, { cache: "reload" }));
+        if (reponse.ok) await cache.put(url, reponse);
+      } catch (e) {
+        // Un fichier manquant ne doit pas faire échouer toute l'installation
+        console.warn("Pré-cache impossible :", url, e);
+      }
+    })
+  );
+}
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(

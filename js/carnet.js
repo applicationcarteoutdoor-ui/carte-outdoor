@@ -18,6 +18,7 @@
 import * as storage from "./storage.js";
 import { getTheme } from "./config/themes.js";
 import { confirmer, toast } from "./import-export.js";
+import { redimensionnerPhoto } from "./details.js";
 
 let overlay = null;
 let cb = {}; // { getPoints, getStatuses, onVoirSurCarte }
@@ -31,12 +32,42 @@ let minuterieResize = null;
 /** Filtres et tri courants (réinitialisés à chaque ouverture du carnet). */
 const vue = { recherche: "", tri: "date", favoris: false, activite: null };
 
+/** Thème du carnet : prédéfini (grimoire, voyage, nuit) ou personnalisé
+ *  avec les photos de l'utilisateur (couverture et fond de page).
+ *  `logo` est INDÉPENDANT du thème : médaillon sur la plaque de couverture. */
+let themeCarnet = { theme: "grimoire", couverture: null, page: null, logo: null };
+
+async function chargerThemeCarnet() {
+  const enregistre = await storage.getCarnetTheme().catch(() => null);
+  if (enregistre) themeCarnet = enregistre;
+}
+
+function appliquerThemeCarnet() {
+  overlay.classList.remove("carnet-theme-voyage", "carnet-theme-nuit", "carnet-couv-perso", "carnet-page-perso");
+  const t = themeCarnet.theme;
+  if (t === "voyage" || t === "nuit") overlay.classList.add(`carnet-theme-${t}`);
+  if (t === "perso") {
+    // Chaque image est indépendante : sans photo, l'élément garde le
+    // style Grimoire (les classes ne sont posées que si l'image existe)
+    if (themeCarnet.couverture) {
+      overlay.classList.add("carnet-couv-perso");
+      overlay.style.setProperty("--image-couverture", `url(${themeCarnet.couverture})`);
+    }
+    if (themeCarnet.page) {
+      overlay.classList.add("carnet-page-perso");
+      overlay.style.setProperty("--image-page", `url(${themeCarnet.page})`);
+    }
+  }
+}
+
 const MOIS_JOURS = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
 
 export function initCarnet(callbacks) {
   cb = callbacks;
   overlay = document.getElementById("carnet-overlay");
-  document.getElementById("btn-carnet").addEventListener("click", ouvrirCarnet);
+  // Ne PAS passer ouvrirCarnet directement : l'événement de clic serait
+  // pris pour le paramètre `activite` (carnet filtré sur un lieu fantôme)
+  document.getElementById("btn-carnet").addEventListener("click", () => ouvrirCarnet());
 
   document.addEventListener("keydown", (e) => {
     if (overlay.hidden) return;
@@ -58,15 +89,17 @@ export function initCarnet(callbacks) {
   });
 }
 
-export async function ouvrirCarnet() {
+export async function ouvrirCarnet(activite = null) {
   // Jamais d'échec silencieux : si quelque chose casse, on le dit.
   try {
     vue.recherche = "";
     vue.favoris = false;
-    vue.activite = null;
+    vue.activite = activite;
+    await chargerThemeCarnet();
     await construireEntrees();
     indexPage = 0; // toujours la couverture d'abord
     batirSquelette();
+    appliquerThemeCarnet();
     overlay.hidden = false; // la mesure des pages exige une mise en page réelle
     paginer();
     rendre();
@@ -74,6 +107,11 @@ export async function ouvrirCarnet() {
     console.error("Ouverture du carnet impossible :", e);
     toast("Impossible d'ouvrir le carnet — rechargez la page et réessayez.");
   }
+}
+
+/** Ouvre le carnet directement sur les sorties d'un lieu (depuis la fiche). */
+export async function ouvrirCarnetPourPoint(pointId) {
+  await ouvrirCarnet(pointId);
 }
 
 function fermerCarnet() {
@@ -228,6 +266,8 @@ function batirSquelette() {
         </select>
         <button type="button" class="carnet-favoris" aria-pressed="false"
                 title="N'afficher que les favoris">♥</button>
+        <button type="button" class="carnet-theme" title="Personnaliser le carnet"
+                aria-label="Personnaliser le carnet">🎨</button>
         <button type="button" class="carnet-fermer" title="Fermer le carnet"
                 aria-label="Fermer le carnet">✕</button>
       </div>
@@ -283,6 +323,7 @@ function batirSquelette() {
     toast("Sortie d'aujourd'hui ajoutée au carnet !");
     relancer();
   });
+  overlay.querySelector(".carnet-theme").addEventListener("click", ouvrirDialogueTheme);
 
   // Feuilletage au doigt
   const livre = overlay.querySelector(".carnet-livre");
@@ -310,9 +351,14 @@ function rendre() {
   const bandeau = overlay.querySelector(".carnet-bandeau-activite");
 
   bandeau.hidden = !vue.activite;
-  if (vue.activite && entrees.length) {
+  if (vue.activite) {
+    // Le nom vient du point lui-même : le bandeau reste juste même quand
+    // le lieu n'a encore aucune sortie (arrivée depuis la fiche)
+    const feature = cb.getPoints().find((f) => f.properties.id === vue.activite);
+    const nom = feature ? feature.properties.name : "";
+    const icone = feature ? getTheme(feature.properties.theme).icon : "📖";
     bandeau.querySelector(".bandeau-texte").textContent =
-      `${entrees[0].theme.icon} ${entrees[0].nom} — ${entrees.length} sortie(s)`;
+      `${icone} ${nom} — ${entrees.length} sortie(s)`;
   }
 
   if (indexPage === 0) {
@@ -320,6 +366,8 @@ function rendre() {
     livre.querySelector(".carnet-couverture").addEventListener("click", () => tourner(1));
     pied.textContent = pagesListe.length
       ? `${entrees.length} sortie(s) sur ${pagesListe.length} page(s) — touchez la couverture pour ouvrir`
+      : vue.activite
+      ? "Aucune sortie ici pour l'instant — marquez ce lieu « ✓ Fait » ou ajoutez-y une note !"
       : "Votre carnet attend sa première sortie : marquez une activité « ✓ Fait » !";
   } else {
     const morceaux = [htmlPage(indexPage)];
@@ -329,11 +377,10 @@ function rendre() {
       );
     }
     // Le livre ouvert : couverture de cuir dépassant sous le bloc de pages,
-    // ruban marque-page — l'épaisseur vient des tranches en box-shadow.
+    // l'épaisseur vient des tranches en box-shadow.
     livre.innerHTML = `
       <div class="livre-ouvert${doublePage() ? " double" : ""}">
         <div class="carnet-pages${doublePage() ? " double" : ""}">${morceaux.join("")}</div>
-        <i class="livre-signet" aria-hidden="true"></i>
       </div>`;
     brancherPages(livre);
     pied.textContent =
@@ -375,24 +422,45 @@ function tourner(sens) {
 /* ------------------------------------------------------------------ */
 
 function htmlCouverture() {
+  // Fidèle à la référence : cuir ouvragé de volutes, plaque de laiton
+  // rivetée gravée d'une rose des vents, craquelures de vieille carte,
+  // écusson — le titre est discret, sous la plaque.
+  const logo = themeCarnet.logo
+    ? `<img class="couv-logo" src="${themeCarnet.logo}" alt="" aria-hidden="true">`
+    : "";
   return `
-    <div class="carnet-couverture" role="button" tabindex="0" aria-label="Ouvrir le carnet">
+    <div class="carnet-couverture${themeCarnet.logo ? " couv-avec-logo" : ""}" role="button"
+         tabindex="0" aria-label="Ouvrir le carnet">
+      ${logo}
       <i class="couv-fermoir" aria-hidden="true"></i>
       <i class="couv-coin coin-hg" aria-hidden="true"></i>
       <i class="couv-coin coin-hd" aria-hidden="true"></i>
       <i class="couv-coin coin-bg" aria-hidden="true"></i>
       <i class="couv-coin coin-bd" aria-hidden="true"></i>
-      <div class="couv-cadre">
-        <svg class="couv-carte" viewBox="0 0 200 200" aria-hidden="true">
-          <path class="grave" d="M30 150 Q60 120 80 130 T130 100 T175 60" fill="none"/>
-          <path class="grave" d="M40 60 L55 35 L70 60 Z M60 60 L75 30 L90 60 Z"/>
-          <circle class="grave" cx="150" cy="140" r="17" fill="none"/>
-          <path class="grave" d="M150 118 L150 162 M128 140 L172 140 M150 123 L155 135 L150 133 L145 135 Z"/>
-          <path class="grave" d="M85 132 l3 -7 3 7 M110 115 l3 -7 3 7" fill="none"/>
+      <div class="couv-plaque" aria-hidden="true">
+        <svg class="plaque-grave" viewBox="0 0 240 240">
+          <g class="fissures">
+            <path d="M18 58 L64 82 L92 74 M148 26 L158 72 L204 94 M26 172 L78 150 L108 166 M186 204 L172 158 L216 138 M60 222 L84 198 L122 206"/>
+          </g>
+          <g class="rose">
+            <circle cx="120" cy="120" r="64"/>
+            <circle cx="120" cy="120" r="54" class="fin"/>
+            <circle cx="120" cy="120" r="13" class="fin"/>
+            <path class="plein" d="M120 32 L129 111 L120 120 L111 111 Z M120 208 L129 129 L120 120 L111 129 Z M32 120 L111 129 L120 120 L111 111 Z M208 120 L129 111 L120 120 L129 129 Z"/>
+            <path class="plein demi" d="M78 78 L112 112 L120 120 L106 106 Z M162 78 L128 112 L120 120 L134 106 Z M78 162 L112 128 L120 120 L106 134 Z M162 162 L128 128 L120 120 L134 134 Z"/>
+          </g>
+          <g class="pointilles">
+            <path d="M120 14 V30 M120 210 V226 M14 120 H30 M210 120 H226 M46 46 L60 60 M194 46 L180 60 M46 194 L60 180 M194 194 L180 180"/>
+          </g>
+          <g class="lettres">
+            <text x="120" y="27">N</text><text x="120" y="235">S</text>
+            <text x="18" y="126">W</text><text x="222" y="126">E</text>
+          </g>
+          <path class="ecusson" d="M198 32 l16 7 v15 c0 9 -7 14 -16 19 c-9 -5 -16 -10 -16 -19 v-15 Z m-16 14 h32 m-16 -12 v24"/>
         </svg>
-        <h2 class="couv-titre">Carnet<br>de sorties</h2>
-        <p class="couv-sous-titre">Carte Outdoor</p>
+        <i class="rivet r-hg"></i><i class="rivet r-hd"></i><i class="rivet r-bg"></i><i class="rivet r-bd"></i>
       </div>
+      <h2 class="couv-titre">Carnet de sorties</h2>
       <p class="couv-indice">Toucher pour ouvrir</p>
     </div>`;
 }
@@ -414,6 +482,15 @@ function graine(texte) {
     h = Math.imul(h ^ (h >>> 13), 3266489917);
     return ((h ^= h >>> 16) >>> 0) / 4294967296;
   };
+}
+
+function encreAleatoire(alea) {
+  switch (themeCarnet.theme) {
+    case "nuit": // craie et ivoire sur papier sombre
+      return `hsl(${(38 + alea() * 14).toFixed(0)}, ${(26 + alea() * 18).toFixed(0)}%, ${(76 + alea() * 10).toFixed(0)}%)`;
+    default: // encre BLEUE (plume) — couleur de base de l'écriture
+      return `hsl(${(210 + alea() * 22).toFixed(0)}, ${(38 + alea() * 20).toFixed(0)}%, ${(22 + alea() * 9).toFixed(0)}%)`;
+  }
 }
 
 /** Une entrée : un lieu à une date, avec ses notes/photos et ses actions.
@@ -447,9 +524,10 @@ function htmlEntree(g, pourImpression = false) {
           : ""}
       </div>`;
 
-  // Chaque entrée a SA teinte d'encre (sépia à brun sombre) : un carnet
-  // écrit au fil des ans n'a jamais deux encres parfaitement identiques.
-  const encre = `hsl(${(20 + alea() * 16).toFixed(0)}, ${(42 + alea() * 16).toFixed(0)}%, ${(16 + alea() * 9).toFixed(0)}%)`;
+  // Chaque entrée a SA teinte d'encre : un carnet écrit au fil des ans n'a
+  // jamais deux encres identiques. La gamme dépend du thème (sépia pour le
+  // grimoire, bleu nuit pour le carnet de voyage, craie pour la nuit).
+  const encre = encreAleatoire(alea);
 
   return `
     <section class="entree" style="--encre:${encre}">
@@ -473,6 +551,8 @@ function htmlEntree(g, pourImpression = false) {
 function htmlPage(numero) {
   const groupe = pagesListe[numero - 1];
   const alea = graine(groupe.map((g) => g.cle).join("¤") + numero);
+  // Quatre papiers différents (même esprit) : le tirage est stable par page
+  const variante = 1 + Math.floor(alea() * 4);
 
   // Imperfections : parfois présentes, parfois non — jamais identiques
   let imperfections = "";
@@ -485,9 +565,20 @@ function htmlPage(numero) {
     imperfections += `<i class="page-trou" style="left:${(6 + alea() * 84).toFixed(1)}%;top:${(6 + alea() * 84).toFixed(1)}%;transform:scale(${(0.6 + alea() * 0.9).toFixed(2)})"></i>`;
   }
   if (alea() < 0.45) imperfections += `<i class="page-usure coin-${alea() < 0.5 ? "bd" : "hg"}"></i>`;
+  // Pétales de rose séchés et poudre d'or, comme sur la référence :
+  // parfois là, parfois non, jamais aux mêmes endroits
+  if (alea() < 0.5) {
+    const nb = 1 + Math.floor(alea() * 2);
+    for (let i = 0; i < nb; i++) {
+      imperfections += `<i class="page-petale" style="left:${(6 + alea() * 84).toFixed(1)}%;top:${(6 + alea() * 84).toFixed(1)}%;transform:rotate(${(alea() * 360).toFixed(0)}deg) scale(${(0.7 + alea() * 0.6).toFixed(2)})"></i>`;
+    }
+  }
+  if (alea() < 0.4) {
+    imperfections += `<i class="page-poudre" style="left:${(alea() * 78).toFixed(1)}%;top:${(alea() * 84).toFixed(1)}%;width:${(26 + alea() * 46).toFixed(0)}px;height:${(20 + alea() * 30).toFixed(0)}px;transform:rotate(${(alea() * 180).toFixed(0)}deg)"></i>`;
+  }
 
   return `
-    <article class="page-carnet" style="--pente:${((alea() - 0.5) * 1.2).toFixed(2)}deg">
+    <article class="page-carnet page-v${variante}" style="--pente:${((alea() - 0.5) * 1.2).toFixed(2)}deg">
       ${imperfections}
       ${groupe.map((g) => htmlEntree(g)).join("")}
       <span class="page-numero">— ${numero} —</span>
@@ -535,6 +626,70 @@ function brancherPages(livre) {
       rendre();
     })
   );
+}
+
+/* ------------------------------------------------------------------ */
+/* Personnalisation : thèmes prédéfinis + photos de l'utilisateur       */
+/* ------------------------------------------------------------------ */
+
+function ouvrirDialogueTheme() {
+  const dlg = document.getElementById("carnet-theme-dialog");
+  // Brouillon de travail : rien n'est enregistré avant « Appliquer »
+  const brouillon = { ...themeCarnet };
+
+  const zonePerso = dlg.querySelector(".ct-perso");
+  const etatCouv = dlg.querySelector(".ct-couv-etat");
+  const etatPage = dlg.querySelector(".ct-page-etat");
+  const etatLogo = dlg.querySelector(".ct-logo-etat");
+  const majEtat = () => {
+    zonePerso.hidden = brouillon.theme !== "perso";
+    etatCouv.textContent = brouillon.couverture ? "✓ photo choisie" : "aucune photo";
+    etatPage.textContent = brouillon.page ? "✓ photo choisie" : "aucune photo";
+    etatLogo.textContent = brouillon.logo ? "✓ logo choisi" : "emblème d'origine";
+    dlg.querySelector(".ct-logo-retirer").hidden = !brouillon.logo;
+  };
+
+  for (const radio of dlg.querySelectorAll('input[name="ct-theme"]')) {
+    radio.checked = radio.value === brouillon.theme;
+    radio.onchange = () => {
+      brouillon.theme = radio.value;
+      majEtat();
+    };
+  }
+
+  const brancherPhoto = (input, champ) => {
+    input.value = "";
+    input.onchange = async () => {
+      const fichier = input.files[0];
+      if (!fichier) return;
+      try {
+        brouillon[champ] = await redimensionnerPhoto(fichier);
+      } catch {
+        toast("Photo illisible — essayez-en une autre.");
+      }
+      majEtat();
+    };
+  };
+  brancherPhoto(dlg.querySelector(".ct-photo-couv"), "couverture");
+  brancherPhoto(dlg.querySelector(".ct-photo-page"), "page");
+  brancherPhoto(dlg.querySelector(".ct-photo-logo"), "logo");
+  dlg.querySelector(".ct-logo-retirer").onclick = () => {
+    brouillon.logo = null;
+    majEtat();
+  };
+
+  dlg.querySelector(".ct-annuler").onclick = () => dlg.close();
+  dlg.querySelector(".ct-appliquer").onclick = async () => {
+    themeCarnet = brouillon;
+    await storage.saveCarnetTheme(themeCarnet).catch(() => {});
+    dlg.close();
+    appliquerThemeCarnet();
+    rendre(); // les encres et la couverture dépendent du thème
+    toast("Thème du carnet appliqué !");
+  };
+
+  majEtat();
+  dlg.showModal();
 }
 
 /* ------------------------------------------------------------------ */

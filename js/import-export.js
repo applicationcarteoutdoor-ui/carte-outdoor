@@ -109,6 +109,8 @@ async function traiterFichier(fichier) {
       resultat.statuses = typeof data.statuses === "object" && data.statuses ? data.statuses : null;
       resultat.journal = typeof data.journal === "object" && data.journal ? data.journal : null;
       resultat.sorties = Array.isArray(data.sorties) ? data.sorties : null;
+      resultat.carnetTheme =
+        typeof data.carnetTheme === "object" && data.carnetTheme ? data.carnetTheme : null;
       await afficherRapportEtAttendre(nom, resultat);
       return 0;
     }
@@ -392,7 +394,7 @@ function majBoutonConfirmer() {
 }
 
 async function confirmerImport() {
-  const { valides, statuses, journal, sorties, themeRequis } = analyseEnCours;
+  const { valides, statuses, journal, sorties, carnetTheme, themeRequis } = analyseEnCours;
   const themeChoisi = dialog.querySelector("#import-theme-select").value;
 
   const idsExistants = new Set(cb.getExistingIds());
@@ -411,6 +413,7 @@ async function confirmerImport() {
   if (statuses) await storage.mergeStatuses(statuses);
   if (journal) await storage.mergeJournals(journal);
   if (sorties) await storage.mergeSorties(sorties);
+  if (carnetTheme) await storage.saveCarnetTheme(carnetTheme).catch(() => {});
   fermerDialogue(true);
   cb.onImportedPoints?.(valides);
 }
@@ -420,7 +423,7 @@ async function confirmerImport() {
 /* ------------------------------------------------------------------ */
 
 async function exporter() {
-  const { points, statuses, journal, customThemes, sorties } = await cb.getExportData();
+  const { points, statuses, journal, customThemes, sorties, carnetTheme } = await cb.getExportData();
   const sauvegarde = {
     formatVersion: 2,
     exportedAt: new Date().toISOString(),
@@ -430,6 +433,7 @@ async function exporter() {
     journal,
     customThemes,
     sorties,
+    carnetTheme,
   };
   const blob = new Blob([JSON.stringify(sauvegarde, null, 1)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -438,6 +442,8 @@ async function exporter() {
   a.download = `carte-outdoor-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
+  // Date de dernière sauvegarde : sert au rappel de sauvegarde (app.js)
+  await storage.savePrefs({ dernierExport: Date.now() });
   toast("Sauvegarde exportée (points importés, suivi et carnet).");
 }
 

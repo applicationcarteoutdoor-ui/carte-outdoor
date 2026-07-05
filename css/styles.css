@@ -24,6 +24,24 @@
   --sidebar-w: 300px;
 }
 
+/* Mode nuit : bascule ⚙️ → 🌙 (classe posée sur <body>, préférence
+   enregistrée). Les couleurs de l'app passent en sombre, les tuiles de la
+   carte sont assombries par filtre, le parchemin devient cuir sombre. */
+body.mode-nuit {
+  --bg: #161b21;
+  --surface: #1f2630;
+  --text: #e6eaee;
+  --text-2: #98a5b3;
+  --accent: #3f9e6b;
+  --accent-soft: #17301f;
+  --border: #333e4a;
+  --fait: #43a552;
+  --afaire: #e08a2c;
+  --favori: #e0507f;
+  --shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+  --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
 * { box-sizing: border-box; }
 
 /* L'attribut hidden doit TOUJOURS l'emporter : sans cette règle, n'importe
@@ -870,6 +888,8 @@ dialog {
   padding: 18px;
   width: min(560px, calc(100vw - 24px));
   max-height: 85dvh;
+  background: var(--surface);
+  color: var(--text);
 }
 
 dialog::backdrop { background: rgba(15, 23, 32, 0.5); }
@@ -1094,6 +1114,44 @@ dialog .panel-header { padding: 0 0 4px; }
     transform: translateX(calc(100% + 16px));
   }
 }
+
+/* --------------------------------------------------------------------------
+   Mode nuit : la carte elle-même (tuiles assombries par filtre) et les
+   composants Leaflet / contrastes qui ne passent pas par les variables
+   -------------------------------------------------------------------------- */
+
+body.mode-nuit #map { background: #10141a; }
+
+body.mode-nuit .leaflet-tile {
+  filter: invert(1) hue-rotate(190deg) saturate(0.35) brightness(0.9) contrast(0.9);
+}
+
+body.mode-nuit .leaflet-bar a {
+  background: var(--surface);
+  color: var(--text);
+  border-bottom-color: var(--border);
+}
+
+body.mode-nuit .leaflet-bar a.leaflet-disabled { background: var(--bg); color: var(--text-2); }
+
+body.mode-nuit .leaflet-popup-content-wrapper,
+body.mode-nuit .leaflet-popup-tip {
+  background: var(--surface);
+  color: var(--text);
+}
+
+body.mode-nuit .leaflet-control-attribution {
+  background: rgba(31, 38, 48, 0.8);
+  color: var(--text-2);
+}
+
+body.mode-nuit .leaflet-control-attribution a { color: var(--text-2); }
+
+/* Infobulles et toast : fond clair en mode nuit → texte sombre */
+body.mode-nuit .glossary-term::after { color: var(--bg); }
+body.mode-nuit #toast { color: var(--bg); }
+
+body.mode-nuit .import-errors { background: #3a2326; border-color: #5c3438; color: #f0b9b9; }
 
 @media (prefers-reduced-motion: reduce) {
   .panel, .tuto-spot { transition: none; }

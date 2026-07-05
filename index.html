@@ -200,6 +200,20 @@
     </div>
   </dialog>
 
+  <!-- Rappel de sauvegarde : les données vivent sur l'appareil, on invite
+       à exporter régulièrement pour ne rien perdre -->
+  <dialog id="backup-dialog" aria-labelledby="backup-titre">
+    <h2 id="backup-titre">💾 Pensez à sauvegarder</h2>
+    <p class="menu-note" id="backup-message"></p>
+    <p class="menu-note">Vos sorties, votre carnet, vos points et vos statuts sont enregistrés
+      <strong>sur cet appareil uniquement</strong>. Une sauvegarde vous permet de tout récupérer
+      en cas de changement de téléphone ou de nettoyage du navigateur — il suffira de la ré-importer.</p>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-secondary backup-plus-tard">Plus tard</button>
+      <button type="button" class="btn backup-maintenant">💾 Sauvegarder maintenant</button>
+    </div>
+  </dialog>
+
   <!-- Réglages : import/export, installation, vérification de mise à jour -->
   <dialog id="settings-dialog" aria-labelledby="settings-title">
     <div class="panel-header">
@@ -212,8 +226,10 @@
       <button type="button" id="btn-export-pdf" class="btn btn-secondary">📄 Exporter le carnet en PDF</button>
       <!-- Masqué quand l'app est déjà lancée depuis l'écran d'accueil -->
       <button type="button" id="btn-install" class="btn btn-secondary" hidden>📲 Installer l'application</button>
+      <button type="button" id="btn-mode-nuit" class="btn btn-secondary">🌙 Mode nuit</button>
       <button type="button" id="btn-update" class="btn btn-secondary">🔄 Vérifier la mise à jour</button>
     </div>
+    <p id="storage-status" class="menu-note"></p>
   </dialog>
 
   <!-- Aide à l'installation sur l'écran d'accueil : affichée quand l'invite
@@ -238,6 +254,50 @@
 
   <!-- Le Carnet : grimoire plein écran (contenu construit par js/carnet.js) -->
   <div id="carnet-overlay" aria-label="Mon carnet de sorties" hidden></div>
+
+  <!-- Personnalisation du carnet : thèmes prédéfinis ou photos perso -->
+  <dialog id="carnet-theme-dialog" aria-labelledby="ct-titre">
+    <h2 id="ct-titre">🎨 Personnaliser le carnet</h2>
+    <div class="ct-themes">
+      <label class="ct-choix"><input type="radio" name="ct-theme" value="grimoire">
+        <span>📜 <strong>Grimoire</strong> — cuir brun, papier jauni, encres sépia</span></label>
+      <label class="ct-choix"><input type="radio" name="ct-theme" value="voyage">
+        <span>🧭 <strong>Carnet de voyage</strong> — toile claire, papier crème, encres bleues</span></label>
+      <label class="ct-choix"><input type="radio" name="ct-theme" value="nuit">
+        <span>🌙 <strong>Nuit</strong> — cuir noir, papier sombre, écriture craie</span></label>
+      <label class="ct-choix"><input type="radio" name="ct-theme" value="perso">
+        <span>🖼 <strong>Personnalisé</strong> — vos photos en couverture et fond de page</span></label>
+    </div>
+    <div class="ct-perso" hidden>
+      <div class="ct-photo-ligne">
+        <label class="btn btn-secondary">📷 Photo de couverture
+          <input type="file" accept="image/*" class="ct-photo-couv" hidden></label>
+        <span class="ct-couv-etat menu-note"></span>
+      </div>
+      <div class="ct-photo-ligne">
+        <label class="btn btn-secondary">📷 Photo de fond de page
+          <input type="file" accept="image/*" class="ct-photo-page" hidden></label>
+        <span class="ct-page-etat menu-note"></span>
+      </div>
+      <p class="menu-note">Un léger voile garde l'écriture lisible sur votre photo de fond.
+        Sans photo, l'élément garde le style Grimoire.</p>
+    </div>
+    <div class="ct-logo">
+      <p class="ct-logo-titre">Logo de couverture — indépendant du thème</p>
+      <div class="ct-photo-ligne">
+        <label class="btn btn-secondary">📷 Choisir un logo
+          <input type="file" accept="image/*" class="ct-photo-logo" hidden></label>
+        <span class="ct-logo-etat menu-note"></span>
+        <button type="button" class="btn btn-secondary ct-logo-retirer">✕ Retirer</button>
+      </div>
+      <p class="menu-note">Votre image s'affiche en médaillon sur la plaque de la couverture,
+        quel que soit le thème choisi.</p>
+    </div>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-secondary ct-annuler">Annuler</button>
+      <button type="button" class="btn ct-appliquer">Appliquer</button>
+    </div>
+  </dialog>
 
   <!-- Visite guidée -->
   <div id="tuto-overlay" hidden></div>

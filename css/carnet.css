@@ -20,13 +20,12 @@
   align-items: center;
   justify-content: center;
   padding: 10px;
-  /* Un bureau de bois sombre sous une lampe : lattes, grain, vignette.
-     Le livre est POSÉ quelque part, il ne flotte pas dans le vide. */
+  /* La CARTE en toile de fond : le livre est posé sur la carte vivante,
+     assombrie et floutée — voile NEUTRE, sans teinte jaune */
   background:
-    radial-gradient(ellipse at 50% 38%, transparent 22%, rgba(0, 0, 0, 0.62) 100%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012 0.28' numOctaves='3'/%3E%3CfeColorMatrix values='0 0 0 0 0.05 0 0 0 0 0.03 0 0 0 0 0.01 0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23b)'/%3E%3C/svg%3E"),
-    repeating-linear-gradient(93deg, rgba(0, 0, 0, 0.26) 0 2px, transparent 2px 122px),
-    linear-gradient(100deg, #33251a 0%, #3c2c1c 28%, #2c2012 58%, #241a0d 100%);
+    radial-gradient(ellipse at 50% 40%, rgba(15, 18, 24, 0.42) 30%, rgba(8, 10, 14, 0.72) 100%);
+  -webkit-backdrop-filter: blur(3px) brightness(0.65) saturate(0.8);
+  backdrop-filter: blur(3px) brightness(0.65) saturate(0.8);
 }
 
 .carnet-boite {
@@ -128,7 +127,16 @@
   font-size: 1rem;
 }
 
-.carnet-favoris:hover, .carnet-fermer:hover { background: rgba(244, 231, 195, 0.22); }
+.carnet-theme {
+  min-width: 40px;
+  min-height: 40px;
+  border: 1px solid rgba(214, 178, 118, 0.45);
+  border-radius: 50%;
+  background: rgba(244, 231, 195, 0.1);
+  font-size: 1rem;
+}
+
+.carnet-favoris:hover, .carnet-fermer:hover, .carnet-theme:hover { background: rgba(244, 231, 195, 0.22); }
 
 /* --- Bandeau « toutes mes sorties sur ce lieu » : bande de parchemin ------ */
 
@@ -153,9 +161,9 @@
 }
 
 .carnet-bouton {
-  border: 1.6px solid rgba(90, 60, 20, 0.75);
+  border: 1.6px solid rgba(35, 70, 115, 0.75);
   background: transparent;
-  color: #5a3d16;
+  color: #24466e;
   border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
   padding: 4px 14px;
   min-height: 38px;
@@ -164,7 +172,7 @@
   font-weight: 600;
 }
 
-.carnet-bouton:hover { background: rgba(90, 60, 20, 0.09); }
+.carnet-bouton:hover { background: rgba(35, 70, 115, 0.09); }
 
 /* --- Scène : flèches + livre --------------------------------------------- */
 
@@ -253,19 +261,6 @@
   pointer-events: none;
 }
 
-/* Le ruban marque-page qui pend du haut du livre */
-.livre-signet {
-  position: absolute;
-  top: 2px;
-  right: 15%;
-  width: 21px;
-  height: 38%;
-  background: linear-gradient(105deg, #a02c24 0%, #7c1d17 45%, #64130e 100%);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 9px), 50% 100%, 0 calc(100% - 9px));
-  box-shadow: inset -3px 0 5px rgba(0, 0, 0, 0.35);
-  filter: drop-shadow(2px 3px 3px rgba(0, 0, 0, 0.45));
-  pointer-events: none;
-}
 
 /* Feuilletage : le livre se plie vers la reliure puis se déplie */
 .carnet-pages, .carnet-couverture {
@@ -311,29 +306,77 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding: 26px 30px;
+  justify-content: flex-end; /* la photo porte la plaque au centre : titre en bas */
+  gap: 6px;
+  padding: 26px 30px 30px;
+  /* LA PHOTO DE RÉFÉRENCE, redressée à plat (Donné/Photo Carnet) —
+     cuir ouvragé, plaque de laiton rivetée, rose des vents gravée */
   background:
-    radial-gradient(ellipse at 18% 12%, rgba(126, 82, 45, 0.55), transparent 55%),
-    radial-gradient(ellipse at 85% 90%, rgba(30, 16, 8, 0.6), transparent 50%),
-    radial-gradient(ellipse at 70% 30%, rgba(150, 100, 55, 0.25), transparent 45%),
-    linear-gradient(160deg, #5c3a21 0%, #4a2d17 38%, #3a2110 70%, #2c180a 100%);
+    url("../img/carnet-couverture.jpg") center / cover no-repeat,
+    linear-gradient(160deg, #4a2d17, #2c180a);
   box-shadow:
     inset 0 0 0 3px rgba(20, 10, 4, 0.55),
-    inset 0 0 60px rgba(0, 0, 0, 0.55),
-    inset 12px 0 18px -10px rgba(255, 220, 170, 0.18),
+    inset 0 0 60px rgba(0, 0, 0, 0.45),
     0 24px 50px rgba(0, 0, 0, 0.6);
   border-left: 12px solid #241206; /* la reliure */
 }
 
-/* Grain du cuir (bruit SVG) + usure des bords : par-dessus les dégradés */
-.carnet-couverture::before {
+/* Logo personnalisé : petit MÉDAILLON ROND qui prend la place du petit
+   symbole gravé en bas à droite de la plaque de laiton (le « ? »), sans
+   toucher au grand symbole central. Serti d'un liseré de laiton. */
+.couv-logo {
+  position: absolute;
+  top: 59%;
+  left: 64%; /* centré sur le « ? » pour le masquer entièrement */
+  width: 21%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  object-fit: cover;
+  border-radius: 50%;
+  border: 2.5px solid rgba(120, 92, 42, 0.95);
+  outline: 1.5px solid rgba(28, 16, 5, 0.6);
+  box-shadow:
+    inset 0 0 5px rgba(30, 16, 4, 0.5),
+    0 2px 6px rgba(0, 0, 0, 0.55);
+  filter: sepia(0.18) contrast(1.03);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Thèmes dessinés (voyage/nuit) : même médaillon en bas à droite de la
+   plaque SVG centrée — sa gravure reste visible, le logo ne prend qu'un coin */
+.carnet-theme-voyage .couv-logo,
+.carnet-theme-nuit .couv-logo { top: 53%; left: 60%; width: 23%; }
+.carnet-theme-nuit .couv-logo { border-color: rgba(150, 146, 134, 0.9); }
+
+/* Photo déjà complète : les ornements CSS (plaque, coins de laiton,
+   fermoir) ne servent plus qu'aux thèmes Voyage et Nuit */
+.couv-plaque, .couv-coin, .couv-fermoir { display: none; }
+
+.carnet-theme-voyage .couv-plaque, .carnet-theme-nuit .couv-plaque,
+.carnet-theme-voyage .couv-coin, .carnet-theme-nuit .couv-coin,
+.carnet-theme-voyage .couv-fermoir, .carnet-theme-nuit .couv-fermoir { display: block; }
+
+.carnet-theme-voyage .carnet-couverture, .carnet-theme-nuit .carnet-couverture {
+  justify-content: center;
+  gap: 14px;
+  padding: 26px 30px;
+}
+
+/* Grain du cuir + usure des bords + VOLUTES gaufrées : uniquement pour les
+   couvertures dessinées des thèmes Voyage et Nuit (la photo du thème
+   Grimoire porte déjà tout cela) */
+.carnet-theme-voyage .carnet-couverture::before,
+.carnet-theme-nuit .carnet-couverture::before {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
   background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='40'%3E%3Cg fill='none' stroke-linecap='round'%3E%3Cg stroke='rgba(255,222,170,0.10)' stroke-width='2.5' transform='translate(1,1)'%3E%3Cpath d='M6 26 C2 14 14 6 24 12 C32 17 30 28 21 29 C15 30 12 25 15 21 M24 12 C36 2 54 8 56 20 C58 30 48 36 40 32 M56 20 C60 8 76 4 86 10 C95 16 92 28 83 29 C77 30 74 25 77 21 M86 10 C98 2 114 8 116 20'/%3E%3C/g%3E%3Cg stroke='rgba(18,9,3,0.55)' stroke-width='2.5'%3E%3Cpath d='M6 26 C2 14 14 6 24 12 C32 17 30 28 21 29 C15 30 12 25 15 21 M24 12 C36 2 54 8 56 20 C58 30 48 36 40 32 M56 20 C60 8 76 4 86 10 C95 16 92 28 83 29 C77 30 74 25 77 21 M86 10 C98 2 114 8 116 20'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") top 14px center / 120px 40px repeat-x,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='40'%3E%3Cg fill='none' stroke-linecap='round'%3E%3Cg stroke='rgba(255,222,170,0.10)' stroke-width='2.5' transform='translate(1,1)'%3E%3Cpath d='M6 26 C2 14 14 6 24 12 C32 17 30 28 21 29 C15 30 12 25 15 21 M24 12 C36 2 54 8 56 20 C58 30 48 36 40 32 M56 20 C60 8 76 4 86 10 C95 16 92 28 83 29 C77 30 74 25 77 21 M86 10 C98 2 114 8 116 20'/%3E%3C/g%3E%3Cg stroke='rgba(18,9,3,0.55)' stroke-width='2.5'%3E%3Cpath d='M6 26 C2 14 14 6 24 12 C32 17 30 28 21 29 C15 30 12 25 15 21 M24 12 C36 2 54 8 56 20 C58 30 48 36 40 32 M56 20 C60 8 76 4 86 10 C95 16 92 28 83 29 C77 30 74 25 77 21 M86 10 C98 2 114 8 116 20'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") bottom 14px center / 120px 40px repeat-x,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='120'%3E%3Cg fill='none' stroke-linecap='round' transform='rotate(90 20 20)'%3E%3Cg stroke='rgba(255,222,170,0.10)' stroke-width='2.5' transform='translate(1,1)'%3E%3Cpath d='M6 26 C2 14 14 6 24 12 C32 17 30 28 21 29 C15 30 12 25 15 21 M24 12 C36 2 54 8 56 20 C58 30 48 36 40 32 M56 20 C60 8 76 4 86 10 C95 16 92 28 83 29 C77 30 74 25 77 21 M86 10 C98 2 114 8 116 20'/%3E%3C/g%3E%3Cg stroke='rgba(18,9,3,0.55)' stroke-width='2.5'%3E%3Cpath d='M6 26 C2 14 14 6 24 12 C32 17 30 28 21 29 C15 30 12 25 15 21 M24 12 C36 2 54 8 56 20 C58 30 48 36 40 32 M56 20 C60 8 76 4 86 10 C95 16 92 28 83 29 C77 30 74 25 77 21 M86 10 C98 2 114 8 116 20'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") left 12px center / 40px 120px repeat-y,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='120'%3E%3Cg fill='none' stroke-linecap='round' transform='rotate(90 20 20)'%3E%3Cg stroke='rgba(255,222,170,0.10)' stroke-width='2.5' transform='translate(1,1)'%3E%3Cpath d='M6 26 C2 14 14 6 24 12 C32 17 30 28 21 29 C15 30 12 25 15 21 M24 12 C36 2 54 8 56 20 C58 30 48 36 40 32 M56 20 C60 8 76 4 86 10 C95 16 92 28 83 29 C77 30 74 25 77 21 M86 10 C98 2 114 8 116 20'/%3E%3C/g%3E%3Cg stroke='rgba(18,9,3,0.55)' stroke-width='2.5'%3E%3Cpath d='M6 26 C2 14 14 6 24 12 C32 17 30 28 21 29 C15 30 12 25 15 21 M24 12 C36 2 54 8 56 20 C58 30 48 36 40 32 M56 20 C60 8 76 4 86 10 C95 16 92 28 83 29 C77 30 74 25 77 21 M86 10 C98 2 114 8 116 20'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") right 12px center / 40px 120px repeat-y,
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='130'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='3'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.22 0 0 0 0 0.10 0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='130' height='130' filter='url(%23c)'/%3E%3C/svg%3E"),
     radial-gradient(ellipse at 0 0, rgba(0, 0, 0, 0.4), transparent 18%),
     radial-gradient(ellipse at 100% 0, rgba(0, 0, 0, 0.35), transparent 16%),
@@ -343,7 +386,8 @@
 }
 
 /* Nerfs de reliure : les bourrelets horizontaux du dos du livre */
-.carnet-couverture::after {
+.carnet-theme-voyage .carnet-couverture::after,
+.carnet-theme-nuit .carnet-couverture::after {
   content: "";
   position: absolute;
   left: -12px;
@@ -406,32 +450,68 @@
   box-shadow: inset 0 1px 2px rgba(255, 240, 200, 0.5), inset 0 -2px 3px rgba(0, 0, 0, 0.45);
 }
 
-.couv-cadre {
-  border: 2px solid rgba(214, 178, 118, 0.35);
-  outline: 1px solid rgba(20, 10, 4, 0.6);
-  outline-offset: 3px;
-  border-radius: 8px;
-  padding: 22px 26px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
+/* La plaque de laiton rivetée, gravée d'une rose des vents, sertie dans
+   une feuillure du cuir — la pièce maîtresse de la référence */
+.couv-plaque {
+  position: relative;
+  width: min(238px, 64%);
+  aspect-ratio: 1;
+  border-radius: 6px 9px 7px 8px; /* plaque martelée, jamais parfaite */
+  background:
+    radial-gradient(ellipse at 24% 20%, rgba(255, 240, 195, 0.5), transparent 45%),
+    radial-gradient(ellipse at 78% 74%, rgba(60, 40, 10, 0.42), transparent 50%),
+    radial-gradient(ellipse at 60% 30%, rgba(90, 70, 25, 0.25), transparent 40%),
+    linear-gradient(128deg, #c9ad6c 0%, #b3934f 34%, #8f6f36 68%, #a98a48 100%);
+  box-shadow:
+    inset 0 2px 3px rgba(255, 240, 200, 0.45),
+    inset 0 -3px 5px rgba(40, 25, 5, 0.5),
+    0 4px 10px rgba(0, 0, 0, 0.55),
+    0 0 0 3px rgba(24, 12, 5, 0.45);
 }
 
-.couv-carte { width: 118px; height: 118px; }
-
-/* Gravure en relief : trait sombre doublé d'un reflet clair décalé */
-.couv-carte .grave {
-  stroke: rgba(24, 12, 5, 0.9);
-  stroke-width: 3;
-  fill: none;
-  filter: drop-shadow(1px 1px 0 rgba(222, 184, 128, 0.28));
+.plaque-grave {
+  position: absolute;
+  inset: 6%;
+  width: 88%;
+  height: 88%;
+  /* gravure en creux : léger reflet sous chaque trait */
+  filter: drop-shadow(0.6px 0.8px 0 rgba(255, 238, 190, 0.4));
 }
+
+.plaque-grave path, .plaque-grave circle { fill: none; }
+.plaque-grave .rose circle { stroke: #4a3413; stroke-width: 2.4; opacity: 0.85; }
+.plaque-grave .rose circle.fin { stroke-width: 1.2; }
+.plaque-grave .plein { fill: #4a3413; stroke: none; opacity: 0.85; }
+.plaque-grave .plein.demi { opacity: 0.55; }
+.plaque-grave .fissures path { stroke: rgba(60, 40, 12, 0.45); stroke-width: 1.1; }
+.plaque-grave .pointilles path { stroke: #4a3413; stroke-width: 1.5; stroke-dasharray: 3 5; opacity: 0.7; }
+.plaque-grave .lettres text {
+  fill: #3c2a0e;
+  font-size: 17px;
+  font-weight: 700;
+  text-anchor: middle;
+  font-family: Georgia, serif;
+}
+.plaque-grave .ecusson { stroke: #4a3413; stroke-width: 2; opacity: 0.8; }
+
+.rivet {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #e8cf8e, #a9894a 55%, #6e5122 100%);
+  box-shadow: 0 1.5px 3px rgba(0, 0, 0, 0.6), inset 0 -1px 2px rgba(40, 25, 5, 0.6);
+}
+
+.rivet.r-hg { top: 7px; left: 7px; }
+.rivet.r-hd { top: 7px; right: 7px; }
+.rivet.r-bg { bottom: 7px; left: 7px; }
+.rivet.r-bd { bottom: 7px; right: 7px; }
 
 .couv-titre {
-  margin: 0;
+  margin: 4px 0 0;
   font-family: "Caveat", cursive;
-  font-size: 2.3rem;
+  font-size: 1.9rem;
   line-height: 1.05;
   text-align: center;
   font-weight: 700;
@@ -440,7 +520,7 @@
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  filter: drop-shadow(1px 1.5px 0 rgba(0, 0, 0, 0.75));
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.85)) drop-shadow(1px 1.5px 0 rgba(0, 0, 0, 0.75));
 }
 
 .couv-sous-titre {
@@ -483,14 +563,14 @@
   overflow-x: hidden;
   padding: 18px 22px 36px; /* le bas est réservé au numéro de page */
   border-radius: 4px 14px 14px 4px;
-  /* Papier NON uniforme : jaunissement irrégulier, bords brunis, grain */
+  /* LES PHOTOS DE RÉFÉRENCE : quatre vraies pages de vieux livre, chacune
+     ornée d'une petite illustration de coin (plume, globe, sablier, navire).
+     La variante est tirée au sort par page (stable, voir htmlPage) : jamais
+     deux pages voisines identiques. Léger voile clair pour la lisibilité. */
   background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.36 0 0 0 0 0.22 0 0 0 0.10 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)'/%3E%3C/svg%3E"),
-    radial-gradient(ellipse at 12% 8%, rgba(150, 110, 50, 0.13), transparent 42%),
-    radial-gradient(ellipse at 90% 26%, rgba(160, 115, 55, 0.1), transparent 38%),
-    radial-gradient(ellipse at 70% 95%, rgba(140, 95, 40, 0.16), transparent 45%),
-    radial-gradient(ellipse at 50% 50%, #f4e7c3 30%, #ecd9a8 72%, #ddc088 100%);
-  background-color: #f0e2ba;
+    linear-gradient(rgba(246, 240, 224, 0.35), rgba(246, 240, 224, 0.35)),
+    url("../img/carnet-page-1.jpg") center / cover no-repeat;
+  background-color: #ece2c8;
   box-shadow:
     inset 0 0 44px rgba(122, 85, 34, 0.28),
     inset -3px 0 10px rgba(122, 85, 34, 0.14);
@@ -509,6 +589,24 @@
   box-shadow:
     inset 0 0 44px rgba(122, 85, 34, 0.28),
     inset 14px 0 22px -10px rgba(70, 45, 15, 0.5);
+}
+
+.page-carnet.page-v2 {
+  background-image:
+    linear-gradient(rgba(246, 240, 224, 0.35), rgba(246, 240, 224, 0.35)),
+    url("../img/carnet-page-2.jpg");
+}
+
+.page-carnet.page-v3 {
+  background-image:
+    linear-gradient(rgba(246, 240, 224, 0.35), rgba(246, 240, 224, 0.35)),
+    url("../img/carnet-page-3.jpg");
+}
+
+.page-carnet.page-v4 {
+  background-image:
+    linear-gradient(rgba(246, 240, 224, 0.35), rgba(246, 240, 224, 0.35)),
+    url("../img/carnet-page-4.jpg");
 }
 
 .page-vide { background-color: #e8d8ac; }
@@ -550,6 +648,30 @@
 .page-usure.coin-bd { right: 0; bottom: 0; transform: rotate(180deg); }
 .page-usure.coin-hg { left: 0; top: 0; }
 
+/* Pétale de rose séché, tombé entre les pages (référence photo) */
+.page-petale {
+  position: absolute;
+  width: 26px;
+  height: 17px;
+  border-radius: 62% 38% 55% 45% / 48% 62% 38% 52%;
+  background:
+    linear-gradient(115deg, transparent 40%, rgba(120, 50, 60, 0.3) 42%, transparent 47%),
+    radial-gradient(ellipse at 30% 30%, #d18e9e, #b06274 55%, #8f4a5e 100%);
+  opacity: 0.8;
+  box-shadow: 0 1px 2px rgba(60, 30, 20, 0.35);
+  pointer-events: none;
+}
+
+/* Pincée de poudre d'or éparpillée */
+.page-poudre {
+  position: absolute;
+  background: radial-gradient(circle, rgba(216, 178, 84, 0.9) 0.7px, transparent 1.5px);
+  background-size: 6px 5px;
+  border-radius: 45% 55% 60% 40% / 55% 45% 55% 45%;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
 /* Contenu d'une page : plusieurs entrées, séparées d'un fleuron calligraphié */
 
 .entree + .entree {
@@ -567,7 +689,7 @@
   text-align: center;
   font-size: 11px;
   letter-spacing: 2px;
-  color: rgba(107, 74, 28, 0.6);
+  color: rgba(70, 100, 140, 0.6);
   pointer-events: none;
 }
 
@@ -576,20 +698,20 @@
   justify-content: space-between;
   align-items: baseline;
   gap: 8px;
-  border-bottom: 1px solid rgba(90, 60, 20, 0.3);
+  border-bottom: 1px solid rgba(60, 90, 130, 0.35);
   padding-bottom: 4px;
 }
 
 .page-entete time {
   font-family: "Caveat", cursive;
   font-size: 1.15rem;
-  color: #6b4a1c;
+  color: #3d5a80;
 }
 
 .page-cat {
   font-size: 0.72rem;
   font-weight: 650;
-  color: #5a3d16;
+  color: #47617e;
   white-space: nowrap;
 }
 
@@ -599,7 +721,7 @@
   font-weight: 700;
   font-size: 1.75rem;
   line-height: 1.05;
-  color: #33230d;
+  color: #1c3a5e;
 }
 
 .page-coeur { color: #b0304f; font-size: 1.3rem; }
@@ -614,12 +736,12 @@
 .page-fixer-date {
   margin: 4px 0 8px;
   font-size: 0.8rem;
-  color: #6b4a1c;
+  color: #47617e;
 }
 
 .page-date-input {
   font: inherit;
-  border: 1px solid rgba(90, 60, 20, 0.4);
+  border: 1px solid rgba(60, 90, 130, 0.45);
   border-radius: 6px;
   background: rgba(255, 250, 235, 0.6);
   padding: 3px 6px;
@@ -646,7 +768,7 @@
   font-size: 1.45rem;
   line-height: 1.35;
   margin: 8px 0;
-  color: var(--encre, #3c2a10); /* chaque entrée a sa teinte d'encre */
+  color: var(--encre, #24466e); /* chaque entrée a sa teinte d'encre */
 }
 
 .page-note-vide { opacity: 0.55; font-size: 1.2rem; }
@@ -662,9 +784,9 @@
 /* Boutons « tracés à la plume » : bordure volontairement irrégulière
    (rayons asymétriques), écriture manuscrite, pas de fond */
 .page-action {
-  border: 1.6px solid rgba(90, 60, 20, 0.75);
+  border: 1.6px solid rgba(35, 70, 115, 0.75);
   background: transparent;
-  color: #5a3d16;
+  color: #24466e;
   border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
   padding: 3px 14px;
   min-height: 34px;
@@ -673,7 +795,7 @@
   font-weight: 600;
 }
 
-.page-action:hover { background: rgba(90, 60, 20, 0.09); }
+.page-action:hover { background: rgba(35, 70, 115, 0.09); }
 
 .page-numero {
   position: absolute;
@@ -683,7 +805,7 @@
   text-align: center;
   font-family: "Caveat", cursive;
   font-size: 1.05rem;
-  color: #8a6428;
+  color: #6b83a0;
   pointer-events: none;
 }
 
@@ -742,7 +864,7 @@
     margin: 0 0 8pt;
   }
 
-  #carnet-print .print-garde p { color: #6b4a1c; font-size: 11pt; }
+  #carnet-print .print-garde p { color: #47617e; font-size: 11pt; }
 
   #carnet-print .entree {
     page-break-inside: avoid;
@@ -755,7 +877,7 @@
     justify-content: space-between;
     gap: 8pt;
     font-size: 10pt;
-    color: #6b4a1c;
+    color: #47617e;
     border-bottom: none;
     padding: 0;
   }
@@ -793,3 +915,274 @@
     color: #3c2a10;
   }
 }
+
+/* --------------------------------------------------------------------------
+   Dialogue de personnalisation du carnet
+   -------------------------------------------------------------------------- */
+
+#carnet-theme-dialog { width: min(470px, calc(100vw - 24px)); }
+
+.ct-themes { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
+
+.ct-choix {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 9px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-s);
+  cursor: pointer;
+}
+
+.ct-choix:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.ct-choix input { accent-color: var(--accent); flex: none; }
+.ct-choix span { line-height: 1.45; font-size: 0.92rem; }
+
+.ct-perso { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--border); padding-top: 10px; }
+
+.ct-logo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  margin-top: 10px;
+}
+
+.ct-logo-titre { margin: 0; font-weight: 600; font-size: 0.9rem; }
+.ct-photo-ligne { display: flex; align-items: center; gap: 10px; }
+.ct-photo-ligne .btn { flex: none; cursor: pointer; }
+.ct-photo-ligne .menu-note { margin: 0; }
+
+/* --------------------------------------------------------------------------
+   Thème « Carnet de voyage » : toile claire, papier crème, encres bleues
+   -------------------------------------------------------------------------- */
+
+.carnet-theme-voyage {
+  /* La carte respire davantage sous le thème clair */
+  background: radial-gradient(ellipse at 50% 40%, rgba(70, 52, 25, 0.22) 30%, rgba(50, 35, 14, 0.5) 100%);
+  -webkit-backdrop-filter: blur(2px) sepia(0.35) brightness(0.95);
+  backdrop-filter: blur(2px) sepia(0.35) brightness(0.95);
+}
+
+.carnet-theme-voyage .livre-ouvert {
+  background:
+    radial-gradient(ellipse at 20% 15%, rgba(255, 245, 225, 0.3), transparent 55%),
+    linear-gradient(160deg, #b39a6f 0%, #9c8258 55%, #856b41 100%);
+  box-shadow:
+    inset 0 0 0 2px rgba(90, 70, 40, 0.5),
+    inset 0 0 22px rgba(70, 50, 20, 0.35),
+    0 20px 42px rgba(60, 40, 10, 0.45);
+}
+
+.carnet-theme-voyage .carnet-pages {
+  box-shadow:
+    1px 1.5px 0 #f4eedd, 2px 3px 0 #ece4cd, 3px 4.5px 0 #e0d5b8,
+    4px 6px 0 #d2c5a2, 5px 7.5px 0 rgba(90, 70, 35, 0.45);
+}
+
+.carnet-theme-voyage .page-carnet,
+.carnet-theme-voyage .page-vide {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.45 0 0 0 0 0.32 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 50% 50%, #fdf9ee 30%, #f6efdb 72%, #ebe0c2 100%);
+  background-color: #f9f4e6;
+  box-shadow: inset 0 0 36px rgba(150, 120, 60, 0.16), inset -3px 0 8px rgba(150, 120, 60, 0.1);
+  color: #26364a;
+}
+
+.carnet-theme-voyage .page-entete time,
+.carnet-theme-voyage .page-fixer-date,
+.carnet-theme-voyage .page-cat { color: #47617e; }
+
+.carnet-theme-voyage .page-entete { border-bottom-color: rgba(70, 100, 140, 0.3); }
+.carnet-theme-voyage .page-titre { color: #1f3350; }
+.carnet-theme-voyage .entree + .entree::before { color: rgba(70, 100, 140, 0.55); }
+.carnet-theme-voyage .page-numero { color: #7a8ba3; }
+
+.carnet-theme-voyage .page-action, .carnet-theme-voyage .carnet-bouton {
+  border-color: rgba(40, 70, 110, 0.7);
+  color: #2c4a6e;
+}
+
+.carnet-theme-voyage .carnet-couverture {
+  background:
+    radial-gradient(ellipse at 18% 12%, rgba(255, 246, 228, 0.45), transparent 55%),
+    radial-gradient(ellipse at 85% 90%, rgba(90, 65, 30, 0.4), transparent 50%),
+    linear-gradient(160deg, #c9b28a 0%, #b89e6f 45%, #a2864f 100%);
+  border-left-color: #6e5738;
+}
+
+.carnet-theme-voyage .couv-titre {
+  background: linear-gradient(168deg, #3a5a80 8%, #24405f 55%, #16304a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter: drop-shadow(1px 1px 0 rgba(255, 250, 235, 0.5));
+}
+
+.carnet-theme-voyage .couv-indice { color: rgba(35, 55, 85, 0.7); }
+
+.carnet-theme-voyage .carnet-barre, .carnet-theme-voyage .carnet-fleche {
+  background:
+    radial-gradient(ellipse at 15% 20%, rgba(255, 245, 225, 0.25), transparent 55%),
+    linear-gradient(160deg, #8a6f47 0%, #6e5533 70%, #5c4629 100%);
+}
+
+
+.carnet-theme-voyage .carnet-pied { color: rgba(60, 42, 18, 0.85); text-shadow: 0 1px 1px rgba(255, 245, 225, 0.4); }
+
+.carnet-theme-voyage .carnet-bandeau-activite {
+  background: linear-gradient(180deg, #fdf8ec, #f2e9d2);
+  border-color: rgba(90, 70, 40, 0.4);
+  color: #26364a;
+}
+
+/* --------------------------------------------------------------------------
+   Thème « Nuit » : cuir noir, papier sombre, écriture craie
+   -------------------------------------------------------------------------- */
+
+.carnet-theme-nuit {
+  background: radial-gradient(ellipse at 50% 40%, rgba(5, 4, 2, 0.62) 25%, rgba(0, 0, 0, 0.85) 100%);
+  -webkit-backdrop-filter: blur(4px) brightness(0.45) sepia(0.25);
+  backdrop-filter: blur(4px) brightness(0.45) sepia(0.25);
+}
+
+.carnet-theme-nuit .livre-ouvert {
+  background:
+    radial-gradient(ellipse at 20% 15%, rgba(120, 105, 80, 0.18), transparent 55%),
+    linear-gradient(160deg, #262019 0%, #1a1510 55%, #0f0c08 100%);
+  box-shadow:
+    inset 0 0 0 2px rgba(0, 0, 0, 0.7),
+    inset 0 0 26px rgba(0, 0, 0, 0.7),
+    0 24px 48px rgba(0, 0, 0, 0.8);
+}
+
+.carnet-theme-nuit .carnet-pages {
+  box-shadow:
+    1px 1.5px 0 #38322a, 2px 3px 0 #322c24, 3px 4.5px 0 #2b261f,
+    4px 6px 0 #241f19, 5px 7.5px 0 rgba(0, 0, 0, 0.7);
+}
+
+.carnet-theme-nuit .page-carnet,
+.carnet-theme-nuit .page-vide {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.8 0 0 0 0 0.72 0 0 0 0 0.5 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 50% 50%, #2b2620 30%, #241f19 72%, #1b1712 100%);
+  background-color: #262119;
+  box-shadow: inset 0 0 44px rgba(0, 0, 0, 0.55), inset -3px 0 10px rgba(0, 0, 0, 0.35);
+  color: #e2d5b2;
+}
+
+.carnet-theme-nuit .page-entete { border-bottom-color: rgba(200, 180, 130, 0.25); }
+.carnet-theme-nuit .page-entete time,
+.carnet-theme-nuit .page-fixer-date { color: #b9a678; }
+.carnet-theme-nuit .page-cat { color: #a89263; }
+.carnet-theme-nuit .page-titre { color: #eee2c0; }
+.carnet-theme-nuit .page-mention { color: #9fc48f; }
+.carnet-theme-nuit .entree + .entree::before { color: rgba(200, 180, 130, 0.45); }
+.carnet-theme-nuit .page-numero { color: #8a7a52; }
+
+.carnet-theme-nuit .page-action, .carnet-theme-nuit .carnet-bouton {
+  border-color: rgba(220, 200, 150, 0.55);
+  color: #d9c79a;
+}
+
+.carnet-theme-nuit .page-action:hover { background: rgba(220, 200, 150, 0.1); }
+
+.carnet-theme-nuit .page-tache {
+  background: radial-gradient(ellipse, rgba(190, 165, 110, 0.7), rgba(190, 165, 110, 0.2) 60%, transparent 75%);
+}
+
+.carnet-theme-nuit .page-photo { border-color: #3a352c; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7); }
+
+.carnet-theme-nuit .page-date-input {
+  background: rgba(20, 16, 10, 0.55);
+  border-color: rgba(200, 180, 130, 0.4);
+  color: #e2d5b2;
+}
+
+.carnet-theme-nuit .carnet-couverture {
+  background:
+    radial-gradient(ellipse at 18% 12%, rgba(120, 110, 90, 0.25), transparent 55%),
+    radial-gradient(ellipse at 85% 90%, rgba(0, 0, 0, 0.6), transparent 50%),
+    linear-gradient(160deg, #26201a 0%, #1a1510 45%, #0f0c08 100%);
+  border-left-color: #060403;
+}
+
+.carnet-theme-nuit .couv-titre {
+  background: linear-gradient(168deg, #ece9e1 8%, #b5b1a5 45%, #8a867a 65%, #d8d4c8 88%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+/* Plaque et rivets argentés sur le cuir noir */
+.carnet-theme-nuit .couv-plaque {
+  background:
+    radial-gradient(ellipse at 24% 20%, rgba(255, 255, 255, 0.4), transparent 45%),
+    radial-gradient(ellipse at 78% 74%, rgba(0, 0, 0, 0.5), transparent 50%),
+    linear-gradient(128deg, #b8b4a8 0%, #8f8b7f 40%, #6a665c 75%, #918d81 100%);
+}
+
+.carnet-theme-nuit .rivet {
+  background: radial-gradient(circle at 34% 30%, #e4e0d4, #8f8b7f 55%, #55524a 100%);
+}
+
+.carnet-theme-nuit .couv-indice { color: rgba(215, 208, 190, 0.55); }
+.carnet-theme-nuit .couv-coin { border-color: #6e685c; }
+.carnet-theme-nuit .couv-fermoir::after {
+  background:
+    radial-gradient(circle at 50% 24%, #0c0a06 2.5px, transparent 3px),
+    radial-gradient(circle at 50% 76%, #0c0a06 2.5px, transparent 3px),
+    linear-gradient(100deg, #c9c5ba 0%, #918d81 45%, #625e54 100%);
+}
+
+.carnet-theme-nuit .carnet-barre, .carnet-theme-nuit .carnet-fleche {
+  background:
+    radial-gradient(ellipse at 15% 20%, rgba(120, 105, 80, 0.2), transparent 55%),
+    linear-gradient(160deg, #221c15 0%, #15100a 70%, #0d0a06 100%);
+}
+
+.carnet-theme-nuit .carnet-recherche, .carnet-theme-nuit .carnet-tri {
+  background: linear-gradient(180deg, #2b2620, #221d16);
+  border-color: rgba(0, 0, 0, 0.8);
+  color: #e2d5b2;
+}
+
+.carnet-theme-nuit .carnet-recherche::placeholder { color: #8a7a52; }
+
+.carnet-theme-nuit .carnet-bandeau-activite {
+  background: linear-gradient(180deg, #2b2620, #221d16);
+  border-color: rgba(200, 180, 130, 0.3);
+  color: #e2d5b2;
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.45);
+}
+
+/* --------------------------------------------------------------------------
+   Thème personnalisé : les photos de l'utilisateur.
+   Chaque image est indépendante ; un voile garde le texte lisible.
+   -------------------------------------------------------------------------- */
+
+.carnet-couv-perso .carnet-couverture {
+  background:
+    linear-gradient(rgba(24, 14, 6, 0.25), rgba(24, 14, 6, 0.35)),
+    var(--image-couverture) center / cover no-repeat;
+}
+
+.carnet-couv-perso .couv-plaque { display: none; }
+
+.carnet-couv-perso .couv-titre {
+  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.85)) drop-shadow(1px 1.5px 0 rgba(0, 0, 0, 0.75));
+}
+
+.carnet-page-perso .page-carnet {
+  background:
+    linear-gradient(rgba(246, 236, 210, 0.84), rgba(246, 236, 210, 0.84)),
+    var(--image-page) center / cover no-repeat;
+  background-color: #f0e2ba;
+}
+
+.carnet-page-perso .page-tache,
+.carnet-page-perso .page-trou,
+.carnet-page-perso .page-usure,
+.carnet-page-perso .page-petale,
+.carnet-page-perso .page-poudre { display: none; }
