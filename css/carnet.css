@@ -1,0 +1,436 @@
+/* ==========================================================================
+   Le Carnet — grimoire plein écran par-dessus la carte.
+   Couverture cuir vieilli (carte gravée en relief), papier jauni IRRÉGULIER
+   (dégradés superposés + grain SVG + imperfections aléatoires posées par
+   carnet.js), écriture manuscrite (police Caveat vendorée, hors-ligne).
+   ========================================================================== */
+
+@font-face {
+  font-family: "Caveat";
+  src: url("../fonts/caveat.woff2") format("woff2");
+  font-weight: 400 700;
+  font-display: swap;
+}
+
+#carnet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1900; /* au-dessus du bandeau escalade (1600), sous le toast (2000) */
+  background: rgba(15, 18, 24, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+}
+
+.carnet-boite {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(1020px, 100%);
+  max-height: 100dvh;
+}
+
+/* --- Barre du haut : recherche, tri, favoris, fermeture ------------------ */
+
+.carnet-barre {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.carnet-recherche {
+  flex: 1;
+  min-width: 0;
+  min-height: 42px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 999px;
+  font: inherit;
+  background: var(--surface);
+}
+
+.carnet-tri {
+  min-height: 42px;
+  border: none;
+  border-radius: 999px;
+  font: inherit;
+  background: var(--surface);
+  padding: 4px 10px;
+}
+
+.carnet-favoris {
+  min-width: 42px;
+  min-height: 42px;
+  border: none;
+  border-radius: 50%;
+  background: var(--surface);
+  font-size: 1.05rem;
+  color: var(--text-2);
+}
+
+.carnet-favoris.actif { background: var(--favori); color: #fff; }
+
+.carnet-barre .panel-close { background: var(--surface); border-radius: 50%; }
+
+/* --- Bandeau « toutes mes sorties sur ce lieu » --------------------------- */
+
+.carnet-bandeau-activite {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  background: var(--surface);
+  border-radius: var(--radius-s);
+  padding: 8px 12px;
+}
+
+.carnet-bandeau-activite .bandeau-texte { flex: 1; font-weight: 600; min-width: 140px; }
+.carnet-bandeau-activite .btn { min-height: 38px; padding: 4px 12px; }
+
+/* --- Scène : flèches + livre --------------------------------------------- */
+
+.carnet-scene {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 0;
+  flex: 1;
+}
+
+.carnet-fleche {
+  flex: none;
+  width: 40px;
+  height: 64px;
+  border: none;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 1.7rem;
+  line-height: 1;
+}
+
+.carnet-fleche:disabled { opacity: 0.25; cursor: default; }
+
+.carnet-livre {
+  flex: 1;
+  min-width: 0;
+  perspective: 1600px;
+  height: min(76dvh, 640px);
+}
+
+/* Feuilletage : le livre se plie vers la reliure puis se déplie */
+.carnet-pages, .carnet-couverture {
+  height: 100%;
+  transition: transform 0.24s ease-in, opacity 0.24s ease-in;
+  transform-origin: left center;
+}
+
+.plie-avant .carnet-pages, .plie-avant .carnet-couverture {
+  transform: rotateY(-72deg);
+  opacity: 0.35;
+}
+
+.plie-arriere .carnet-pages {
+  transform-origin: right center;
+  transform: rotateY(72deg);
+  opacity: 0.35;
+}
+
+@keyframes carnet-deplie-avant {
+  from { transform: rotateY(60deg); opacity: 0.35; }
+  to { transform: none; opacity: 1; }
+}
+
+@keyframes carnet-deplie-arriere {
+  from { transform: rotateY(-60deg); opacity: 0.35; }
+  to { transform: none; opacity: 1; }
+}
+
+.deplie-avant .carnet-pages { transform-origin: right center; animation: carnet-deplie-avant 0.24s ease-out; }
+.deplie-arriere .carnet-pages, .deplie-arriere .carnet-couverture {
+  animation: carnet-deplie-arriere 0.24s ease-out;
+}
+
+/* --- Couverture : cuir ancien, carte gravée ------------------------------- */
+
+.carnet-couverture {
+  width: min(430px, 100%);
+  margin: 0 auto;
+  border-radius: 10px 18px 18px 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 26px 22px;
+  background:
+    radial-gradient(ellipse at 18% 12%, rgba(126, 82, 45, 0.55), transparent 55%),
+    radial-gradient(ellipse at 85% 90%, rgba(30, 16, 8, 0.6), transparent 50%),
+    radial-gradient(ellipse at 70% 30%, rgba(150, 100, 55, 0.25), transparent 45%),
+    linear-gradient(160deg, #5c3a21 0%, #4a2d17 38%, #3a2110 70%, #2c180a 100%);
+  box-shadow:
+    inset 0 0 0 3px rgba(20, 10, 4, 0.55),
+    inset 0 0 60px rgba(0, 0, 0, 0.55),
+    inset 12px 0 18px -10px rgba(255, 220, 170, 0.18),
+    0 18px 50px rgba(0, 0, 0, 0.55);
+  border-left: 10px solid #241206; /* la reliure */
+}
+
+.couv-cadre {
+  border: 2px solid rgba(214, 178, 118, 0.35);
+  outline: 1px solid rgba(20, 10, 4, 0.6);
+  outline-offset: 3px;
+  border-radius: 8px;
+  padding: 22px 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.couv-carte { width: 118px; height: 118px; }
+
+/* Gravure en relief : trait sombre doublé d'un reflet clair décalé */
+.couv-carte .grave {
+  stroke: rgba(24, 12, 5, 0.9);
+  stroke-width: 3;
+  fill: none;
+  filter: drop-shadow(1px 1px 0 rgba(222, 184, 128, 0.28));
+}
+
+.couv-titre {
+  margin: 0;
+  font-family: "Caveat", cursive;
+  font-size: 2.3rem;
+  line-height: 1.05;
+  text-align: center;
+  color: #dfc08a;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.8), -1px -1px 0 rgba(255, 235, 190, 0.15);
+  font-weight: 700;
+}
+
+.couv-sous-titre {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(214, 178, 118, 0.7);
+}
+
+.couv-indice {
+  margin: 0;
+  font-family: "Caveat", cursive;
+  font-size: 1.15rem;
+  color: rgba(230, 205, 160, 0.75);
+}
+
+/* --- Pages : papier jauni irrégulier -------------------------------------- */
+
+.carnet-pages {
+  display: flex;
+  height: 100%;
+  width: min(460px, 100%);
+  margin: 0 auto;
+  filter: drop-shadow(0 16px 34px rgba(0, 0, 0, 0.5));
+}
+
+.carnet-pages.double { width: 100%; max-width: 940px; }
+
+.page-carnet {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 22px 14px;
+  border-radius: 4px 14px 14px 4px;
+  /* Papier NON uniforme : jaunissement irrégulier, bords brunis, grain */
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.36 0 0 0 0 0.22 0 0 0 0.10 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 12% 8%, rgba(150, 110, 50, 0.13), transparent 42%),
+    radial-gradient(ellipse at 90% 26%, rgba(160, 115, 55, 0.1), transparent 38%),
+    radial-gradient(ellipse at 70% 95%, rgba(140, 95, 40, 0.16), transparent 45%),
+    radial-gradient(ellipse at 50% 50%, #f4e7c3 30%, #ecd9a8 72%, #ddc088 100%);
+  background-color: #f0e2ba;
+  box-shadow:
+    inset 0 0 44px rgba(122, 85, 34, 0.28),
+    inset -3px 0 10px rgba(122, 85, 34, 0.14);
+  color: #3c2c14;
+  transform: rotate(var(--pente, 0deg));
+}
+
+.carnet-pages.double .page-carnet:first-child {
+  border-radius: 14px 4px 4px 14px;
+  box-shadow:
+    inset 0 0 44px rgba(122, 85, 34, 0.28),
+    inset -14px 0 22px -10px rgba(70, 45, 15, 0.5); /* ombre de la reliure */
+}
+
+.carnet-pages.double .page-carnet:last-child {
+  box-shadow:
+    inset 0 0 44px rgba(122, 85, 34, 0.28),
+    inset 14px 0 22px -10px rgba(70, 45, 15, 0.5);
+}
+
+.page-vide { background-color: #e8d8ac; }
+
+/* Imperfections aléatoires (positionnées par carnet.js) */
+.page-tache {
+  position: absolute;
+  border-radius: 46% 54% 58% 42% / 52% 44% 56% 48%;
+  background: radial-gradient(ellipse, rgba(96, 64, 20, 0.9), rgba(96, 64, 20, 0.25) 60%, transparent 75%);
+  pointer-events: none;
+}
+
+.page-trou {
+  position: absolute;
+  width: 9px;
+  height: 11px;
+  border-radius: 58% 42% 50% 50% / 45% 55% 45% 55%;
+  background: #2c1c0c;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8), 0 0 0 2px rgba(150, 110, 55, 0.35);
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.page-usure {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  pointer-events: none;
+  background: radial-gradient(circle at 0 100%, rgba(120, 82, 30, 0.3), transparent 68%);
+}
+
+.page-usure.coin-bd { right: 0; bottom: 0; transform: rotate(180deg); }
+.page-usure.coin-hg { left: 0; top: 0; }
+
+/* Contenu d'une page */
+
+.page-entete {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  border-bottom: 1px solid rgba(90, 60, 20, 0.3);
+  padding-bottom: 4px;
+}
+
+.page-entete time {
+  font-family: "Caveat", cursive;
+  font-size: 1.15rem;
+  color: #6b4a1c;
+}
+
+.page-cat {
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: #5a3d16;
+  white-space: nowrap;
+}
+
+.page-titre {
+  margin: 10px 0 2px;
+  font-family: "Caveat", cursive;
+  font-weight: 700;
+  font-size: 2rem;
+  line-height: 1.05;
+  color: #33230d;
+}
+
+.page-coeur { color: #b0304f; font-size: 1.3rem; }
+
+.page-mention {
+  margin: 2px 0 6px;
+  font-family: "Caveat", cursive;
+  font-size: 1.25rem;
+  color: #2f5d2a;
+}
+
+.page-fixer-date {
+  margin: 4px 0 8px;
+  font-size: 0.8rem;
+  color: #6b4a1c;
+}
+
+.page-date-input {
+  font: inherit;
+  border: 1px solid rgba(90, 60, 20, 0.4);
+  border-radius: 6px;
+  background: rgba(255, 250, 235, 0.6);
+  padding: 3px 6px;
+  color: inherit;
+}
+
+.page-photos { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
+
+.page-photo {
+  max-width: min(230px, 100%);
+  max-height: 170px;
+  border: 6px solid #fffdf4;
+  border-bottom-width: 20px; /* façon polaroïd collé */
+  box-shadow: 0 4px 10px rgba(60, 40, 10, 0.4);
+  border-radius: 2px;
+}
+
+.page-note {
+  font-family: "Caveat", cursive;
+  font-size: 1.45rem;
+  line-height: 1.35;
+  margin: 8px 0;
+  color: #3c2a10;
+}
+
+.page-note-vide { opacity: 0.55; font-size: 1.2rem; }
+
+.page-pied {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(90, 60, 20, 0.25);
+}
+
+.page-action {
+  border: 1px solid rgba(90, 60, 20, 0.35);
+  background: rgba(255, 250, 235, 0.55);
+  color: #5a3d16;
+  border-radius: 999px;
+  padding: 6px 12px;
+  min-height: 36px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.page-action:hover { background: rgba(255, 250, 235, 0.9); }
+
+.page-numero {
+  margin-left: auto;
+  font-family: "Caveat", cursive;
+  font-size: 1.05rem;
+  color: #8a6428;
+}
+
+.carnet-pied {
+  margin: 0;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.82rem;
+  min-height: 1.2em;
+}
+
+/* --- Petit écran ----------------------------------------------------------- */
+
+@media (max-width: 899px) {
+  #carnet-overlay { padding: 6px; }
+  .carnet-fleche { width: 30px; height: 54px; font-size: 1.4rem; border-radius: 9px; }
+  .carnet-livre { height: min(74dvh, 640px); }
+  .page-titre { font-size: 1.65rem; }
+  .page-note { font-size: 1.3rem; }
+}
+
+/* Le bouton flottant du carnet, façon petit livre */
+.fab-carnet { font-size: 1.35rem; }

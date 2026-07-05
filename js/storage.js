@@ -75,6 +75,87 @@ export async function mergeStatuses(nouveaux) {
   return statuses;
 }
 
+/* ------------------------------------------------------------------ */
+/* Sorties : journal horodaté des « fait » — alimente le Carnet         */
+/* ------------------------------------------------------------------ */
+
+const KEY_SORTIES = PREFIX + "sorties";
+
+/** Toutes les sorties : [{id, pointId, date|null}] — date null = inconnue
+ *  (points marqués « fait » avant l'existence du carnet). */
+export async function getSorties() {
+  return lireJSON(KEY_SORTIES, []);
+}
+
+/** Enregistre une sortie (date ISO, défaut : maintenant). */
+export async function addSortie(pointId, date = new Date().toISOString()) {
+  const sorties = lireJSON(KEY_SORTIES, []);
+  const sortie = {
+    id: `s-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+    pointId,
+    date,
+  };
+  sorties.push(sortie);
+  ecrireJSON(KEY_SORTIES, sorties);
+  return sortie;
+}
+
+/** Met à jour une sortie (ex. préciser une date inconnue). */
+export async function updateSortie(id, patch) {
+  ecrireJSON(
+    KEY_SORTIES,
+    lireJSON(KEY_SORTIES, []).map((s) => (s.id === id ? { ...s, ...patch } : s))
+  );
+}
+
+export async function deleteSortie(id) {
+  ecrireJSON(KEY_SORTIES, lireJSON(KEY_SORTIES, []).filter((s) => s.id !== id));
+}
+
+/** Décocher « fait » le jour même retire la sortie du jour (faux clic) ;
+ *  les sorties plus anciennes restent dans le carnet. */
+export async function deleteSortieDuJour(pointId) {
+  const jour = new Date().toISOString().slice(0, 10);
+  const sorties = lireJSON(KEY_SORTIES, []);
+  for (let i = sorties.length - 1; i >= 0; i--) {
+    if (sorties[i].pointId === pointId && (sorties[i].date || "").slice(0, 10) === jour) {
+      sorties.splice(i, 1);
+      ecrireJSON(KEY_SORTIES, sorties);
+      return;
+    }
+  }
+}
+
+/** Toutes les sorties d'un point disparaissent avec lui. */
+export async function deleteSortiesDuPoint(pointId) {
+  ecrireJSON(KEY_SORTIES, lireJSON(KEY_SORTIES, []).filter((s) => s.pointId !== pointId));
+}
+
+/** Les points déjà « fait » avant le carnet reçoivent une sortie « date
+ *  inconnue » (une seule fois : l'id de seed est stable). */
+export async function seedSortiesDepuisStatuts() {
+  const statuses = lireJSON(KEY_STATUSES, {});
+  const sorties = lireJSON(KEY_SORTIES, []);
+  const connus = new Set(sorties.map((s) => s.pointId));
+  let modifie = false;
+  for (const [pointId, statut] of Object.entries(statuses)) {
+    if (statut === "fait" && !connus.has(pointId)) {
+      sorties.push({ id: `s-seed-${pointId}`, pointId, date: null });
+      modifie = true;
+    }
+  }
+  if (modifie) ecrireJSON(KEY_SORTIES, sorties);
+  return sorties;
+}
+
+/** Fusionne des sorties importées (sauvegarde), sans doublons d'id. */
+export async function mergeSorties(importees) {
+  const sorties = lireJSON(KEY_SORTIES, []);
+  const ids = new Set(sorties.map((s) => s.id));
+  for (const s of importees || []) if (!ids.has(s.id)) sorties.push(s);
+  ecrireJSON(KEY_SORTIES, sorties);
+}
+
 /** Personnalisation des catégories : { themeId: {label, color, textColor, icon} } */
 export async function getThemeOverrides() {
   return lireJSON(KEY_THEME_OVERRIDES, {});

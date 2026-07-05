@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="vendor/markercluster/MarkerCluster.css">
   <link rel="stylesheet" href="vendor/markercluster/MarkerCluster.Default.css">
   <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/carnet.css">
 </head>
 <body>
 
@@ -73,6 +74,7 @@
         <path d="M12 7v6M9 10h6"/>
       </svg>
     </button>
+    <button type="button" id="btn-carnet" class="fab fab-carnet" title="Mon carnet de sorties" aria-label="Ouvrir mon carnet de sorties">📖</button>
     <button type="button" id="btn-wc" class="fab fab-wc" title="Toilettes à moins de 1 km de moi" aria-label="Toilettes autour de moi"><span class="wc-runner" aria-hidden="true">🏃</span><span aria-hidden="true">🚻</span></button>
     <button type="button" id="btn-ideas" class="fab" title="Boîte à idées" aria-label="Boîte à idées">💡</button>
     <button type="button" id="btn-tuto" class="fab" title="Revoir le tuto" aria-label="Revoir le tuto">🎓</button>
@@ -232,6 +234,9 @@
       <button type="button" class="btn btn-danger confirm-ok">Supprimer</button>
     </div>
   </dialog>
+
+  <!-- Le Carnet : grimoire plein écran (contenu construit par js/carnet.js) -->
+  <div id="carnet-overlay" aria-label="Mon carnet de sorties" hidden></div>
 
   <!-- Visite guidée -->
   <div id="tuto-overlay" hidden></div>

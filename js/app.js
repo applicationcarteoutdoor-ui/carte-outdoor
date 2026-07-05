@@ -36,6 +36,7 @@ import { initGpx, setAllTracesVisible } from "./gpx.js";
 import { initAddPoint } from "./addpoint.js";
 import { initTuto, startTuto } from "./tuto.js";
 import { initIdeas } from "./ideas.js";
+import { initCarnet } from "./carnet.js";
 import { SUR_ANDROID, SUR_IOS } from "./config/platform.js";
 
 /** État global de l'application. */
@@ -242,7 +243,13 @@ function ouvrirFiche(feature) {
 }
 
 async function changerStatut(pointId, statut) {
+  const avant = state.statuses[pointId];
   state.statuses = await storage.setStatus(pointId, statut);
+  // Le carnet s'alimente tout seul : passer à « fait » enregistre une sortie
+  // datée ; décocher le jour même l'annule (faux clic), l'historique ancien
+  // reste.
+  if (statut === "fait" && avant !== "fait") await storage.addSortie(pointId);
+  if (avant === "fait" && statut !== "fait") await storage.deleteSortieDuJour(pointId);
   setPoints(pointsVisibles(), state.statuses);
   refreshDetailsIfOpen(pointId, statut);
   renderSidebar({
@@ -281,6 +288,7 @@ async function supprimerPoint(feature) {
   if (!ok) return;
   await storage.deleteUserPoint(feature.properties.id);
   await storage.deleteJournal(feature.properties.id).catch(() => {});
+  await storage.deleteSortiesDuPoint(feature.properties.id).catch(() => {});
   state.statuses = await storage.setStatus(feature.properties.id, null);
   closeDetails();
   await chargerPoints();
@@ -732,6 +740,7 @@ async function demarrer() {
       statuses: state.statuses,
       journal: await storage.getAllJournals().catch(() => ({})),
       customThemes: await storage.getCustomThemes().catch(() => []),
+      sorties: await storage.getSorties().catch(() => []),
     }),
     onImportedPoints: apresImportPoints,
     onImportedTraces: () => {
@@ -762,6 +771,11 @@ async function demarrer() {
   initInstallation();
   initReglages();
   afficherVersion();
+  initCarnet({
+    getPoints: () => state.allPoints,
+    getStatuses: () => state.statuses,
+    onVoirSurCarte: (feature) => allerAuPoint(feature),
+  });
 
   // Fermeture du bandeau escalade : clic N'IMPORTE OÙ sur le bandeau
   // (pas seulement la croix) ou touche Échap. Volontairement non persisté :

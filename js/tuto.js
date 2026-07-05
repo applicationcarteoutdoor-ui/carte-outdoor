@@ -73,6 +73,15 @@ const ETAPES = [
       "Choisissez une catégorie existante ou créez-en une à la volée (nom, icône, couleur).",
   },
   {
+    cible: "#btn-carnet",
+    avant: () => document.getElementById("sidebar").classList.remove("open"),
+    titre: "Votre carnet de sorties 📖",
+    texte:
+      "Un vrai grimoire à feuilleter ! Chaque activité marquée « ✓ Fait », chaque note et chaque " +
+      "photo s'y enregistre automatiquement, une sortie par page. Recherche, tri par date ou " +
+      "catégorie, filtre favoris — et pour chaque lieu, l'historique de toutes vos venues.",
+  },
+  {
     cible: "#btn-wc",
     avant: () => document.getElementById("sidebar").classList.remove("open"),
     titre: "Les toilettes publiques",
