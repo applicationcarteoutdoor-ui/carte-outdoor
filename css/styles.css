@@ -134,6 +134,15 @@ h2, h3, h4 { font-weight: 650; }
 .settings-list { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; min-width: min(320px, 74vw); }
 .settings-list .btn { min-height: 44px; }
 
+/* Section « Compte & synchronisation » (js/sync.js) */
+.sync-section { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.sync-titre { margin: 0 0 4px; font-size: 0.95rem; }
+.sync-section .btn { min-height: 44px; width: 100%; }
+.sync-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0; }
+.sync-actions .btn { flex: 1 1 auto; width: auto; }
+.sync-statut { min-height: 1.2em; font-style: italic; }
+.sync-statut.sync-charge { color: var(--accent); }
+
 .cat-bloc { flex: none; }
 
 .cat-row {

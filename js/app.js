@@ -37,9 +37,11 @@ import { initAddPoint } from "./addpoint.js";
 import { initTuto, startTuto } from "./tuto.js";
 import { initIdeas } from "./ideas.js";
 import { initOracle } from "./oracle.js";
+import { initSync } from "./sync.js";
 import { initCarnet, exporterCarnetPDF, ouvrirCarnetPourPoint } from "./carnet.js";
 import { SUR_ANDROID, SUR_IOS } from "./config/platform.js";
 import { esc } from "./util.js";
+import { passeFiltre } from "./filtrage.js";
 
 /** État global de l'application. */
 const state = {
@@ -145,37 +147,6 @@ function compteursParStatut() {
   return compteurs;
 }
 
-const RE_TOKENS = /\b(ED|TD|AD|PD|F|D)\b/g;
-
-/** Applique un filtre déclaré dans themes.js à un point. */
-function passeFiltre(filtre, details, selection) {
-  if (!selection || selection.size === 0) return true; // « Tout »
-  const brut = details?.[filtre.field];
-  switch (filtre.type) {
-    case "tokens": {
-      const tokens = String(brut || "").match(RE_TOKENS) || [];
-      return tokens.some((t) => selection.has(t));
-    }
-    case "prefix":
-      return [...selection].some((v) => String(brut || "").startsWith(v));
-    case "contains":
-      return [...selection].some((v) => String(brut || "").includes(v));
-    case "value":
-      return selection.has(String(brut ?? ""));
-    case "bucket": {
-      const n = Number(brut);
-      if (!Number.isFinite(n)) return false;
-      return filtre.options.some(
-        (o) =>
-          selection.has(o.value) &&
-          (o.min === undefined || n >= o.min) &&
-          (o.max === undefined || n < o.max)
-      );
-    }
-  }
-  return true;
-}
-
 function pointsVisibles() {
   // Mode suivi : un statut coché (★ ✓ ♥) affiche TOUS les points suivis,
   // même si leur catégorie d'origine n'est pas cochée. Les deux modes sont
@@ -201,6 +172,30 @@ function pointsVisibles() {
 /* Rendu global + persistance                                           */
 /* ------------------------------------------------------------------ */
 
+/* Écriture des préférences DÉBOUNCÉE : rafraichir() est appelé à chaque
+ * interaction (cocher une catégorie, un filtre…). On regroupe les écritures
+ * localStorage sur 400 ms, et on force l'enregistrement quand l'onglet passe
+ * en arrière-plan ou se ferme, pour ne jamais rien perdre. */
+let prefsTimer = null;
+let prefsEnAttente = null;
+function planifierPrefs(prefs) {
+  prefsEnAttente = prefs;
+  clearTimeout(prefsTimer);
+  prefsTimer = setTimeout(enregistrerPrefs, 400);
+}
+function enregistrerPrefs() {
+  clearTimeout(prefsTimer);
+  prefsTimer = null;
+  if (prefsEnAttente) {
+    storage.savePrefs(prefsEnAttente);
+    prefsEnAttente = null;
+  }
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) enregistrerPrefs();
+});
+window.addEventListener("pagehide", enregistrerPrefs);
+
 /** Rendu du panneau gauche (catégories + suivi). Regroupé ici car appelé
  *  à l'identique par rafraichir() et par changerStatut(). */
 function rendreSidebar() {
@@ -224,9 +219,9 @@ function rafraichir() {
     statusActif: state.statusFilters.size > 0,
   });
   setPoints(pointsVisibles(), state.statuses);
-  document.getElementById("banner-escalade").hidden = 
+  document.getElementById("banner-escalade").hidden =
     !state.activeThemes.has("escalade") || bandeauEscaladeFerme;
-  storage.savePrefs({
+  planifierPrefs({
     activeThemes: [...state.activeThemes],
     statusFilters: [...state.statusFilters],
     filterSelections: Object.fromEntries(
@@ -868,6 +863,18 @@ async function demarrer() {
   initToilettesProches();
   initIdeas();
   initOracle();
+  // Synchronisation multi-appareils : après une fusion « légère » (thème/
+  // statuts), on ré-applique l'état sans recharger. Une fusion qui apporte de
+  // nouveaux points/sorties déclenche, elle, un rechargement (voir sync.js).
+  initSync({
+    onSynced: async () => {
+      registerCustomThemes(await storage.getCustomThemes());
+      setThemeOverrides(await storage.getThemeOverrides());
+      state.statuses = await storage.getStatuses();
+      await chargerPoints();
+      rafraichir();
+    },
+  });
   initInstallation();
   initReglages();
   initModeNuit(prefs);

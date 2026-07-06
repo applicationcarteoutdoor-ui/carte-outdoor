@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tests — Carte Outdoor</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        margin: 20px;
+        background: #f4f6f8;
+        color: #22313c;
+        line-height: 1.5;
+      }
+      h1 { font-size: 1.3rem; }
+      p { max-width: 640px; }
+      code {
+        background: #e7ecf1;
+        padding: 0 4px;
+        border-radius: 4px;
+        font-size: 0.9em;
+      }
+      #resume {
+        font-weight: 700;
+        padding: 8px 14px;
+        border-radius: 8px;
+        display: inline-block;
+      }
+      #resume.ok { background: #e7f2ec; color: #1e6b3f; }
+      #resume.ko { background: #fdecec; color: #a52020; }
+      ul { list-style: none; padding: 0; max-width: 640px; }
+      li { padding: 4px 0; border-bottom: 1px solid #e4e9ee; font-size: 0.9rem; }
+      li.pass::before { content: "✓ "; color: #1e6b3f; font-weight: 700; }
+      li.fail::before { content: "✗ "; color: #c0392b; font-weight: 700; }
+      li.fail { color: #c0392b; font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <h1>🧪 Tests — invariants du code</h1>
+    <p>
+      Page de vérification rapide. Lancez le serveur de dev
+      (<code>python tools/dev_server.py 8125</code>) puis ouvrez
+      <code>/dev/tests.html</code>. Seules des fonctions <strong>pures</strong>
+      sont testées — aucune donnée (préférences, carnet, points) n'est modifiée.
+    </p>
+    <p id="resume">Exécution…</p>
+    <ul id="liste"></ul>
+    <script type="module" src="./tests.js"></script>
+  </body>
+</html>
