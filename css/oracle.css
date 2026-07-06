@@ -1,93 +1,43 @@
 /**
- * L'Oracle 🔮 — direction artistique « boule de cristal », magique et
- * futuriste : fond cosmique violet profond, halos lumineux, verre dépoli.
- * Feuille isolée (comme carnet.css) — chargée pour toute l'app, pré-cachée.
+ * L'Oracle 🔮 — le dialogue EST une boule de cristal.
+ *
+ * Deux formes :
+ *  - BOULE (défaut) : sphère de verre bleutée parfaitement ronde, posée sur un
+ *    socle — état vide, chargement, erreurs courtes.
+ *  - CAPSULE (classe .forme-capsule sur le dialog, posée par js/oracle.js) :
+ *    la sphère s'étire en grande capsule de verre quand le contenu a besoin de
+ *    place (réponse complète, panneau des clés). Le morphing est animé.
+ *
+ * Palette : bleu nuit profond + paillettes blanches (demande utilisateur).
  */
 
-/* Palette de l'Oracle : bleu nuit profond (mais pas noir) + paillettes
-   blanches. Indépendante du thème clair/sombre de l'app. */
 .oracle-dialog {
-  --or-fond-1: #12294c; /* bleu nuit lumineux */
-  --or-fond-2: #0a1728; /* bleu profond, pas noir */
   --or-glow: #6db3ff; /* bleu ciel lumineux */
   --or-glow-2: #cfe6ff; /* blanc bleuté (paillette) */
   --or-texte: #eaf3ff;
   --or-texte-2: #a6c2e4;
   --or-surface: rgba(38, 74, 126, 0.32);
-  --or-bord: rgba(126, 184, 255, 0.30);
-}
+  --or-bord: rgba(126, 184, 255, 0.3);
+  /* Diamètre de la boule */
+  --od: min(88dvh - 70px, 92vw, 700px);
 
-/* ------------------------------------------------------------------ */
-/* Bouton flottant : boule de cristal qui palpite                       */
-/* ------------------------------------------------------------------ */
-
-.fab-oracle {
-  position: relative;
-  /* Billes/paillettes blanches semées dans une sphère de verre bleue */
-  background:
-    radial-gradient(circle at 62% 30%, #fff 0.6px, transparent 1.4px),
-    radial-gradient(circle at 40% 62%, #fff 0.7px, transparent 1.6px),
-    radial-gradient(circle at 70% 68%, rgba(255, 255, 255, 0.85) 0.6px, transparent 1.4px),
-    radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.7) 0.5px, transparent 1.2px),
-    radial-gradient(circle at 35% 30%, #dcecff 0%, #6db3ff 40%, #2f6dc9 74%, #1c478a 100%);
-  background-color: #1c478a;
-  color: #fff;
-  overflow: visible;
-  box-shadow: 0 0 0 0 rgba(90, 160, 255, 0.6), var(--shadow);
-  animation: oracle-pulse 3.4s ease-in-out infinite;
-}
-
-/* Reflet lumineux en haut à gauche, comme une sphère de verre */
-.fab-oracle::after {
-  content: "";
-  position: absolute;
-  top: 20%;
-  left: 24%;
-  width: 30%;
-  height: 22%;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.85);
-  filter: blur(1.5px);
-  pointer-events: none;
-}
-
-.fab-oracle:hover {
-  filter: brightness(1.08);
-}
-
-@keyframes oracle-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(90, 160, 255, 0.5), var(--shadow);
-  }
-  50% {
-    box-shadow: 0 0 22px 6px rgba(90, 160, 255, 0.6), var(--shadow);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .fab-oracle {
-    animation: none;
-  }
-}
-
-/* ------------------------------------------------------------------ */
-/* Le dialogue cosmique                                                 */
-/* ------------------------------------------------------------------ */
-
-.oracle-dialog {
-  width: min(880px, calc(100vw - 20px));
-  max-width: none;
-  max-height: 90dvh;
+  /* Le dialog n'est qu'un support transparent : la boule fait tout */
+  background: transparent;
+  border: none;
+  box-shadow: none;
   padding: 0;
-  border: 1px solid var(--or-bord);
-  border-radius: 20px;
+  width: auto;
+  max-width: none;
+  max-height: none;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   color: var(--or-texte);
-  background: radial-gradient(1200px 500px at 80% -10%, #295a99 0%, transparent 60%),
-    radial-gradient(900px 500px at 0% 110%, #1d3f70 0%, transparent 55%),
-    linear-gradient(160deg, var(--or-fond-1) 0%, var(--or-fond-2) 100%);
-  box-shadow: 0 24px 70px rgba(10, 4, 30, 0.6), 0 0 0 1px rgba(185, 140, 255, 0.1);
-  overflow: hidden;
+}
+
+.oracle-dialog:not([open]) {
+  display: none;
 }
 
 .oracle-dialog::backdrop {
@@ -95,273 +45,201 @@
   backdrop-filter: blur(3px);
 }
 
-/* Voile d'étoiles — le panneau porte la hauteur et pilote le scroll interne
-   (en-tête figé, corps qui prend le reste, zones internes défilables). */
-.oracle-dialog .oracle-panneau {
+/* ------------------------------------------------------------------ */
+/* La sphère de verre                                                   */
+/* ------------------------------------------------------------------ */
+
+.oracle-sphere {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  max-height: 90dvh;
+  width: var(--od);
+  height: var(--od);
+  border-radius: 50%; /* cercle — et ELLIPSE quand elle s'étire : toujours une boule */
+  overflow: hidden;
+  /* Verre bleu : profondeur + léger voile clair (le GROS reflet blanc a été
+     remplacé par des petites étoiles — il gâchait la lisibilité) */
+  background:
+    radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.32) 0%, rgba(213, 232, 255, 0.12) 5%, transparent 13%),
+    radial-gradient(circle at 72% 80%, rgba(110, 180, 255, 0.35), transparent 55%),
+    radial-gradient(circle at 50% 46%, #6fadfa 0%, #3a7cd8 40%, #1c478a 70%, #0a1c3d 100%);
+  box-shadow:
+    0 0 56px 10px rgba(90, 160, 255, 0.45),
+    0 26px 60px rgba(4, 12, 30, 0.6),
+    inset -18px -26px 60px rgba(4, 14, 34, 0.55),
+    inset 12px 16px 42px rgba(255, 255, 255, 0.14);
+  transition: width 0.45s ease, height 0.45s ease;
 }
-.oracle-dialog .oracle-panneau::before {
+
+/* Voile d'étoiles et de brillants, réparti dans tout le verre */
+.oracle-sphere::before {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image: radial-gradient(1.5px 1.5px at 20% 30%, rgba(255, 255, 255, 0.7), transparent),
-    radial-gradient(1.5px 1.5px at 70% 20%, rgba(255, 255, 255, 0.5), transparent),
-    radial-gradient(1px 1px at 40% 70%, rgba(255, 255, 255, 0.6), transparent),
-    radial-gradient(1.5px 1.5px at 85% 65%, rgba(180, 220, 255, 0.6), transparent),
-    radial-gradient(1px 1px at 55% 45%, rgba(255, 255, 255, 0.45), transparent),
-    radial-gradient(1px 1px at 12% 80%, rgba(255, 255, 255, 0.4), transparent);
-  opacity: 0.6;
+  background-image:
+    radial-gradient(1.5px 1.5px at 20% 30%, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(1.5px 1.5px at 70% 20%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(1px 1px at 40% 70%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1.5px 1.5px at 85% 65%, rgba(180, 220, 255, 0.7), transparent),
+    radial-gradient(1px 1px at 55% 45%, rgba(255, 255, 255, 0.55), transparent),
+    radial-gradient(1px 1px at 12% 80%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1.5px 1.5px at 30% 12%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1px 1px at 8% 45%, rgba(210, 230, 255, 0.6), transparent),
+    radial-gradient(1.5px 1.5px at 92% 38%, rgba(255, 255, 255, 0.55), transparent),
+    radial-gradient(1px 1px at 66% 90%, rgba(210, 230, 255, 0.55), transparent),
+    radial-gradient(1px 1px at 25% 55%, rgba(255, 255, 255, 0.45), transparent),
+    radial-gradient(1.5px 1.5px at 48% 22%, rgba(230, 242, 255, 0.65), transparent);
+  opacity: 0.7;
 }
 
-/* ------------------------------------------------------------------ */
-/* En-tête                                                              */
-/* ------------------------------------------------------------------ */
-
-.oracle-header {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px 18px;
-  border-bottom: 1px solid var(--or-bord);
-}
-
-.oracle-boule {
-  position: relative;
-  flex: 0 0 auto;
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  /* Paillettes blanches + sphère de verre bleue */
-  background:
-    radial-gradient(circle at 64% 34%, #fff 0.7px, transparent 1.6px),
-    radial-gradient(circle at 40% 64%, #fff 0.7px, transparent 1.6px),
-    radial-gradient(circle at 72% 66%, rgba(255, 255, 255, 0.8) 0.6px, transparent 1.4px),
-    radial-gradient(circle at 35% 30%, #eaf3ff 0%, #79b6ff 42%, #2f6dc9 76%, #1c478a 100%);
-  box-shadow: 0 0 18px 3px rgba(90, 160, 255, 0.5), inset 0 0 12px rgba(6, 20, 45, 0.6);
-  animation: oracle-float 4.5s ease-in-out infinite;
-}
-.oracle-boule-eclat {
+/* Étincelles qui scintillent dans le verre */
+.oracle-etincelle {
   position: absolute;
-  top: 22%;
-  left: 26%;
-  width: 30%;
-  height: 22%;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.9);
-  filter: blur(1px);
+  background: radial-gradient(circle, #fff 0%, rgba(255, 255, 255, 0) 70%);
+  pointer-events: none;
+  animation: oracle-scintille 2.8s ease-in-out infinite;
 }
-/* Socle de la boule */
-.oracle-boule::after {
+.oracle-etincelle.e1 { top: 22%; left: 68%; }
+.oracle-etincelle.e2 { top: 64%; left: 26%; animation-delay: 0.9s; }
+.oracle-etincelle.e3 { top: 42%; left: 82%; animation-delay: 1.7s; width: 4px; height: 4px; }
+.oracle-etincelle.e4 { top: 14%; left: 30%; animation-delay: 0.4s; width: 6px; height: 6px; }
+.oracle-etincelle.e5 { top: 78%; left: 58%; animation-delay: 2.2s; width: 4px; height: 4px; }
+.oracle-etincelle.e6 { top: 32%; left: 12%; animation-delay: 1.3s; }
+
+@keyframes oracle-scintille {
+  0%, 100% { opacity: 0.15; transform: scale(0.7); }
+  50% { opacity: 1; transform: scale(1.5); }
+}
+
+/* Le socle : pied évasé + base, sous la boule */
+.oracle-socle {
+  position: relative;
+  width: calc(var(--od) * 0.4);
+  height: calc(var(--od) * 0.075);
+  margin-top: calc(var(--od) * -0.015);
+  background: linear-gradient(#5d87c0 0%, #27446e 55%, #142848 100%);
+  clip-path: polygon(14% 0, 86% 0, 100% 100%, 0 100%);
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.5));
+}
+
+.oracle-socle::after {
   content: "";
   position: absolute;
   left: 50%;
-  bottom: -7px;
-  width: 34px;
-  height: 8px;
+  bottom: calc(var(--od) * -0.022);
   transform: translateX(-50%);
-  border-radius: 50%;
-  background: linear-gradient(#5c86c0, #2a3f66);
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+  width: 118%;
+  height: calc(var(--od) * 0.025);
+  border-radius: 6px;
+  background: linear-gradient(#33507c, #101f3a);
 }
 
-@keyframes oracle-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-3px);
-  }
+/* --- Forme ÉTIRÉE : la boule s'élargit en ELLIPSE de verre pour le
+   contenu long (réponse, clés) — jamais de rectangle : ça reste une boule
+   de cristal posée sur son socle, juste plus grande. ------------------- */
+
+.oracle-dialog.forme-etiree .oracle-sphere {
+  width: min(94vw, 820px);
+  height: min(86dvh, 760px);
+  /* border-radius reste 50% : cercle → ellipse, le verre suit */
 }
 
-.oracle-titres {
-  flex: 1 1 auto;
+/* ------------------------------------------------------------------ */
+/* Contenu : rectangle inscrit dans la boule / plein cadre en capsule   */
+/* ------------------------------------------------------------------ */
+
+.oracle-contenu {
+  position: absolute;
+  /* Rectangle INSCRIT dans le cercle comme dans l'ellipse : coins à ~0,98
+     du rayon sur chaque axe → jamais rognés par l'overflow. */
+  inset: 15% 15.5%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+/* Sous l'ellipse étirée, le socle s'élargit avec elle */
+.oracle-dialog.forme-etiree .oracle-socle {
+  width: min(37vw, 320px);
+}
+
+/* --- En-tête ---------------------------------------------------------- */
+
+.oracle-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
+.oracle-header h2 {
+  flex: 1;
   min-width: 0;
-}
-.oracle-titres h2 {
   margin: 0;
-  font-size: 1.35rem;
+  font-size: 1.3rem;
   letter-spacing: 0.5px;
   background: linear-gradient(90deg, #fff, var(--or-glow) 60%, var(--or-glow-2));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
-.oracle-titres p {
-  margin: 2px 0 0;
-  font-size: 0.82rem;
-  color: var(--or-texte-2);
-}
 
 .oracle-header .btn-icon {
+  min-width: 40px;
+  min-height: 40px;
   color: var(--or-texte-2);
   background: transparent;
+  font-size: 1.05rem;
 }
 .oracle-header .btn-icon:hover:not(:disabled) {
   color: var(--or-texte);
-  background: rgba(185, 140, 255, 0.15);
+  background: rgba(126, 184, 255, 0.15);
 }
 
-/* ------------------------------------------------------------------ */
-/* Corps : historique + zone principale                                 */
-/* ------------------------------------------------------------------ */
+/* --- Formulaire -------------------------------------------------------- */
 
-.oracle-corps {
-  position: relative;
-  display: grid;
-  grid-template-columns: 210px 1fr;
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
-.oracle-historique {
-  border-right: 1px solid var(--or-bord);
-  padding: 12px 8px 12px 14px;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-.oracle-historique h3 {
-  margin: 0 0 8px;
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--or-texte-2);
-}
-.oracle-histo-liste {
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding-right: 4px;
-  /* Dégradé de fondu en haut : les anciennes consultations « s'effacent »
-     en défilant vers le haut, façon file qui s'écoule. */
-  mask-image: linear-gradient(to bottom, transparent 0, #000 22px);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 22px);
-}
-.oracle-histo-vide {
-  font-size: 0.8rem;
-  color: var(--or-texte-2);
-  line-height: 1.4;
-}
-.oracle-histo-item {
-  display: flex;
-  align-items: stretch;
-  gap: 2px;
-  border-radius: 10px;
-  background: var(--or-surface);
-  border: 1px solid transparent;
-  transition: border-color 0.15s, background 0.15s;
-}
-.oracle-histo-item:hover {
-  border-color: var(--or-bord);
-}
-.oracle-histo-item.actif {
-  border-color: var(--or-glow);
-  background: rgba(90, 160, 255, 0.2);
-}
-.oracle-histo-open {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
-  padding: 8px 10px;
-  background: transparent;
-  border: none;
-  color: var(--or-texte);
-  cursor: pointer;
-  text-align: left;
-}
-.oracle-histo-lieu {
-  font-weight: 600;
-  font-size: 0.9rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-.oracle-histo-date {
-  font-size: 0.72rem;
-  color: var(--or-texte-2);
-}
-.oracle-histo-suppr {
-  flex: 0 0 auto;
-  width: 26px;
-  border: none;
-  background: transparent;
-  color: var(--or-texte-2);
-  cursor: pointer;
-  border-radius: 0 10px 10px 0;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-.oracle-histo-item:hover .oracle-histo-suppr {
-  opacity: 1;
-}
-.oracle-histo-suppr:hover {
-  color: #ff9db3;
-}
-
-/* Zone principale */
-.oracle-principal {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  padding: 14px 16px 16px;
-}
-
-/* Formulaire de saisie */
 .oracle-form {
   display: flex;
   gap: 8px;
-  flex: 0 0 auto;
+  flex: none;
 }
 .oracle-cp {
   flex: 1 1 auto;
   min-width: 0;
   font: inherit;
-  font-size: 1rem;
-  padding: 0 14px;
-  height: 46px;
+  font-size: 0.98rem;
+  padding: 0 12px;
+  height: 44px;
   border-radius: 12px;
   color: var(--or-texte);
-  background: rgba(12, 7, 34, 0.55);
+  background: rgba(8, 20, 44, 0.55);
   border: 1.5px solid var(--or-bord);
 }
-.oracle-cp::placeholder {
-  color: var(--or-texte-2);
-}
+.oracle-cp::placeholder { color: var(--or-texte-2); }
 .oracle-cp:focus {
   outline: none;
   border-color: var(--or-glow);
   box-shadow: 0 0 0 3px rgba(90, 160, 255, 0.28);
 }
 .oracle-position {
-  flex: 0 0 auto;
-  width: 46px;
-  height: 46px;
-  font-size: 1.15rem;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  font-size: 1.1rem;
   border-radius: 12px;
   cursor: pointer;
   color: var(--or-texte);
   background: var(--or-surface);
   border: 1.5px solid var(--or-bord);
 }
-.oracle-position:hover:not(:disabled) {
-  border-color: var(--or-glow);
-}
+.oracle-position:hover:not(:disabled) { border-color: var(--or-glow); }
 .oracle-consulter {
-  flex: 0 0 auto;
-  height: 46px;
-  padding: 0 18px;
+  flex: none;
+  height: 44px;
+  padding: 0 16px;
   border: none;
   border-radius: 12px;
   font: inherit;
@@ -371,52 +249,131 @@
   background: linear-gradient(135deg, #5aa2ff, #2f6fe0);
   box-shadow: 0 4px 16px rgba(47, 111, 224, 0.45);
 }
-.oracle-consulter:hover:not(:disabled) {
-  filter: brightness(1.08);
-}
+.oracle-consulter:hover:not(:disabled) { filter: brightness(1.08); }
 .oracle-consulter:disabled,
-.oracle-position:disabled {
-  opacity: 0.55;
-  cursor: default;
-}
-.oracle-consulter.charge {
-  animation: oracle-pulse-btn 1.2s ease-in-out infinite;
-}
+.oracle-position:disabled { opacity: 0.55; cursor: default; }
+.oracle-consulter.charge { animation: oracle-pulse-btn 1.2s ease-in-out infinite; }
 @keyframes oracle-pulse-btn {
-  0%,
-  100% {
-    filter: brightness(1);
-  }
-  50% {
-    filter: brightness(1.25);
-  }
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.25); }
 }
 
-/* ------------------------------------------------------------------ */
-/* Panneau de la clé API                                                */
-/* ------------------------------------------------------------------ */
+/* --- Choix du moteur : gratuit (sans clé) ou IA ------------------------- */
+
+.oracle-modes {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+.oracle-mode-btn {
+  flex: 1 1 0;
+  height: 34px;
+  border-radius: 999px;
+  border: 1.5px solid var(--or-bord);
+  background: transparent;
+  color: var(--or-texte-2);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.oracle-mode-btn:hover { color: var(--or-texte); }
+.oracle-mode-btn.actif {
+  background: rgba(90, 160, 255, 0.22);
+  border-color: var(--or-glow);
+  color: #fff;
+}
+
+/* --- Historique : bulles horizontales ---------------------------------- */
+
+.oracle-histo-liste {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+.oracle-histo-vide {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--or-texte-2);
+  white-space: nowrap;
+}
+.oracle-histo-item {
+  display: flex;
+  align-items: center;
+  flex: none;
+  border-radius: 999px;
+  background: var(--or-surface);
+  border: 1px solid transparent;
+  transition: border-color 0.15s, background 0.15s;
+}
+.oracle-histo-item:hover { border-color: var(--or-bord); }
+.oracle-histo-item.actif {
+  border-color: var(--or-glow);
+  background: rgba(90, 160, 255, 0.2);
+}
+.oracle-histo-open {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  max-width: 180px;
+  padding: 6px 4px 6px 12px;
+  background: transparent;
+  border: none;
+  color: var(--or-texte);
+  cursor: pointer;
+}
+.oracle-histo-lieu {
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.oracle-histo-date {
+  font-size: 0.7rem;
+  color: var(--or-texte-2);
+  white-space: nowrap;
+}
+.oracle-histo-suppr {
+  flex: none;
+  width: 24px;
+  padding: 6px 10px 6px 2px;
+  border: none;
+  background: transparent;
+  color: var(--or-texte-2);
+  cursor: pointer;
+  font-size: 0.7rem;
+}
+.oracle-histo-suppr:hover { color: #ff9db3; }
+
+/* --- Panneau des clés --------------------------------------------------- */
 
 .oracle-cle-panneau {
-  flex: 0 0 auto;
-  margin-top: 12px;
-  padding: 14px;
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 14px;
   border-radius: 14px;
   background: var(--or-surface);
   border: 1px solid var(--or-bord);
 }
-.oracle-cle-panneau h3 {
-  margin: 0 0 8px;
-  font-size: 1rem;
-}
+.oracle-cle-panneau h3 { margin: 0 0 8px; font-size: 1rem; }
 .oracle-note {
   font-size: 0.8rem;
   line-height: 1.5;
   color: var(--or-texte-2);
   margin: 8px 0;
 }
-.oracle-note a {
-  color: var(--or-glow-2);
-}
+.oracle-note a { color: var(--or-glow-2); }
 .oracle-champ {
   display: flex;
   flex-direction: column;
@@ -432,7 +389,7 @@
   padding: 0 10px;
   border-radius: 10px;
   color: var(--or-texte);
-  background: rgba(12, 7, 34, 0.55);
+  background: rgba(8, 20, 44, 0.55);
   border: 1.5px solid var(--or-bord);
 }
 .oracle-champ input:focus,
@@ -440,31 +397,21 @@
   outline: none;
   border-color: var(--or-glow);
 }
-.oracle-champ select option {
-  color: #0a1728;
-}
-/* Choix du moteur : fournisseur + modèle côte à côte */
+.oracle-champ select option { color: #0a1728; }
 .oracle-moteur {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
-.oracle-moteur .oracle-champ {
-  margin: 6px 0;
-}
-/* Une ligne de clé par fournisseur */
+.oracle-moteur .oracle-champ { margin: 6px 0; }
 .oracle-cles {
   display: flex;
   flex-direction: column;
   gap: 8px;
   margin: 12px 0;
 }
-.oracle-cle-champ {
-  margin: 0;
-}
-.oracle-cle-champ span a {
-  color: var(--or-glow-2);
-}
+.oracle-cle-champ { margin: 0; }
+.oracle-cle-champ span a { color: var(--or-glow-2); }
 .oracle-avert {
   font-size: 0.74rem;
   line-height: 1.4;
@@ -492,188 +439,109 @@
   color: #fff;
   background: linear-gradient(135deg, #5aa2ff, #2f6fe0);
 }
-.oracle-cle-panneau .btn:hover {
-  filter: brightness(1.1);
-}
+.oracle-cle-panneau .btn:hover { filter: brightness(1.1); }
 
 /* ------------------------------------------------------------------ */
-/* Zone de réponse                                                      */
+/* Zone de réponse : vide, chargement, erreur, résultat                 */
 /* ------------------------------------------------------------------ */
 
 .oracle-reponse {
   flex: 1 1 auto;
-  min-height: 180px;
+  min-height: 0;
   overflow-y: auto;
-  margin-top: 14px;
   padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(126, 184, 255, 0.35) transparent;
 }
 
-/* État vide */
+/* État vide : une invitation au centre de la boule */
 .oracle-vide {
   height: 100%;
-  min-height: 220px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  gap: 12px;
+  gap: 10px;
   color: var(--or-texte-2);
-  padding: 20px;
+  padding: 8px;
 }
-/* Vraie boule de cristal : sphère de verre bleu posée sur un socle évasé,
-   halo, brume qui tourne et paillettes blanches. */
-.oracle-cristal {
-  position: relative;
-  width: 128px;
-  height: 138px;
-  flex: 0 0 auto;
+.oracle-vide-signe {
+  font-size: 1.9rem;
+  filter: drop-shadow(0 0 12px rgba(160, 200, 255, 0.8));
+  animation: oracle-flotte 4.5s ease-in-out infinite;
 }
-.oc-sphere {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 104px;
-  height: 104px;
-  border-radius: 50%;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 62% 30%, #fff 0.9px, transparent 2px),
-    radial-gradient(circle at 40% 64%, #fff 0.9px, transparent 2px),
-    radial-gradient(circle at 74% 68%, rgba(255, 255, 255, 0.85) 0.7px, transparent 1.7px),
-    radial-gradient(circle at 30% 46%, rgba(255, 255, 255, 0.7) 0.6px, transparent 1.5px),
-    radial-gradient(circle at 38% 34%, #eaf3ff 0%, #79b6ff 46%, #2f6dc9 78%, #17407e 100%);
-  box-shadow:
-    0 0 34px 8px rgba(90, 160, 255, 0.55),
-    inset -8px -10px 22px rgba(6, 20, 45, 0.6),
-    inset 6px 8px 16px rgba(255, 255, 255, 0.35);
-  animation: oracle-float 4.5s ease-in-out infinite;
-}
-.oc-reflet {
-  position: absolute;
-  top: 14%;
-  left: 20%;
-  width: 32%;
-  height: 22%;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.85);
-  filter: blur(2px);
-}
-.oc-brume {
-  position: absolute;
-  inset: 20%;
-  border-radius: 50%;
-  background: radial-gradient(circle at 62% 40%, rgba(255, 255, 255, 0.5), transparent 62%);
-  animation: oracle-swirl 5s linear infinite;
-}
-.oc-socle {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 66px;
-  height: 24px;
-  background: linear-gradient(#6a93c8, #2a466f 55%, #172a43);
-  clip-path: polygon(15% 0, 85% 0, 100% 100%, 0 100%);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.45), inset 0 2px 3px rgba(255, 255, 255, 0.25);
-}
-.oc-socle::before {
-  content: "";
-  position: absolute;
-  bottom: -5px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 82px;
-  height: 7px;
-  border-radius: 4px;
-  background: linear-gradient(#3a5a86, #16283f);
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
-}
-@media (prefers-reduced-motion: reduce) {
-  .oc-sphere,
-  .oc-brume { animation: none; }
-}
-.oracle-vide p {
-  max-width: 340px;
-  line-height: 1.5;
+.oracle-vide p { margin: 0; max-width: 300px; line-height: 1.5; }
+
+@keyframes oracle-flotte {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
 }
 
-/* Chargement */
+/* Chargement : la brume tourbillonne dans la boule */
 .oracle-loader {
-  min-height: 220px;
+  height: 100%;
+  min-height: 120px;
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 8px;
   text-align: center;
-}
-.oracle-loader-boule {
-  position: relative;
-  width: 74px;
-  height: 74px;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at 64% 32%, #fff 1px, transparent 2px),
-    radial-gradient(circle at 38% 62%, #fff 1px, transparent 2px),
-    radial-gradient(circle at 35% 30%, #eaf3ff 0%, #79b6ff 42%, #2f6dc9 78%);
-  box-shadow: 0 0 30px 8px rgba(90, 160, 255, 0.55), inset 0 0 18px rgba(6, 20, 45, 0.6);
-  animation: oracle-float 3s ease-in-out infinite;
   overflow: hidden;
 }
-/* Brume qui tourbillonne dans la boule */
-.oracle-loader-boule span {
+.oracle-brume {
   position: absolute;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.65), transparent 70%);
-  animation: oracle-swirl 2.4s linear infinite;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.5), transparent 70%);
+  filter: blur(6px);
+  pointer-events: none;
+  animation: oracle-tourbillon 4s linear infinite;
 }
-.oracle-loader-boule span:nth-child(1) {
-  width: 40px;
-  height: 40px;
-  top: 8px;
-  left: 6px;
-}
-.oracle-loader-boule span:nth-child(2) {
-  width: 28px;
-  height: 28px;
-  bottom: 8px;
-  right: 6px;
-  animation-duration: 3.2s;
+.oracle-brume.b1 { width: 46%; height: 40%; top: 12%; left: 8%; }
+.oracle-brume.b2 {
+  width: 34%;
+  height: 30%;
+  bottom: 10%;
+  right: 10%;
+  animation-duration: 5.4s;
   animation-direction: reverse;
 }
-@keyframes oracle-swirl {
-  from {
-    transform: rotate(0) translateX(6px) rotate(0);
-  }
-  to {
-    transform: rotate(360deg) translateX(6px) rotate(-360deg);
-  }
+@keyframes oracle-tourbillon {
+  from { transform: rotate(0) translateX(9%) rotate(0); }
+  to { transform: rotate(360deg) translateX(9%) rotate(-360deg); }
 }
 .oracle-loader-lieu {
   margin: 0;
   font-weight: 700;
   color: var(--or-texte);
+  position: relative;
 }
 .oracle-loader-msg {
   margin: 0;
   color: var(--or-texte-2);
   font-style: italic;
+  position: relative;
 }
 
 /* Erreur */
 .oracle-erreur {
-  margin-top: 10px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.oracle-erreur p {
+  margin: 0;
   padding: 14px 16px;
   border-radius: 12px;
   background: rgba(120, 40, 60, 0.3);
   border: 1px solid rgba(255, 140, 170, 0.35);
   color: #ffd7e0;
-}
-.oracle-erreur p {
-  margin: 0;
   line-height: 1.5;
+  max-width: 90%;
 }
 
 /* Résultat */
@@ -684,20 +552,18 @@
 }
 .oracle-resultat-tete h3 {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: 1.12rem;
   color: #fff;
 }
 .oracle-resultat-meta {
   margin: 2px 0 0;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   color: var(--or-texte-2);
 }
-.oracle-texte {
-  line-height: 1.6;
-}
+.oracle-texte { line-height: 1.6; }
 .oracle-texte .oracle-section {
   margin: 18px 0 6px;
-  font-size: 1.02rem;
+  font-size: 1rem;
   color: var(--or-glow);
   border-left: 3px solid var(--or-glow);
   padding-left: 8px;
@@ -714,19 +580,13 @@
   flex-direction: column;
   gap: 7px;
 }
-.oracle-texte .oracle-puces li {
-  padding-left: 2px;
-}
+.oracle-texte .oracle-puces li { padding-left: 2px; }
 .oracle-texte .oracle-puces li::marker {
   content: "✦ ";
   color: var(--or-glow);
 }
-.oracle-texte strong {
-  color: #fff;
-}
-.oracle-texte p {
-  margin: 6px 0;
-}
+.oracle-texte strong { color: #fff; }
+.oracle-texte p { margin: 6px 0; }
 
 /* Sources */
 .oracle-sources {
@@ -752,68 +612,76 @@
   text-decoration: none;
   word-break: break-word;
 }
-.oracle-sources a:hover {
-  text-decoration: underline;
+.oracle-sources a:hover { text-decoration: underline; }
+
+/* ------------------------------------------------------------------ */
+/* Bouton flottant : petite boule de cristal qui palpite                */
+/* ------------------------------------------------------------------ */
+
+.fab-oracle {
+  position: relative;
+  background:
+    radial-gradient(circle at 62% 30%, #fff 0.6px, transparent 1.4px),
+    radial-gradient(circle at 40% 62%, #fff 0.7px, transparent 1.6px),
+    radial-gradient(circle at 70% 68%, rgba(255, 255, 255, 0.85) 0.6px, transparent 1.4px),
+    radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.7) 0.5px, transparent 1.2px),
+    radial-gradient(circle at 35% 30%, #dcecff 0%, #6db3ff 40%, #2f6dc9 74%, #1c478a 100%);
+  background-color: #1c478a;
+  color: #fff;
+  overflow: visible;
+  box-shadow: 0 0 0 0 rgba(90, 160, 255, 0.6), var(--shadow);
+  animation: oracle-pulse 3.4s ease-in-out infinite;
+}
+
+.fab-oracle::after {
+  content: "";
+  position: absolute;
+  top: 20%;
+  left: 24%;
+  width: 30%;
+  height: 22%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  filter: blur(1.5px);
+  pointer-events: none;
+}
+
+.fab-oracle:hover { filter: brightness(1.08); }
+
+@keyframes oracle-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(90, 160, 255, 0.5), var(--shadow); }
+  50% { box-shadow: 0 0 22px 6px rgba(90, 160, 255, 0.6), var(--shadow); }
 }
 
 /* ------------------------------------------------------------------ */
-/* Mobile : plein écran, historique en bandeau horizontal              */
+/* Mobile                                                               */
 /* ------------------------------------------------------------------ */
 
 @media (max-width: 640px) {
-  /* Carte compacte (plus une pleine page « imposante ») : il reste un fond
-     autour → on peut fermer en touchant à côté (géré dans oracle.js). */
   .oracle-dialog {
-    width: calc(100vw - 16px);
-    max-width: calc(100vw - 16px);
-    max-height: 88dvh;
-    border-radius: 18px;
+    --od: min(96vw, 74dvh);
   }
-  .oracle-panneau {
-    max-height: 88dvh;
+  .oracle-contenu { gap: 7px; inset: 15% 15%; }
+  .oracle-header h2 { font-size: 1.12rem; }
+  .oracle-header .btn-icon { min-width: 36px; min-height: 36px; }
+  .oracle-vide { gap: 6px; }
+  .oracle-vide-signe { font-size: 1.5rem; }
+  .oracle-vide p { font-size: 0.88rem; max-width: 250px; }
+  .oracle-consulter { padding: 0 12px; font-size: 0.92rem; }
+  .oracle-cp { font-size: 0.92rem; padding: 0 10px; }
+  .oracle-dialog.forme-etiree .oracle-sphere {
+    width: calc(100vw - 12px);
+    height: 84dvh;
   }
-  .oracle-header {
-    padding: 10px 12px;
-    gap: 10px;
-  }
-  .oracle-boule {
-    width: 40px;
-    height: 40px;
-  }
-  .oracle-titres h2 {
-    font-size: 1.15rem;
-  }
-  .oracle-titres p {
-    font-size: 0.76rem;
-  }
-  /* Cibles tactiles confortables pour ⚙️ et ✕ (fermeture facile) */
-  .oracle-header .btn-icon {
-    min-width: 40px;
-    min-height: 40px;
-    font-size: 1.05rem;
-  }
-  .oracle-corps {
-    display: flex;
-    flex-direction: column;
-  }
-  .oracle-historique {
-    border-right: none;
-    border-bottom: 1px solid var(--or-bord);
-    padding: 8px 12px;
-    max-height: 16vh; /* bandeau discret, moins encombrant */
-  }
-  .oracle-historique h3 {
-    margin-bottom: 5px;
-  }
-  .oracle-histo-liste {
-    mask-image: none;
-    -webkit-mask-image: none;
-  }
-  .oracle-principal {
-    flex: 1 1 auto;
-    padding: 12px;
-  }
-  .oracle-consulter {
-    padding: 0 14px;
-  }
+  .oracle-dialog.forme-etiree .oracle-socle { width: 34vw; }
+  .oracle-moteur { grid-template-columns: 1fr; gap: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fab-oracle,
+  .oracle-etincelle,
+  .oracle-brume,
+  .oracle-vide-signe,
+  .oracle-consulter.charge { animation: none; }
+  .oracle-sphere { transition: none; }
 }

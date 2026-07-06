@@ -22,10 +22,12 @@
 
 import { toast, confirmer } from "./import-export.js";
 import { esc } from "./util.js";
+import { getTheme } from "./config/themes.js";
 
 const KEY_CLES = "carte-outdoor:oracle-cles"; // { anthropic, openai, google }
 const KEY_MODELE = "carte-outdoor:oracle-modele"; // { provider, model }
 const KEY_HISTO = "carte-outdoor:oracle-historique";
+const KEY_MODE = "carte-outdoor:oracle-mode"; // "libre" (gratuit) | "ia"
 const KEY_CLE_LEGACY = "carte-outdoor:oracle-cle"; // ancienne clé unique (v32)
 const MAX_HISTO = 15;
 
@@ -205,6 +207,7 @@ let elReponse = null;
 let elHisto = null;
 let timerLoader = null;
 let enCours = false;
+let cb = {}; // { getPoints } — les points de la carte, pour le mode sans clé
 
 function lire(key, defaut) {
   try {
@@ -249,6 +252,21 @@ const cleCourante = () => lireCles()[lireModeleChoisi().provider] || "";
 
 const lireHisto = () => lire(KEY_HISTO, []);
 const ecrireHisto = (h) => ecrire(KEY_HISTO, h.slice(0, MAX_HISTO));
+
+/** Moteur choisi : « libre » (gratuit, sans clé — la carte + Wikipédia) ou
+ *  « ia » (clé requise). Par défaut : ia si une clé existe, sinon libre. */
+function lireMode() {
+  const m = lire(KEY_MODE, null);
+  if (m === "libre" || m === "ia") return m;
+  return cleCourante() ? "ia" : "libre";
+}
+
+function majModeUI() {
+  const mode = lireMode();
+  dialog.querySelectorAll(".oracle-mode-btn").forEach((b) => {
+    b.classList.toggle("actif", b.dataset.mode === mode);
+  });
+}
 
 /* ------------------------------------------------------------------ */
 /* Résolution du lieu (code postal ou position) via geo.api.gouv.fr     */
@@ -385,14 +403,25 @@ function rendreSources(sources) {
 /* Affichage : état vide, chargement, résultat, erreur                  */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Forme de la boule : sphère parfaite quand le contenu est court (accueil,
+ * chargement, erreur) ; elle S'ÉTIRE EN ELLIPSE de verre — toujours une
+ * boule, jamais un rectangle — quand il faut de la place (réponse, clés).
+ */
+let contenuActuel = "vide"; // "vide" | "chargement" | "erreur" | "reponse"
+
+function majForme() {
+  const panneauOuvert = !panneauCle().hidden;
+  dialog.classList.toggle("forme-etiree", panneauOuvert || contenuActuel === "reponse");
+}
+
 function etatVide() {
+  contenuActuel = "vide";
   elReponse.innerHTML =
-    '<div class="oracle-vide">' +
-    '<div class="oracle-cristal" aria-hidden="true">' +
-    '<span class="oc-sphere"><span class="oc-brume"></span><span class="oc-reflet"></span></span>' +
-    '<span class="oc-socle"></span>' +
-    "</div>" +
-    "<p>Entre un code postal (ou touche 📍) et laisse l'Oracle révéler tout ce qu'il y a à faire dans les environs.</p></div>";
+    '<div class="oracle-vide"><div class="oracle-vide-signe" aria-hidden="true">✦</div>' +
+    "<p>Entre un code postal (ou touche 📍) : l'Oracle révèle ce qu'il y a à faire autour. " +
+    "✨ Sans clé, c'est gratuit.</p></div>";
+  majForme();
 }
 
 const MESSAGES_LOADER = [
@@ -403,21 +432,29 @@ const MESSAGES_LOADER = [
   "Il rassemble les pépites du coin…",
 ];
 
+/* La brume tourbillonne DANS la boule pendant que l'Oracle cherche */
+const HTML_BRUME =
+  '<span class="oracle-brume b1" aria-hidden="true"></span>' +
+  '<span class="oracle-brume b2" aria-hidden="true"></span>';
+
 function loaderTexte(msg) {
   arreterLoader();
+  contenuActuel = "chargement";
   elReponse.innerHTML =
-    '<div class="oracle-loader"><div class="oracle-loader-boule"><span></span><span></span></div>' +
-    `<p class="oracle-loader-msg">${esc(msg)}</p></div>`;
+    `<div class="oracle-loader">${HTML_BRUME}<p class="oracle-loader-msg">${esc(msg)}</p></div>`;
+  majForme();
 }
 
 function demarrerLoader(lieu) {
   arreterLoader();
+  contenuActuel = "chargement";
   let i = 0;
   const nom = lieu?.nom ? "Autour de " + esc(lieu.nom) : "";
   elReponse.innerHTML =
-    '<div class="oracle-loader"><div class="oracle-loader-boule"><span></span><span></span></div>' +
+    `<div class="oracle-loader">${HTML_BRUME}` +
     (nom ? `<p class="oracle-loader-lieu">${nom}</p>` : "") +
     `<p class="oracle-loader-msg">${esc(MESSAGES_LOADER[0])}</p></div>`;
+  majForme();
   timerLoader = setInterval(() => {
     i++;
     const m = elReponse.querySelector(".oracle-loader-msg");
@@ -433,6 +470,7 @@ function arreterLoader() {
 }
 
 function afficherReponse(entree) {
+  contenuActuel = "reponse"; // la boule s'étire en capsule pour la lecture
   const lieu = entree.lieu || {};
   const date = new Date(entree.date).toLocaleDateString("fr-FR", {
     day: "numeric",
@@ -451,15 +489,18 @@ function afficherReponse(entree) {
     rendreSources(entree.sources) +
     "</div>";
   elReponse.scrollTop = 0;
+  majForme();
 }
 
 function afficherErreur(e) {
   arreterLoader();
+  contenuActuel = "erreur"; // court : la boule reste une boule
   let msg = e?.message || "Erreur inconnue.";
   if (e?.name === "AbortError") {
     msg = "La consultation a été trop longue et a été interrompue. Réessaie.";
   }
   elReponse.innerHTML = `<div class="oracle-erreur"><p>🌫️ ${esc(msg)}</p></div>`;
+  majForme();
 }
 
 /* ------------------------------------------------------------------ */
@@ -551,6 +592,167 @@ function ouvrirPanneauCle(force) {
     garnirPanneauCle();
     p.querySelector(".oracle-fournisseur").focus();
   }
+  majForme(); // le panneau a besoin de place : boule → capsule (et retour)
+}
+
+/* ------------------------------------------------------------------ */
+/* Mode GRATUIT (sans clé) : les points de la carte + Wikipédia          */
+/* + liens d'agendas pour les événements. Aucune IA, zéro coût.          */
+/* ------------------------------------------------------------------ */
+
+function distanceKm(lat1, lon1, lat2, lon2) {
+  const rad = Math.PI / 180;
+  const dLat = (lat2 - lat1) * rad;
+  const dLon = (lon2 - lon1) * rad;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLon / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(a));
+}
+
+function direction(lat1, lon1, lat2, lon2) {
+  const rad = Math.PI / 180;
+  const y = Math.sin((lon2 - lon1) * rad) * Math.cos(lat2 * rad);
+  const x =
+    Math.cos(lat1 * rad) * Math.sin(lat2 * rad) -
+    Math.sin(lat1 * rad) * Math.cos(lat2 * rad) * Math.cos((lon2 - lon1) * rad);
+  const cap = (Math.atan2(y, x) * 180) / Math.PI;
+  const dirs = ["nord", "nord-est", "est", "sud-est", "sud", "sud-ouest", "ouest", "nord-ouest"];
+  return dirs[Math.round(((cap + 360) % 360) / 45) % 8];
+}
+
+const kmLisible = (d) => (d < 10 ? d.toFixed(1) : String(Math.round(d)));
+
+/** Les meilleurs points de NOTRE carte autour du lieu, groupés par catégorie. */
+function sectionCarte(lieu) {
+  const points = cb.getPoints?.() || [];
+  if (!points.length || !Number.isFinite(lieu.lat)) return "";
+  const groupes = [
+    ["via-ferrata"],
+    ["escalade"],
+    ["refuge"],
+    ["grotte"],
+    ["chateau", "chateau-a-verifier"],
+    ["cathedrale"],
+    ["cite-caractere"],
+  ];
+  const blocs = [];
+  for (const ids of groupes) {
+    const proches = [];
+    for (const f of points) {
+      const t = getTheme(f.properties.theme);
+      if (!ids.includes(t.id)) continue;
+      const [lon, lat] = f.geometry?.coordinates || [];
+      if (!Number.isFinite(lat)) continue;
+      const d = distanceKm(lieu.lat, lieu.lon, lat, lon);
+      if (d <= 40) proches.push({ f, t, d, lat, lon });
+    }
+    if (!proches.length) continue;
+    proches.sort((a, b) => a.d - b.d);
+    const lignes = proches
+      .slice(0, 4)
+      .map(
+        (p) =>
+          `- **${p.f.properties.name}** — à ${kmLisible(p.d)} km au ${direction(lieu.lat, lieu.lon, p.lat, p.lon)}`
+      );
+    blocs.push(`### ${proches[0].t.icon} ${proches[0].t.label}\n${lignes.join("\n")}`);
+  }
+  if (!blocs.length) return "";
+  return "## 🗺️ Sur ta carte, tout près\n" + blocs.join("\n");
+}
+
+/** Curiosités du coin via l'API Wikipédia (gratuite, sans clé). */
+async function chercherWikipedia(lieu) {
+  const base = "https://fr.wikipedia.org/w/api.php";
+  const res = await fetch(
+    `${base}?action=query&list=geosearch&gscoord=${lieu.lat}%7C${lieu.lon}` +
+      `&gsradius=10000&gslimit=12&format=json&origin=*`
+  );
+  if (!res.ok) return { texte: "", sources: [] };
+  const trouves = (await res.json())?.query?.geosearch || [];
+  // L'article de la commune elle-même n'apprend rien : on l'écarte
+  const retenus = trouves.filter((p) => p.title !== lieu.nom).slice(0, 6);
+  if (!retenus.length) return { texte: "", sources: [] };
+
+  // Une phrase de résumé par page (facultatif : tant pis si ça échoue)
+  let extraits = {};
+  try {
+    const ex = await fetch(
+      `${base}?action=query&pageids=${retenus.map((p) => p.pageid).join("%7C")}` +
+        `&prop=extracts&exintro=1&explaintext=1&exsentences=1&format=json&origin=*`
+    );
+    if (ex.ok) extraits = (await ex.json())?.query?.pages || {};
+  } catch {}
+
+  const lignes = retenus.map((p) => {
+    const resume = (extraits[p.pageid]?.extract || "").trim();
+    return `- **${p.title}** — ${resume ? resume + " " : ""}À ${kmLisible(p.dist / 1000)} km.`;
+  });
+  const sources = retenus.map((p) => ({
+    url: "https://fr.wikipedia.org/wiki/" + encodeURIComponent(p.title.replace(/ /g, "_")),
+    title: "Wikipédia — " + p.title,
+  }));
+  return { texte: "## 🏛️ À découvrir dans le coin\n" + lignes.join("\n"), sources };
+}
+
+async function lancerLibre(lieu) {
+  if (enCours) return;
+  enCours = true;
+  majBoutons(true);
+  demarrerLoader(lieu);
+  try {
+    const morceaux = [];
+    const sources = [];
+
+    const carte = sectionCarte(lieu);
+    if (carte) morceaux.push(carte);
+
+    try {
+      const wiki = await chercherWikipedia(lieu);
+      if (wiki.texte) {
+        morceaux.push(wiki.texte);
+        sources.push(...wiki.sources);
+      }
+    } catch {}
+
+    // Les événements bougent tous les jours : sans IA, on tend les bons liens
+    const q = (t) => "https://www.google.com/search?q=" + encodeURIComponent(t);
+    morceaux.push(
+      "## 🎪 Ce qui se passe en ce moment\n" +
+        "- Les événements changent chaque jour : ouvre les agendas dans les **sources ci-dessous**, ou passe en mode 🧠 IA pour une sélection datée et vérifiée."
+    );
+    sources.push(
+      { url: q(`que faire à ${lieu.nom} ce week-end`), title: `🔎 Que faire à ${lieu.nom} ce week-end` },
+      { url: q(`concert festival agenda ${lieu.nom} ${lieu.departement}`), title: `🎵 Concerts & festivals autour de ${lieu.nom}` },
+      { url: q(`brocante vide-grenier marché ${lieu.nom} ${lieu.cp}`), title: "🛍️ Brocantes, vide-greniers & marchés" }
+    );
+
+    if (!carte) {
+      morceaux.unshift(
+        "Rien de répertorié sur ta carte à moins de 40 km — mais voici ce que Wikipédia et les agendas racontent."
+      );
+    }
+
+    const entree = {
+      id: `o-${Date.now().toString(36)}`,
+      date: new Date().toISOString(),
+      lieu,
+      texte: morceaux.join("\n\n"),
+      sources,
+      moteur: "Oracle libre (sans clé)",
+    };
+    const histo = lireHisto();
+    histo.unshift(entree);
+    ecrireHisto(histo);
+    renderHisto();
+    afficherReponse(entree);
+  } catch (e) {
+    afficherErreur(e);
+  } finally {
+    arreterLoader();
+    enCours = false;
+    majBoutons(false);
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -565,11 +767,13 @@ function majBoutons(charge) {
 
 async function lancer(lieu) {
   if (enCours) return;
+  // Mode gratuit : aucune clé requise, aucune dépense
+  if (lireMode() === "libre") return lancerLibre(lieu);
   const choix = lireModeleChoisi();
   const f = FOURNISSEURS[choix.provider];
   const cle = lireCles()[choix.provider];
   if (!cle) {
-    toast(`Renseigne d'abord ta clé ${f.nom}.`);
+    toast(`Renseigne d'abord ta clé ${f.nom} (ou passe en mode ✨ Sans clé).`);
     ouvrirPanneauCle(true);
     return;
   }
@@ -622,7 +826,7 @@ async function depuisCodePostal(cp) {
 
 async function depuisPosition() {
   if (enCours) return;
-  if (!cleCourante()) {
+  if (lireMode() === "ia" && !cleCourante()) {
     ouvrirPanneauCle(true);
     return;
   }
@@ -642,13 +846,16 @@ async function depuisPosition() {
 
 function ouvrir() {
   renderHisto();
-  const aCle = !!cleCourante();
-  ouvrirPanneauCle(!aCle); // premier usage : on montre d'emblée le panneau
-  if (aCle) etatVide();
+  majModeUI();
+  // À l'ouverture : TOUJOURS la boule (le panneau des clés ne s'impose plus —
+  // le mode ✨ Sans clé marche sans rien, et 🔑 reste à portée de main).
+  ouvrirPanneauCle(false);
+  etatVide();
   dialog.showModal();
 }
 
-export function initOracle() {
+export function initOracle(callbacks = {}) {
+  cb = callbacks;
   dialog = document.getElementById("oracle-dialog");
   elReponse = dialog.querySelector(".oracle-reponse");
   elHisto = dialog.querySelector(".oracle-histo-liste");
@@ -678,6 +885,15 @@ export function initOracle() {
   });
 
   dialog.querySelector(".oracle-position").addEventListener("click", depuisPosition);
+
+  // Bascule ✨ Sans clé / 🧠 IA (persistée) — choisir IA sans clé ouvre 🔑
+  dialog.querySelectorAll(".oracle-mode-btn").forEach((b) =>
+    b.addEventListener("click", () => {
+      ecrire(KEY_MODE, b.dataset.mode);
+      majModeUI();
+      if (b.dataset.mode === "ia" && !cleCourante()) ouvrirPanneauCle(true);
+    })
+  );
 
   dialog.querySelector(".oracle-cle-enregistrer").addEventListener("click", () => {
     const cles = {};

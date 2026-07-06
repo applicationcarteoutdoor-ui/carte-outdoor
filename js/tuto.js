@@ -92,12 +92,16 @@ const ETAPES = [
       "(tout afficher peut ralentir la carte).",
   },
   {
-    cible: ".fab-stack",
-    titre: "Idées et position",
+    cible: ".foot-outils",
+    // Les outils vivent dans le pied du panneau : on l'ouvre (mobile)
+    avant: () => document.getElementById("sidebar").classList.add("open"),
+    placement: "cote",
+    titre: "Les outils",
     texte:
-      "💡 pour noter vos idées d'amélioration, 🎓 pour revoir ce tuto, ◎ pour afficher votre position. " +
+      "À côté des réglages ⚙️ : 💡 pour noter vos idées, 🎓 pour revoir ce tuto, " +
+      "◎ pour afficher votre position et 🗺️ pour changer le fond de carte (plan, relief, IGN, satellite). " +
       "L'application fonctionne aussi hors connexion : les zones déjà consultées restent visibles. " +
-      "Astuce : ajoutez cette carte à votre écran d'accueil pour y accéder comme une vraie application. " +
+      "Astuce : ajoutez cette carte à votre écran d'accueil pour l'utiliser comme une vraie application. " +
       "Bonne exploration !",
   },
 ];

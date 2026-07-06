@@ -63,10 +63,11 @@ export function initMap(prefs, { onPointClick, onViewChange }) {
   L.control.zoom({ position: "bottomright" }).addTo(map);
   L.control.scale({ imperial: false, position: "bottomleft" }).addTo(map);
 
-  const fonds = creerFondsDeCarte();
-  const nomFond = fonds[prefs.baseLayer] ? prefs.baseLayer : "Plan (OSM)";
-  fonds[nomFond].addTo(map);
-  L.control.layers(fonds, null, { position: "bottomright" }).addTo(map);
+  fondsCarte = creerFondsDeCarte();
+  fondCourant = fondsCarte[prefs.baseLayer] ? prefs.baseLayer : "Plan (OSM)";
+  fondsCarte[fondCourant].addTo(map);
+  // Le sélecteur de fond n'est plus posé SUR la carte : il vit dans le pied du
+  // panneau (bouton 🗺️ → dialogue), voir setFond()/getFonds() plus bas.
 
   clusterGroup = L.markerClusterGroup({
     showCoverageOnHover: false,
@@ -78,11 +79,6 @@ export function initMap(prefs, { onPointClick, onViewChange }) {
   });
   map.addLayer(clusterGroup);
 
-  let fondCourant = nomFond;
-  map.on("baselayerchange", (e) => {
-    fondCourant = e.name;
-    signalerVue();
-  });
   map.on("moveend", signalerVue);
   function signalerVue() {
     const c = map.getCenter();
@@ -92,8 +88,31 @@ export function initMap(prefs, { onPointClick, onViewChange }) {
       baseLayer: fondCourant,
     });
   }
+  signalerVueGlobal = signalerVue;
 
   return map;
+}
+
+/* ------------------------------------------------------------------ */
+/* Fond de carte : choisi depuis le panneau (bouton 🗺️)                 */
+/* ------------------------------------------------------------------ */
+
+let fondsCarte = null;
+let fondCourant = null;
+let signalerVueGlobal = null;
+
+/** Liste des fonds disponibles + celui affiché (pour le dialogue 🗺️). */
+export function getFonds() {
+  return { noms: Object.keys(fondsCarte || {}), actif: fondCourant };
+}
+
+/** Change le fond de carte et persiste la préférence (via onViewChange). */
+export function setFond(nom) {
+  if (!fondsCarte?.[nom] || nom === fondCourant) return;
+  map.removeLayer(fondsCarte[fondCourant]);
+  fondsCarte[nom].addTo(map);
+  fondCourant = nom;
+  signalerVueGlobal?.();
 }
 
 /* ------------------------------------------------------------------ */

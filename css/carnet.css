@@ -329,7 +329,10 @@
     inset 0 0 0 3px rgba(20, 10, 4, 0.55),
     inset 0 0 60px rgba(0, 0, 0, 0.45),
     0 24px 50px rgba(0, 0, 0, 0.6);
-  border-left: 12px solid #241206; /* la reliure */
+  /* PAS de border-left ici : la photo contient déjà sa reliure, et une
+     bordure décalerait la zone de la photo par rapport au ratio 760/992 —
+     le médaillon logo (en %) tomberait alors À CÔTÉ du « ? » (bug mobile).
+     Les thèmes dessinés (voyage/nuit) remettent leur bordure plus bas. */
 }
 
 /* Logo personnalisé : petit MÉDAILLON ROND qui prend la place du petit
@@ -337,11 +340,13 @@
    toucher au grand symbole central. Serti d'un liseré de laiton. */
 .couv-logo {
   position: absolute;
-  /* Coordonnées mesurées sur la photo (grille %) : le « ? » gravé est à
-     x≈67 % / y≈58 %. Stables car la couverture a le ratio de la photo. */
-  top: 58%;
-  left: 67%;
-  width: 20%;
+  /* Le « ? » gravé est à x≈67 %/y≈58 % (grille mesurée sur la photo).
+     Médaillon AGRANDI au maximum de la place disponible : centré un poil
+     plus haut/gauche (66 %, 57,5 %) pour rester dans le cadre de la plaque
+     (bord droit ≈77 %, bas ≈66 %) tout en couvrant le « ? ». */
+  top: 57.5%;
+  left: 66%;
+  width: 22%;
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   object-fit: cover;
@@ -910,13 +915,22 @@ body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit)
 /* --- Petit écran ----------------------------------------------------------- */
 
 @media (max-width: 899px) {
-  #carnet-overlay { padding: 6px; }
+  #carnet-overlay { padding: 6px; overflow: hidden; }
+  .carnet-boite { width: 100%; min-width: 0; }
   .carnet-fleche { width: 30px; height: 54px; font-size: 1.4rem; border-radius: 9px; }
   .carnet-livre { height: min(74dvh, 640px); }
   .livre-ouvert { --livre-marge: 8px; }
   .page-carnet { padding: 14px 16px 32px; }
   .page-titre { font-size: 1.55rem; }
   .page-note { font-size: 1.3rem; }
+}
+
+/* Téléphone : les flèches latérales disparaissent (on feuillette au doigt ou
+   en touchant les BORDS de la page, voir carnet.js) → le livre occupe toute
+   la largeur, parfaitement centré — plus aucun décalage possible. */
+@media (max-width: 640px) {
+  .carnet-fleche { display: none; }
+  .carnet-scene { gap: 0; }
 }
 
 /* Le bouton flottant du carnet : petit grimoire de cuir brun et or.
@@ -1107,7 +1121,7 @@ body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit)
     radial-gradient(ellipse at 18% 12%, rgba(255, 246, 228, 0.45), transparent 55%),
     radial-gradient(ellipse at 85% 90%, rgba(90, 65, 30, 0.4), transparent 50%),
     linear-gradient(160deg, #c9b28a 0%, #b89e6f 45%, #a2864f 100%);
-  border-left-color: #6e5738;
+  border-left: 12px solid #6e5738; /* reliure des couvertures dessinées */
 }
 
 .carnet-theme-voyage .couv-titre {
@@ -1203,7 +1217,7 @@ body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit)
     radial-gradient(ellipse at 18% 12%, rgba(120, 110, 90, 0.25), transparent 55%),
     radial-gradient(ellipse at 85% 90%, rgba(0, 0, 0, 0.6), transparent 50%),
     linear-gradient(160deg, #26201a 0%, #1a1510 45%, #0f0c08 100%);
-  border-left-color: #060403;
+  border-left: 12px solid #060403; /* reliure des couvertures dessinées */
 }
 
 .carnet-theme-nuit .couv-titre {

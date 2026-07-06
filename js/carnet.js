@@ -334,6 +334,18 @@ function batirSquelette() {
     },
     { passive: true }
   );
+
+  // Sur téléphone, les flèches latérales sont masquées (place au livre) :
+  // toucher le BORD gauche/droit de la page tourne aussi les pages. Les
+  // éléments interactifs (boutons, champs, couverture) restent prioritaires.
+  livre.addEventListener("click", (e) => {
+    if (window.innerWidth > 640) return; // flèches visibles ailleurs
+    if (e.target.closest("button, input, a, select, textarea, label, .carnet-couverture")) return;
+    const r = livre.getBoundingClientRect();
+    const x = e.clientX - r.left;
+    if (x < r.width * 0.22) tourner(-1);
+    else if (x > r.width * 0.78) tourner(1);
+  });
 }
 
 /* ------------------------------------------------------------------ */

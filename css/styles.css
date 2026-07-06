@@ -122,10 +122,30 @@ h2, h3, h4 { font-weight: 650; }
   flex: none;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 6px;
   border-top: 1px solid var(--border);
   padding-top: 4px;
 }
+
+/* Outils regroupés à côté des réglages : 💡 idées, 🎓 tuto, position, 🗺️ fond */
+.foot-outils {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.foot-outils .btn-icon svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.btn-icon.active { color: var(--accent); }
 
 .btn-settings { font-size: 1.2rem; }
 .app-version { flex: 1; margin: 0; text-align: right; font-size: 0.74rem; color: var(--text-2); }
@@ -142,6 +162,21 @@ h2, h3, h4 { font-weight: 650; }
 .sync-actions .btn { flex: 1 1 auto; width: auto; }
 .sync-statut { min-height: 1.2em; font-style: italic; }
 .sync-statut.sync-charge { color: var(--accent); }
+
+/* Dialogue « Fond de carte » (bouton 🗺️ du pied de panneau) */
+#layers-dialog { width: min(340px, calc(100vw - 24px)); }
+.layers-list { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
+.layers-choix {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-s);
+  cursor: pointer;
+}
+.layers-choix:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.layers-choix input { accent-color: var(--accent); flex: none; }
 
 .cat-bloc { flex: none; }
 
@@ -404,9 +439,11 @@ h2, h3, h4 { font-weight: 650; }
   z-index: 1100;
 }
 
+/* Tous les boutons flottants font LA MÊME TAILLE (demande utilisateur) :
+   ➕ ajouter, 📖 carnet, 🔮 oracle et 🚻 toilettes alignés à 52 px. */
 .fab {
-  width: 46px;
-  height: 46px;
+  width: 52px;
+  height: 52px;
   display: grid;
   place-items: center;
   border: none;
@@ -414,18 +451,16 @@ h2, h3, h4 { font-weight: 650; }
   background: var(--surface);
   box-shadow: var(--shadow);
   color: var(--text);
-  font-size: 1.15rem;
+  font-size: 1.25rem;
 }
 
-/* Bouton « ajouter un point » : mis en avant (plus gros, couleur d'accent) */
+/* Bouton « ajouter un point » : mis en avant par sa couleur d'accent */
 .fab-add {
-  width: 58px;
-  height: 58px;
   background: var(--accent);
   color: #fff;
 }
 
-.fab-add svg { width: 30px; height: 30px; }
+.fab-add svg { width: 27px; height: 27px; }
 .fab-add:hover { filter: brightness(1.1); }
 
 /* Ouverture du panneau sur mobile */
@@ -941,9 +976,9 @@ dialog .panel-header { padding: 0 0 4px; }
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 54px;
-  height: 54px;
-  font-size: 20px;
+  width: 52px;
+  height: 52px;
+  font-size: 19px;
   letter-spacing: -5px;
   padding: 0 5px 0 0;
   white-space: nowrap;

@@ -21,6 +21,8 @@ import {
   highlightPoint,
   clearHighlight,
   montrerRayon,
+  getFonds,
+  setFond,
 } from "./map.js";
 import { initFilters, renderFilters } from "./filters.js";
 import {
@@ -655,6 +657,31 @@ async function afficherVersion() {
 /* Géolocalisation                                                      */
 /* ------------------------------------------------------------------ */
 
+/** Choix du fond de carte : bouton 🗺️ du pied de panneau → dialogue à
+ *  cases (remplace le sélecteur Leaflet qui encombrait la carte). */
+function initFondsCarte() {
+  const dlg = document.getElementById("layers-dialog");
+  const liste = dlg.querySelector(".layers-list");
+  document.getElementById("btn-layers").addEventListener("click", () => {
+    const { noms, actif } = getFonds();
+    liste.textContent = "";
+    for (const nom of noms) {
+      const label = document.createElement("label");
+      label.className = "layers-choix";
+      label.innerHTML =
+        `<input type="radio" name="fond-carte" ${nom === actif ? "checked" : ""}>` +
+        `<span>${esc(nom)}</span>`;
+      label.querySelector("input").addEventListener("change", () => {
+        setFond(nom);
+        dlg.close();
+      });
+      liste.appendChild(label);
+    }
+    dlg.showModal();
+  });
+  dlg.querySelector(".layers-close").addEventListener("click", () => dlg.close());
+}
+
 function initGeolocalisation() {
   const bouton = document.getElementById("btn-locate");
   bouton.addEventListener("click", async () => {
@@ -860,9 +887,11 @@ async function demarrer() {
 
   initRecherche();
   initGeolocalisation();
+  initFondsCarte();
   initToilettesProches();
   initIdeas();
-  initOracle();
+  // L'Oracle : le mode « sans clé » puise dans les points déjà chargés
+  initOracle({ getPoints: () => state.allPoints });
   // Synchronisation multi-appareils : après une fusion « légère » (thème/
   // statuts), on ré-applique l'état sans recharger. Une fusion qui apporte de
   // nouveaux points/sorties déclenche, elle, un rechargement (voir sync.js).

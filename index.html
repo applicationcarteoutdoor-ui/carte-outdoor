@@ -9,7 +9,7 @@
        (SVG/photos). connect-src liste les API appelées à l'exécution (géocodage
        + IA de l'Oracle). À METTRE À JOUR si on ajoute un fournisseur/back-end
        (ex. Supabase → ajouter son domaine à connect-src). -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tile.openstreetmap.org https://*.tile.opentopomap.org https://data.geopf.fr https://server.arcgisonline.com; font-src 'self'; connect-src 'self' https://api.anthropic.com https://generativelanguage.googleapis.com https://geo.api.gouv.fr https://*.supabase.co; worker-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tile.openstreetmap.org https://*.tile.opentopomap.org https://data.geopf.fr https://server.arcgisonline.com; font-src 'self'; connect-src 'self' https://api.anthropic.com https://generativelanguage.googleapis.com https://geo.api.gouv.fr https://fr.wikipedia.org https://*.supabase.co; worker-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#ffffff">
   <meta name="description" content="Carte interactive de points d'intérêt outdoor : via ferrata, escalade, refuges, châteaux, cités de caractère, GR…">
@@ -43,9 +43,18 @@
 
     <nav class="cat-list" aria-label="Liste des catégories"></nav>
 
-    <!-- Pied du panneau : réglages (import/export, installation, mise à jour) + version -->
+    <!-- Pied du panneau : réglages + outils (idées, tuto, position, fond de
+         carte) regroupés à côté des paramètres + version -->
     <div class="sidebar-foot">
-      <button type="button" id="btn-settings" class="btn-icon btn-settings" title="Réglages" aria-label="Ouvrir les réglages">⚙️</button>
+      <div class="foot-outils">
+        <button type="button" id="btn-settings" class="btn-icon btn-settings" title="Réglages" aria-label="Ouvrir les réglages">⚙️</button>
+        <button type="button" id="btn-ideas" class="btn-icon" title="Boîte à idées" aria-label="Boîte à idées">💡</button>
+        <button type="button" id="btn-tuto" class="btn-icon" title="Revoir le tuto" aria-label="Revoir le tuto">🎓</button>
+        <button type="button" id="btn-locate" class="btn-icon" title="Ma position" aria-label="Afficher ma position">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+        </button>
+        <button type="button" id="btn-layers" class="btn-icon" title="Fond de carte" aria-label="Choisir le fond de carte">🗺️</button>
+      </div>
       <p id="app-version" class="app-version"></p>
     </div>
   </aside>
@@ -95,11 +104,6 @@
     </button>
     <button type="button" id="btn-oracle" class="fab fab-oracle" title="L'Oracle — que faire dans le coin ?" aria-label="L'Oracle : idées de sorties autour de moi">🔮</button>
     <button type="button" id="btn-wc" class="fab fab-wc" title="Toilettes à moins de 1 km de moi" aria-label="Toilettes autour de moi"><span class="wc-runner" aria-hidden="true">🏃</span><span aria-hidden="true">🚻</span></button>
-    <button type="button" id="btn-ideas" class="fab" title="Boîte à idées" aria-label="Boîte à idées">💡</button>
-    <button type="button" id="btn-tuto" class="fab" title="Revoir le tuto" aria-label="Revoir le tuto">🎓</button>
-    <button type="button" id="btn-locate" class="fab" title="Ma position" aria-label="Afficher ma position">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-    </button>
   </div>
 
   <!-- Fiche détaillée d'un point -->
@@ -257,6 +261,15 @@
     </section>
   </dialog>
 
+  <!-- Choix du fond de carte (remplace le sélecteur Leaflet posé sur la carte) -->
+  <dialog id="layers-dialog" aria-labelledby="layers-title">
+    <h2 id="layers-title">🗺️ Fond de carte</h2>
+    <div class="layers-list"></div>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-secondary layers-close">Fermer</button>
+    </div>
+  </dialog>
+
   <!-- Aide à l'installation sur l'écran d'accueil : affichée quand l'invite
        native n'existe pas (iPhone/iPad) ou n'est pas disponible -->
   <dialog id="install-dialog" aria-labelledby="install-title">
@@ -277,61 +290,68 @@
     </div>
   </dialog>
 
-  <!-- L'Oracle 🔮 : guide local par IA (js/oracle.js + css/oracle.css) -->
+  <!-- L'Oracle 🔮 : guide local par IA (js/oracle.js + css/oracle.css).
+       Le dialogue EST une boule de cristal : sphère de verre posée sur son
+       socle (forme ronde à l'ouverture ; s'étire en « capsule » de verre quand
+       une réponse ou le panneau des clés a besoin de place). -->
   <dialog id="oracle-dialog" class="oracle-dialog" aria-labelledby="oracle-titre">
-    <div class="oracle-panneau">
-      <header class="oracle-header">
-        <div class="oracle-boule" aria-hidden="true"><span class="oracle-boule-eclat"></span></div>
-        <div class="oracle-titres">
+    <div class="oracle-sphere">
+      <span class="oracle-etincelle e1" aria-hidden="true"></span>
+      <span class="oracle-etincelle e2" aria-hidden="true"></span>
+      <span class="oracle-etincelle e3" aria-hidden="true"></span>
+      <span class="oracle-etincelle e4" aria-hidden="true"></span>
+      <span class="oracle-etincelle e5" aria-hidden="true"></span>
+      <span class="oracle-etincelle e6" aria-hidden="true"></span>
+      <div class="oracle-contenu">
+        <header class="oracle-header">
           <h2 id="oracle-titre">L'Oracle</h2>
-          <p>Dis-moi où tu es, je révèle tout ce qu'il y a à faire autour.</p>
+          <button type="button" class="btn-icon oracle-cle-toggle" title="Clés API" aria-label="Réglages des clés API">🔑</button>
+          <button type="button" class="btn-icon oracle-close" title="Fermer" aria-label="Fermer l'Oracle">✕</button>
+        </header>
+
+        <form class="oracle-form">
+          <input type="text" inputmode="numeric" class="oracle-cp" placeholder="Code postal"
+                 aria-label="Code postal" maxlength="5" autocomplete="off">
+          <button type="button" class="oracle-position" title="Utiliser ma position" aria-label="Utiliser ma position">📍</button>
+          <button type="submit" class="oracle-consulter">Consulter</button>
+        </form>
+
+        <!-- Moteur : gratuit (carte + Wikipédia, sans clé) ou IA (clé requise) -->
+        <div class="oracle-modes" role="group" aria-label="Moteur de l'Oracle">
+          <button type="button" class="oracle-mode-btn" data-mode="libre">✨ Sans clé (gratuit)</button>
+          <button type="button" class="oracle-mode-btn" data-mode="ia">🧠 IA (clé)</button>
         </div>
-        <button type="button" class="btn-icon oracle-cle-toggle" title="Clé API" aria-label="Réglages de la clé API">🔑</button>
-        <button type="button" class="btn-icon oracle-close" title="Fermer" aria-label="Fermer l'Oracle">✕</button>
-      </header>
 
-      <div class="oracle-corps">
-        <aside class="oracle-historique" aria-label="Consultations passées">
-          <h3>Consultations</h3>
-          <div class="oracle-histo-liste"></div>
-        </aside>
+        <div class="oracle-histo-liste" aria-label="Consultations passées"></div>
 
-        <div class="oracle-principal">
-          <form class="oracle-form">
-            <input type="text" inputmode="numeric" class="oracle-cp" placeholder="Code postal (ex. 05100)"
-                   aria-label="Code postal" maxlength="5" autocomplete="off">
-            <button type="button" class="oracle-position" title="Utiliser ma position" aria-label="Utiliser ma position">📍</button>
-            <button type="submit" class="oracle-consulter">🔮 Consulter</button>
-          </form>
-
-          <!-- Panneau clés & moteur (affiché d'office au premier usage) -->
-          <div class="oracle-cle-panneau" hidden>
-            <h3>🔑 Clés &amp; moteur IA</h3>
-            <p class="oracle-note">Renseigne la clé du ou des fournisseurs que tu veux utiliser (tu peux en
-              mettre plusieurs et changer de moteur quand tu veux). Chaque clé reste <strong>uniquement sur
-              cet appareil</strong>, n'est envoyée qu'à son fournisseur en HTTPS chiffré, et n'est jamais
-              incluse dans tes sauvegardes.</p>
-            <div class="oracle-moteur">
-              <label class="oracle-champ">Fournisseur utilisé
-                <select class="oracle-fournisseur"></select>
-              </label>
-              <label class="oracle-champ">Modèle
-                <select class="oracle-modele"></select>
-              </label>
-            </div>
-            <div class="oracle-cles"></div>
-            <p class="oracle-note">Pense à fixer un plafond de dépense chez ton fournisseur. Pour retirer une
-              clé, vide son champ puis Enregistre.</p>
-            <div class="oracle-cle-actions">
-              <button type="button" class="btn oracle-cle-effacer">Tout effacer</button>
-              <button type="button" class="btn oracle-cle-enregistrer">Enregistrer</button>
-            </div>
+        <!-- Panneau clés & moteur (affiché d'office au premier usage) -->
+        <div class="oracle-cle-panneau" hidden>
+          <h3>🔑 Clés &amp; moteur IA</h3>
+          <p class="oracle-note">Renseigne la clé du ou des fournisseurs que tu veux utiliser (tu peux en
+            mettre plusieurs et changer de moteur quand tu veux). Chaque clé reste <strong>uniquement sur
+            cet appareil</strong>, n'est envoyée qu'à son fournisseur en HTTPS chiffré, et n'est jamais
+            incluse dans tes sauvegardes.</p>
+          <div class="oracle-moteur">
+            <label class="oracle-champ">Fournisseur utilisé
+              <select class="oracle-fournisseur"></select>
+            </label>
+            <label class="oracle-champ">Modèle
+              <select class="oracle-modele"></select>
+            </label>
           </div>
-
-          <div class="oracle-reponse" aria-live="polite"></div>
+          <div class="oracle-cles"></div>
+          <p class="oracle-note">Pense à fixer un plafond de dépense chez ton fournisseur. Pour retirer une
+            clé, vide son champ puis Enregistre.</p>
+          <div class="oracle-cle-actions">
+            <button type="button" class="btn oracle-cle-effacer">Tout effacer</button>
+            <button type="button" class="btn oracle-cle-enregistrer">Enregistrer</button>
+          </div>
         </div>
+
+        <div class="oracle-reponse" aria-live="polite"></div>
       </div>
     </div>
+    <div class="oracle-socle" aria-hidden="true"></div>
   </dialog>
 
   <!-- Le Carnet : grimoire plein écran (contenu construit par js/carnet.js) -->
