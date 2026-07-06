@@ -37,7 +37,7 @@ import { initAddPoint } from "./addpoint.js";
 import { initTuto, startTuto } from "./tuto.js";
 import { initIdeas } from "./ideas.js";
 import { initOracle } from "./oracle.js";
-import { initSync } from "./sync.js";
+import { initSync, finaliserPopupAuth } from "./sync.js";
 import { initCarnet, exporterCarnetPDF, ouvrirCarnetPourPoint } from "./carnet.js";
 import { SUR_ANDROID, SUR_IOS } from "./config/platform.js";
 import { esc } from "./util.js";
@@ -972,4 +972,12 @@ function getThemeFilters(id) {
   return THEMES.find((t) => t.id === id)?.filters || [];
 }
 
-demarrer();
+// Cette page est-elle le POPUP de connexion (ouvert par la synchronisation) ?
+// Le nom de fenêtre « carte-oauth-popup » persiste à travers les redirections
+// OAuth. Si oui, on enregistre la session puis on ferme — SANS démarrer toute
+// l'application (la fenêtre principale est prévenue via l'événement `storage`).
+if (window.name === "carte-oauth-popup" && /[#&](access_token|error)=/.test(location.hash)) {
+  finaliserPopupAuth(location.hash);
+} else {
+  demarrer();
+}

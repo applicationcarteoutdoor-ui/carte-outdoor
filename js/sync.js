@@ -59,12 +59,32 @@ function sujetDuJeton(jwt) {
 /* Authentification (Google via Supabase, flux implicite)               */
 /* ------------------------------------------------------------------ */
 
-/** Redirige la page vers Google (retour ensuite sur l'app avec un jeton). */
+/** Dernier repli : redirige la page ENTIÈRE vers Google (retour sur l'app avec
+ *  le jeton dans l'URL). Utilisé si les popups sont bloqués. */
 function connecter() {
   const retour = location.origin + location.pathname;
   location.href =
     `${SUPABASE_URL}/auth/v1/authorize?provider=google` +
     `&redirect_to=${encodeURIComponent(retour)}`;
+}
+
+/**
+ * Connexion par FENÊTRE (popup) : Google s'ouvre dans une petite fenêtre, la
+ * page principale reste en place. Ne dépend PAS de FedCM → fiable partout.
+ * Le popup revient sur notre origine avec le jeton ; il l'enregistre (app.js →
+ * finaliserPopupAuth) et se ferme, et cette fenêtre est prévenue par
+ * l'événement `storage`. Si les popups sont bloqués → redirection pleine page.
+ */
+function connecterFenetre() {
+  const retour = location.origin + location.pathname;
+  const url =
+    `${SUPABASE_URL}/auth/v1/authorize?provider=google` +
+    `&redirect_to=${encodeURIComponent(retour)}`;
+  // Le NOM « carte-oauth-popup » persiste à travers les redirections OAuth
+  // (propriété de la fenêtre) : c'est ainsi que le popup se reconnaît, même si
+  // COOP coupe window.opener.
+  const popup = window.open(url, "carte-oauth-popup", "width=480,height=680,menubar=no,toolbar=no");
+  if (!popup) connecter(); // popups bloqués → plein écran
 }
 
 async function deconnecter() {
@@ -84,12 +104,10 @@ async function deconnecter() {
  * Au chargement, capte le jeton renvoyé par Supabase dans le fragment d'URL
  * (#access_token=…). Renvoie true si on revient tout juste de connexion.
  */
-function capterRetour() {
-  const hash = location.hash || "";
-  if (!hash.includes("access_token=") && !hash.includes("error=")) return false;
-  const p = new URLSearchParams(hash.slice(1));
-  // Nettoie l'URL quoi qu'il arrive (on ne laisse pas traîner un jeton)
-  history.replaceState(null, "", location.pathname + location.search);
+/** Extrait la session d'un fragment d'URL (#access_token=…) et l'enregistre.
+ *  Renvoie true si une session valide a été posée. */
+function appliquerHash(hash) {
+  const p = new URLSearchParams((hash || "").replace(/^#/, ""));
   if (p.get("error")) {
     toast("Connexion annulée : " + (p.get("error_description") || p.get("error")));
     return false;
@@ -104,6 +122,29 @@ function capterRetour() {
     lastSync: 0,
   });
   return true;
+}
+
+/** Cas « retour de redirection pleine page » : la page revient avec le jeton
+ *  dans l'URL. On nettoie l'URL (ne pas laisser traîner un jeton). */
+function capterRetour() {
+  const hash = location.hash || "";
+  if (!hash.includes("access_token=") && !hash.includes("error=")) return false;
+  history.replaceState(null, "", location.pathname + location.search);
+  return appliquerHash(hash);
+}
+
+/**
+ * Appelé DEPUIS LE POPUP d'authentification (voir app.js) : enregistre la
+ * session dans le localStorage — PARTAGÉ entre fenêtres de même origine, donc
+ * la fenêtre principale est prévenue par l'événement `storage` — puis ferme le
+ * popup. Robuste même si le lien window.opener est coupé (COOP).
+ */
+export function finaliserPopupAuth(hash) {
+  appliquerHash(hash);
+  document.body && (document.body.textContent = "Connexion réussie, vous pouvez fermer cette fenêtre.");
+  try {
+    window.close();
+  } catch {}
 }
 
 /** Rafraîchit le jeton d'accès s'il est expiré (ou proche de l'être).
@@ -311,8 +352,9 @@ function rendreUI() {
       <p class="menu-note">Connecte-toi pour retrouver ton carnet, tes points et ton suivi
         sur tous tes appareils. Tes clés API et ton affichage restent, eux, sur cet appareil.</p>
       <button type="button" class="btn btn-secondary sync-connexion">
-        <span aria-hidden="true">🔵</span> Se connecter avec Google</button>`;
-    zone.querySelector(".sync-connexion").addEventListener("click", connecter);
+        <span aria-hidden="true">🔵</span> Se connecter avec Google</button>
+      <p class="menu-note">Une petite fenêtre Google s'ouvre ; l'application reste ouverte derrière.</p>`;
+    zone.querySelector(".sync-connexion").addEventListener("click", connecterFenetre);
     return;
   }
   const qui = esc(session.user?.email || session.user?.nom || "compte connecté");
@@ -343,12 +385,30 @@ export function initSync(callbacks) {
   const retourDeConnexion = capterRetour();
   rendreUI();
 
+  // Connexion/déconnexion venue d'une AUTRE fenêtre : le popup d'authentification
+  // écrit la session dans le localStorage PARTAGÉ → l'événement `storage` nous
+  // prévient ici (robuste même si COOP a coupé window.opener).
+  window.addEventListener("storage", (e) => {
+    if (e.key !== KEY_SESSION) return;
+    const s = lireSession();
+    if (s && !session) {
+      session = s;
+      rendreUI();
+      chargerProfil();
+      synchroniser(true);
+    } else if (!s && session) {
+      session = null;
+      rendreUI();
+    }
+  });
+
+  // Sync au retour au premier plan, quand on est connecté.
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && session && !syncEnCours) synchroniser(false);
+  });
+
   if (session) {
     chargerProfil(); // e-mail/nom pour l'affichage
-    // Synchronise à la connexion, et à chaque retour au premier plan.
     synchroniser(retourDeConnexion);
-    document.addEventListener("visibilitychange", () => {
-      if (!document.hidden && session && !syncEnCours) synchroniser(false);
-    });
   }
 }
