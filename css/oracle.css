@@ -4,9 +4,10 @@
  * Deux formes :
  *  - BOULE (défaut) : sphère de verre bleutée parfaitement ronde, posée sur un
  *    socle — état vide, chargement, erreurs courtes.
- *  - CAPSULE (classe .forme-capsule sur le dialog, posée par js/oracle.js) :
- *    la sphère s'étire en grande capsule de verre quand le contenu a besoin de
- *    place (réponse complète, panneau des clés). Le morphing est animé.
+ *  - CAPSULE (classe .forme-etiree sur le dialog, posée par js/oracle.js) :
+ *    la boule se déploie en grand rectangle de verre aux coins arrondis quand
+ *    le contenu a besoin de place (réponse complète, panneau des clés).
+ *    Le morphing boule ⇄ capsule est animé (largeur, hauteur ET border-radius).
  *
  * Palette : bleu nuit profond + paillettes blanches (demande utilisateur).
  */
@@ -66,7 +67,7 @@
     0 26px 60px rgba(4, 12, 30, 0.6),
     inset -18px -26px 60px rgba(4, 14, 34, 0.55),
     inset 12px 16px 42px rgba(255, 255, 255, 0.14);
-  transition: width 0.45s ease, height 0.45s ease;
+  transition: width 0.45s ease, height 0.45s ease, border-radius 0.45s ease;
 }
 
 /* Voile d'étoiles et de brillants, réparti dans tout le verre */
@@ -136,14 +137,14 @@
   background: linear-gradient(#33507c, #101f3a);
 }
 
-/* --- Forme ÉTIRÉE : la boule s'élargit en ELLIPSE de verre pour le
-   contenu long (réponse, clés) — jamais de rectangle : ça reste une boule
-   de cristal posée sur son socle, juste plus grande. ------------------- */
+/* --- Forme ÉTIRÉE : la boule se déploie en grande CAPSULE rectangulaire
+   de verre (coins très arrondis) pour le contenu long — réponse, clés.
+   L'ouverture, elle, reste TOUJOURS une boule parfaite. ----------------- */
 
 .oracle-dialog.forme-etiree .oracle-sphere {
   width: min(94vw, 820px);
   height: min(86dvh, 760px);
-  /* border-radius reste 50% : cercle → ellipse, le verre suit */
+  border-radius: 26px;
 }
 
 /* ------------------------------------------------------------------ */
@@ -161,9 +162,14 @@
   min-height: 0;
 }
 
-/* Sous l'ellipse étirée, le socle s'élargit avec elle */
+/* En capsule, le contenu profite de tout le cadre (plus de rectangle inscrit) */
+.oracle-dialog.forme-etiree .oracle-contenu {
+  inset: 16px 20px;
+}
+
+/* La capsule occupe l'écran : le socle s'efface le temps de la lecture */
 .oracle-dialog.forme-etiree .oracle-socle {
-  width: min(37vw, 320px);
+  display: none;
 }
 
 /* --- En-tête ---------------------------------------------------------- */
@@ -653,6 +659,18 @@
   50% { box-shadow: 0 0 22px 6px rgba(90, 160, 255, 0.6), var(--shadow); }
 }
 
+/* Bandeau « passe en mode IA » entourant les résultats du mode Gratuit */
+.oracle-note-ia {
+  margin: 2px 0;
+  padding: 8px 12px;
+  border: 1px dashed var(--or-bord);
+  border-radius: 12px;
+  background: rgba(38, 74, 126, 0.35);
+  color: var(--or-texte-2);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
 /* ------------------------------------------------------------------ */
 /* Mobile                                                               */
 /* ------------------------------------------------------------------ */
@@ -672,8 +690,9 @@
   .oracle-dialog.forme-etiree .oracle-sphere {
     width: calc(100vw - 12px);
     height: 84dvh;
+    border-radius: 20px;
   }
-  .oracle-dialog.forme-etiree .oracle-socle { width: 34vw; }
+  .oracle-dialog.forme-etiree .oracle-contenu { inset: 12px; }
   .oracle-moteur { grid-template-columns: 1fr; gap: 0; }
 }
 

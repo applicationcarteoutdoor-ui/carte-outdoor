@@ -113,18 +113,19 @@ export async function deleteSortie(id) {
   ecrireJSON(KEY_SORTIES, lireJSON(KEY_SORTIES, []).filter((s) => s.id !== id));
 }
 
-/** Décocher « fait » le jour même retire la sortie du jour (faux clic) ;
- *  les sorties plus anciennes restent dans le carnet. */
+/** Décocher « fait » retire la sortie du jour (faux clic) ET l'éventuelle
+ *  sortie « seed » sans date : elle n'existe que parce que le point était
+ *  marqué fait (seedSortiesDepuisStatuts) — la garder après le retrait du
+ *  statut laissait une entrée fantôme indélébile dans le carnet.
+ *  Les sorties datées plus anciennes, elles, restent dans le carnet. */
 export async function deleteSortieDuJour(pointId) {
   const jour = new Date().toISOString().slice(0, 10);
-  const sorties = lireJSON(KEY_SORTIES, []);
-  for (let i = sorties.length - 1; i >= 0; i--) {
-    if (sorties[i].pointId === pointId && (sorties[i].date || "").slice(0, 10) === jour) {
-      sorties.splice(i, 1);
-      ecrireJSON(KEY_SORTIES, sorties);
-      return;
-    }
-  }
+  const sorties = lireJSON(KEY_SORTIES, []).filter((s) => {
+    if (s.pointId !== pointId) return true;
+    if (!s.date) return false; // seed « date inconnue » : liée au statut fait
+    return s.date.slice(0, 10) !== jour;
+  });
+  ecrireJSON(KEY_SORTIES, sorties);
 }
 
 /** Toutes les sorties d'un point disparaissent avec lui. */

@@ -41,7 +41,8 @@ const ETAPES = [
     texte:
       "La roue en bas du panneau regroupe : l'import de vos propres points (GeoJSON, CSV, KML, KMZ), " +
       "l'export de vos données (points, suivi, carnet, catégories), l'installation de l'application " +
-      "sur l'écran d'accueil et la vérification des mises à jour. " +
+      "sur l'écran d'accueil, la synchronisation multi-appareils avec votre compte Google " +
+      "et la vérification des mises à jour. " +
       "Les traces GPX, elles, s'importent depuis la ligne « Mes traces GPX ».",
   },
   {
@@ -80,6 +81,16 @@ const ETAPES = [
       "Un vrai grimoire à feuilleter ! Chaque activité marquée « ✓ Fait », chaque note et chaque " +
       "photo s'y enregistre automatiquement, une sortie par page. Recherche, tri par date ou " +
       "catégorie, filtre favoris — et pour chaque lieu, l'historique de toutes vos venues.",
+  },
+  {
+    cible: "#btn-oracle",
+    avant: () => document.getElementById("sidebar").classList.remove("open"),
+    titre: "L'Oracle 🔮",
+    texte:
+      "Entrez un code postal (ou touchez 📍) : l'Oracle révèle tout ce qu'il y a à faire " +
+      "autour — randonnées, lacs, patrimoine, événements. Le mode ✨ Gratuit ne demande " +
+      "aucune clé ; avec une clé API (bouton 🔑), le mode 🧠 IA déniche en plus les concerts, " +
+      "spectacles et brocantes du moment, avec leurs dates.",
   },
   {
     cible: "#btn-wc",

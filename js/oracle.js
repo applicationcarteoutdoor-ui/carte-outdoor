@@ -405,8 +405,9 @@ function rendreSources(sources) {
 
 /**
  * Forme de la boule : sphère parfaite quand le contenu est court (accueil,
- * chargement, erreur) ; elle S'ÉTIRE EN ELLIPSE de verre — toujours une
- * boule, jamais un rectangle — quand il faut de la place (réponse, clés).
+ * chargement, erreur) ; elle se déploie en CAPSULE rectangulaire de verre
+ * quand il faut de la place (réponse, panneau des clés) — retour utilisateur
+ * v41 : la capsule est plus lisible que l'ellipse pour la lecture.
  */
 let contenuActuel = "vide"; // "vide" | "chargement" | "erreur" | "reponse"
 
@@ -420,7 +421,7 @@ function etatVide() {
   elReponse.innerHTML =
     '<div class="oracle-vide"><div class="oracle-vide-signe" aria-hidden="true">✦</div>' +
     "<p>Entre un code postal (ou touche 📍) : l'Oracle révèle ce qu'il y a à faire autour. " +
-    "✨ Sans clé, c'est gratuit.</p></div>";
+    "✨ Le mode Gratuit ne demande aucune clé.</p></div>";
   majForme();
 }
 
@@ -481,12 +482,21 @@ function afficherReponse(entree) {
   });
   const meta = [lieu.departement, lieu.region].filter(Boolean).join(" · ");
   const moteur = entree.moteur ? ` · ${esc(entree.moteur)}` : "";
+  // Résultat du mode Gratuit : on encadre la réponse (haut ET bas) d'un rappel
+  // que les fonctionnalités avancées (spectacles, événements datés…) passent
+  // par une clé API. Le test sur `moteur` couvre aussi l'ancien historique.
+  const gratuit = /gratuit|sans clé/i.test(entree.moteur || "");
+  const noteIA =
+    '<p class="oracle-note-ia">🔑 Pour les fonctionnalités avancées — spectacles, concerts, ' +
+    "brocantes et événements datés à proximité — renseigne une clé API et passe en mode 🧠 IA.</p>";
   elReponse.innerHTML =
     '<div class="oracle-resultat"><div class="oracle-resultat-tete">' +
     `<h3>✨ Autour de ${esc(lieu.nom || "")}</h3>` +
     `<p class="oracle-resultat-meta">${esc(meta)}${meta ? " — " : ""}${esc(date)}${moteur}</p></div>` +
+    (gratuit ? noteIA : "") +
     `<div class="oracle-texte">${formaterReponse(entree.texte)}</div>` +
     rendreSources(entree.sources) +
+    (gratuit ? noteIA : "") +
     "</div>";
   elReponse.scrollTop = 0;
   majForme();
@@ -623,6 +633,9 @@ function direction(lat1, lon1, lat2, lon2) {
 
 const kmLisible = (d) => (d < 10 ? d.toFixed(1) : String(Math.round(d)));
 
+/** « au nord », mais « à l'est » / « à l'ouest » (élision). */
+const versDirection = (d) => (d.startsWith("est") || d.startsWith("ouest") ? `à l'${d}` : `au ${d}`);
+
 /** Les meilleurs points de NOTRE carte autour du lieu, groupés par catégorie. */
 function sectionCarte(lieu) {
   const points = cb.getPoints?.() || [];
@@ -649,12 +662,15 @@ function sectionCarte(lieu) {
     }
     if (!proches.length) continue;
     proches.sort((a, b) => a.d - b.d);
-    const lignes = proches
-      .slice(0, 4)
-      .map(
-        (p) =>
-          `- **${p.f.properties.name}** — à ${kmLisible(p.d)} km au ${direction(lieu.lat, lieu.lon, p.lat, p.lon)}`
-      );
+    const lignes = proches.slice(0, 4).map((p) => {
+      // Les points géocodés au centroïde de commune tombent pile sur le lieu
+      // demandé : « à 0.0 km au nord » n'a pas de sens → « sur place ».
+      const ou =
+        p.d < 0.15
+          ? "sur place"
+          : `à ${kmLisible(p.d)} km ${versDirection(direction(lieu.lat, lieu.lon, p.lat, p.lon))}`;
+      return `- **${p.f.properties.name}** — ${ou}`;
+    });
     blocs.push(`### ${proches[0].t.icon} ${proches[0].t.label}\n${lignes.join("\n")}`);
   }
   if (!blocs.length) return "";
@@ -739,7 +755,7 @@ async function lancerLibre(lieu) {
       lieu,
       texte: morceaux.join("\n\n"),
       sources,
-      moteur: "Oracle libre (sans clé)",
+      moteur: "Oracle gratuit",
     };
     const histo = lireHisto();
     histo.unshift(entree);
@@ -773,7 +789,7 @@ async function lancer(lieu) {
   const f = FOURNISSEURS[choix.provider];
   const cle = lireCles()[choix.provider];
   if (!cle) {
-    toast(`Renseigne d'abord ta clé ${f.nom} (ou passe en mode ✨ Sans clé).`);
+    toast(`Renseigne d'abord ta clé ${f.nom} (ou passe en mode ✨ Gratuit).`);
     ouvrirPanneauCle(true);
     return;
   }
@@ -848,7 +864,7 @@ function ouvrir() {
   renderHisto();
   majModeUI();
   // À l'ouverture : TOUJOURS la boule (le panneau des clés ne s'impose plus —
-  // le mode ✨ Sans clé marche sans rien, et 🔑 reste à portée de main).
+  // le mode ✨ Gratuit marche sans rien, et 🔑 reste à portée de main).
   ouvrirPanneauCle(false);
   etatVide();
   dialog.showModal();
@@ -886,12 +902,15 @@ export function initOracle(callbacks = {}) {
 
   dialog.querySelector(".oracle-position").addEventListener("click", depuisPosition);
 
-  // Bascule ✨ Sans clé / 🧠 IA (persistée) — choisir IA sans clé ouvre 🔑
+  // Bascule ✨ Gratuit / 🧠 IA (persistée) — choisir IA sans clé ouvre 🔑,
+  // et revenir au Gratuit REFERME le panneau des clés (sinon il restait
+  // affiché sur mobile — bug signalé en v40).
   dialog.querySelectorAll(".oracle-mode-btn").forEach((b) =>
     b.addEventListener("click", () => {
       ecrire(KEY_MODE, b.dataset.mode);
       majModeUI();
       if (b.dataset.mode === "ia" && !cleCourante()) ouvrirPanneauCle(true);
+      else if (b.dataset.mode === "libre") ouvrirPanneauCle(false);
     })
   );
 

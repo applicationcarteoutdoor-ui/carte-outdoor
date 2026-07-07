@@ -341,12 +341,11 @@
 .couv-logo {
   position: absolute;
   /* Le « ? » gravé est à x≈67 %/y≈58 % (grille mesurée sur la photo).
-     Médaillon AGRANDI au maximum de la place disponible : centré un poil
-     plus haut/gauche (66 %, 57,5 %) pour rester dans le cadre de la plaque
-     (bord droit ≈77 %, bas ≈66 %) tout en couvrant le « ? ». */
-  top: 57.5%;
-  left: 66%;
-  width: 22%;
+     Médaillon légèrement réduit (20,5 % — retour utilisateur v41) : il couvre
+     le « ? » et respire dans le cadre de la plaque (bord droit ≈77 %, bas ≈66 %). */
+  top: 58%;
+  left: 67%;
+  width: 20.5%;
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   object-fit: cover;
@@ -364,7 +363,7 @@
 /* Thèmes dessinés (voyage/nuit) : même médaillon en bas à droite de la
    plaque SVG centrée — sa gravure reste visible, le logo ne prend qu'un coin */
 .carnet-theme-voyage .couv-logo,
-.carnet-theme-nuit .couv-logo { top: 53%; left: 60%; width: 23%; }
+.carnet-theme-nuit .couv-logo { top: 53%; left: 60%; width: 21.5%; }
 .carnet-theme-nuit .couv-logo { border-color: rgba(150, 146, 134, 0.9); }
 
 /* Photo déjà complète : les ornements CSS (plaque, coins de laiton,
@@ -937,8 +936,9 @@ body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit)
    On neutralise le style stroke commun aux .fab svg (fill:none/stroke:current)
    pour laisser parler les remplissages de l'icône. */
 .fab-carnet .icone-grimoire {
-  width: 25px;
-  height: 27px;
+  /* Agrandi (v41) : c'est LUI que l'utilisateur voulait plus grand */
+  width: 32px;
+  height: 34.5px;
   fill: initial;
   stroke: none;
   stroke-width: 0;
