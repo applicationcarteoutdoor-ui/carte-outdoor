@@ -780,6 +780,77 @@
   border-bottom-width: 18px; /* façon polaroïd collé */
   box-shadow: 0 4px 10px rgba(60, 40, 10, 0.4);
   border-radius: 2px;
+  cursor: zoom-in; /* elle s'ouvre en grand */
+}
+.page-photo:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* --------------------------------------------------------------------------
+   Visionneuse : une photo du carnet en plein écran, avec téléchargement.
+   Au-dessus du carnet (1900), sous le toast (2000).
+   -------------------------------------------------------------------------- */
+.photo-visionneuse {
+  position: fixed;
+  inset: 0;
+  z-index: 1950;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 18px;
+  background: rgba(12, 8, 4, 0.92);
+  backdrop-filter: blur(4px);
+}
+
+.pv-cadre {
+  margin: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.pv-cadre img {
+  max-width: min(94vw, 1100px);
+  max-height: 74dvh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border: 8px solid #fffdf4;
+  border-radius: 3px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.7);
+}
+
+.pv-legende {
+  font-family: "Caveat", cursive;
+  font-size: 1.25rem;
+  color: #f2e6c8;
+  text-align: center;
+  max-width: 90vw;
+}
+
+.pv-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+.pv-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px; /* cible tactile confortable */
+  padding: 0 18px;
+  border: 1px solid rgba(255, 253, 244, 0.35);
+  border-radius: 999px;
+  background: rgba(255, 253, 244, 0.1);
+  color: #fffdf4;
+  font-size: 0.95rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+.pv-btn:hover { background: rgba(255, 253, 244, 0.2); }
+.pv-telecharger { background: rgba(90, 160, 255, 0.28); border-color: rgba(150, 200, 255, 0.5); }
+
+@media (max-width: 640px) {
+  .pv-cadre img { max-height: 66dvh; }
+  .pv-btn { flex: 1 1 auto; justify-content: center; }
 }
 
 .page-note {

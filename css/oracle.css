@@ -114,17 +114,28 @@
   50% { opacity: 1; transform: scale(1.5); }
 }
 
-/* Le socle : pied évasé + base, sous la boule */
+/* Le socle : pied évasé + base, sous la boule. BOIS ciré (noyer) : la boule
+   de cristal repose sur un vrai socle de bois, pas sur du verre bleu.
+   Les stries verticales imitent le fil du bois, le reflet du haut la cire. */
 .oracle-socle {
   position: relative;
   width: calc(var(--od) * 0.4);
   height: calc(var(--od) * 0.075);
   margin-top: calc(var(--od) * -0.015);
-  background: linear-gradient(#5d87c0 0%, #27446e 55%, #142848 100%);
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(46, 24, 10, 0.32) 0px,
+      rgba(46, 24, 10, 0) 2px,
+      rgba(140, 92, 46, 0.16) 4px,
+      rgba(46, 24, 10, 0) 7px
+    ),
+    linear-gradient(#a06a37 0%, #8a5a2e 12%, #6b4220 45%, #4a2b13 78%, #2f1a09 100%);
   clip-path: polygon(14% 0, 86% 0, 100% 100%, 0 100%);
   filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.5));
 }
 
+/* La base, en bois plus sombre (l'ombre de la boule y tombe) */
 .oracle-socle::after {
   content: "";
   position: absolute;
@@ -134,7 +145,7 @@
   width: 118%;
   height: calc(var(--od) * 0.025);
   border-radius: 6px;
-  background: linear-gradient(#33507c, #101f3a);
+  background: linear-gradient(#7a4b23, #33200e);
 }
 
 /* --- Forme ÉTIRÉE : la boule se déploie en grande CAPSULE rectangulaire
@@ -685,6 +696,10 @@
   .oracle-vide { gap: 6px; }
   .oracle-vide-signe { font-size: 1.5rem; }
   .oracle-vide p { font-size: 0.88rem; max-width: 250px; }
+  /* Dans la petite boule, chaque ligne compte : le texte d'accueil était
+     coupé en bas. On masque le libellé « aucune consultation » (l'historique
+     vide n'a rien à dire) pour lui rendre sa place. */
+  .oracle-histo-liste:has(.oracle-histo-vide) { display: none; }
   .oracle-consulter { padding: 0 12px; font-size: 0.92rem; }
   .oracle-cp { font-size: 0.92rem; padding: 0 10px; }
   .oracle-dialog.forme-etiree .oracle-sphere {

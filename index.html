@@ -6,10 +6,12 @@
   <!-- Défense en profondeur (XSS) : script-src 'self' neutralise tout script
        injecté (aucun script inline dans l'app). style-src autorise les styles
        inline (nombreux style="…"). img-src liste les serveurs de tuiles + data:
-       (SVG/photos). connect-src liste les API appelées à l'exécution (géocodage
+       (SVG/photos) + upload.wikimedia.org (les PHOTOS des châteaux, cathédrales,
+       cités… viennent de Wikipédia : l'oublier les fait disparaître en silence,
+       bug v35→v41). connect-src liste les API appelées à l'exécution (géocodage
        + IA de l'Oracle). À METTRE À JOUR si on ajoute un fournisseur/back-end
        (ex. Supabase → ajouter son domaine à connect-src). -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tile.openstreetmap.org https://*.tile.opentopomap.org https://data.geopf.fr https://server.arcgisonline.com; font-src 'self'; connect-src 'self' https://api.anthropic.com https://generativelanguage.googleapis.com https://geo.api.gouv.fr https://fr.wikipedia.org https://*.supabase.co; worker-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://upload.wikimedia.org https://tile.openstreetmap.org https://*.tile.opentopomap.org https://data.geopf.fr https://server.arcgisonline.com; font-src 'self'; connect-src 'self' https://api.anthropic.com https://generativelanguage.googleapis.com https://geo.api.gouv.fr https://fr.wikipedia.org https://*.supabase.co; worker-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#ffffff">
   <meta name="description" content="Carte interactive de points d'intérêt outdoor : via ferrata, escalade, refuges, châteaux, cités de caractère, GR…">

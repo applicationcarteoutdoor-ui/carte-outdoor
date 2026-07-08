@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <!-- INDISPENSABLE : sans ce meta, Chrome en émulation mobile applique la
+       largeur de repli 980 px et l'app s'affiche en mode BUREAU. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Capture — Carte Outdoor</title>
+  <!--
+    Harnais de CAPTURE D'ÉCRAN (outil de développement, hors application).
+
+    Charge l'application dans une iframe de la taille d'un téléphone, prépare
+    l'état voulu (une « scène »), puis laisse Chrome headless photographier le
+    résultat. Rien ici n'est pré-caché ni servi aux visiteurs.
+
+    Usage :
+      capture.html?scene=carte | fiche | oracle | carnet | carnet-photo
+
+    Les données de démonstration (sortie + selfie dans le carnet) sont écrites
+    dans le stockage de CETTE origine : lancer Chrome avec un --user-data-dir
+    temporaire pour ne rien laisser derrière soi (voir capturer.ps1).
+  -->
+  <style>
+    html, body { margin: 0; padding: 0; overflow: hidden; background: #fff; }
+    iframe { display: block; width: 100vw; height: 100vh; border: 0; }
+  </style>
+</head>
+<body>
+<script type="module">
+import * as storage from "../../js/storage.js";
+
+const scene = new URLSearchParams(location.search).get("scene") || "carte";
+const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** Table rase : ni service worker, ni cache, ni données d'une exécution passée. */
+async function nettoyer() {
+  const regs = await navigator.serviceWorker?.getRegistrations?.() ?? [];
+  for (const r of regs) await r.unregister();
+  for (const k of await caches.keys()) await caches.delete(k);
+  localStorage.clear();
+  await new Promise((ok) => {
+    const req = indexedDB.deleteDatabase("carte-outdoor");
+    req.onsuccess = req.onerror = req.onblocked = () => ok();
+  });
+}
+
+/** Le point vedette de la vidéo : une via ferrata (le « spot » du héros). */
+async function pointVedette() {
+  const pts = await fetch("../../data/points.geojson").then((r) => r.json());
+  return (
+    pts.features.find((f) => f.properties.theme === "via-ferrata" && /Chamonix|Curalla|Ancelle/i.test(f.properties.name)) ||
+    pts.features.find((f) => f.properties.theme === "via-ferrata")
+  );
+}
+
+/** La photo du héros, telle qu'elle atterrit dans le carnet. */
+async function selfieDataUrl() {
+  const blob = await fetch("./selfie-placeholder.jpg").then((r) => r.blob());
+  return new Promise((ok) => {
+    const fr = new FileReader();
+    fr.onload = () => ok(fr.result);
+    fr.readAsDataURL(blob);
+  });
+}
+
+/** Prépare le carnet : la sortie est faite, la photo est collée, la note écrite. */
+async function semerCarnet(feature) {
+  const id = feature.properties.id;
+  await storage.setStatus(id, "fait");
+  await storage.addSortie(id);
+  await storage.addJournalEntry(id, {
+    id: "j-video-1",
+    date: new Date().toISOString(),
+    text: "Je ne savais pas quoi faire de mon week-end. Maintenant si.",
+    photo: await selfieDataUrl(),
+  });
+}
+
+(async () => {
+  await nettoyer();
+  // Le tuto se lance à la première visite, et le rappel de sauvegarde s'ouvre
+  // dès qu'il y a des données : les deux masqueraient la capture.
+  await storage.savePrefs({
+    tutoVu: true,
+    activeThemes: ["via-ferrata", "refuge", "chateau"],
+    dernierExport: Date.now(),
+    dernierRappelSauvegarde: Date.now(),
+  });
+
+  const feature = await pointVedette();
+  if (scene === "carnet" || scene === "carnet-photo") await semerCarnet(feature);
+
+  const iframe = document.createElement("iframe");
+  iframe.src = "../../index.html";
+  document.body.appendChild(iframe);
+
+  iframe.addEventListener("load", () => {
+    // Le script de scène s'exécute DANS l'application (même origine, donc
+    // autorisé par sa CSP script-src 'self') : il y retrouve les modules vivants.
+    const doc = iframe.contentWindow.document;
+    const s = doc.createElement("script");
+    s.type = "module";
+    s.src = `/dev/video/scene.js?scene=${encodeURIComponent(scene)}&point=${encodeURIComponent(feature.properties.id)}`;
+    doc.body.appendChild(s);
+  });
+})();
+</script>
+</body>
+</html>

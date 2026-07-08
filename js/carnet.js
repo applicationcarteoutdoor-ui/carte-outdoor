@@ -72,6 +72,8 @@ export function initCarnet(callbacks) {
 
   document.addEventListener("keydown", (e) => {
     if (overlay.hidden) return;
+    // Une photo ouverte en grand capte le clavier (sa propre touche Échap)
+    if (document.querySelector(".photo-visionneuse")) return;
     if (e.key === "Escape") fermerCarnet();
     if (e.key === "ArrowRight") tourner(1);
     if (e.key === "ArrowLeft") tourner(-1);
@@ -82,12 +84,26 @@ export function initCarnet(callbacks) {
   window.addEventListener("resize", () => {
     if (overlay.hidden) return;
     clearTimeout(minuterieResize);
-    minuterieResize = setTimeout(async () => {
+    minuterieResize = setTimeout(() => {
+      // ⚠️ Sur téléphone, l'ouverture du CLAVIER virtuel rétrécit la fenêtre et
+      // déclenche ce `resize`. Re-paginer reconstruit le DOM, donc DÉTRUIT le
+      // champ en cours de saisie : le clavier se refermait aussitôt ouvert
+      // (bug « ＋ Note »). Tant qu'un champ a le focus, on ne repagine pas —
+      // la prochaine action (Enregistrer/Annuler/recherche) repaginera.
+      if (saisieEnCours()) return;
       paginer();
       if (indexPage > pagesListe.length) indexPage = Math.max(1, pagesListe.length);
       rendre();
     }, 250);
   });
+}
+
+/** Vrai si l'utilisateur est en train de saisir du texte dans le carnet
+ *  (note en édition, champ de recherche) — donc clavier probablement ouvert. */
+function saisieEnCours() {
+  const actif = document.activeElement;
+  if (!actif || overlay.hidden || !overlay.contains(actif)) return false;
+  return actif.tagName === "TEXTAREA" || actif.tagName === "INPUT";
 }
 
 export async function ouvrirCarnet(activite = null) {
@@ -340,7 +356,7 @@ function batirSquelette() {
   // éléments interactifs (boutons, champs, couverture) restent prioritaires.
   livre.addEventListener("click", (e) => {
     if (window.innerWidth > 640) return; // flèches visibles ailleurs
-    if (e.target.closest("button, input, a, select, textarea, label, .carnet-couverture")) return;
+    if (e.target.closest("button, input, a, select, textarea, label, .carnet-couverture, .page-photo")) return;
     const r = livre.getBoundingClientRect();
     const x = e.clientX - r.left;
     if (x < r.width * 0.22) tourner(-1);
@@ -515,10 +531,16 @@ function htmlEntree(g, pourImpression = false) {
   const sortieFaite = g.sorties.length > 0;
   const sortieId = sortieFaite ? g.sorties[0].id : null;
 
+  const legende = `${g.nom} — ${dateLisible}`;
   const photos = g.notes
     .filter((n) => n.photo)
     .map((n) => {
-      const img = `<img class="page-photo" src="${n.photo}" alt="Photo de ${esc(g.nom)}" loading="lazy" style="transform:rotate(${((alea() - 0.5) * 4).toFixed(1)}deg)">`;
+      const pivot = `transform:rotate(${((alea() - 0.5) * 4).toFixed(1)}deg)`;
+      // Hors impression : la photo est cliquable (visionneuse plein écran)
+      const img = pourImpression
+        ? `<img class="page-photo" src="${n.photo}" alt="Photo de ${esc(g.nom)}" loading="lazy" style="${pivot}">`
+        : `<img class="page-photo" src="${n.photo}" alt="Photo de ${esc(g.nom)}" loading="lazy" style="${pivot}"
+             data-legende="${esc(legende)}" tabindex="0" role="button" title="Voir en grand">`;
       return pourImpression
         ? img
         : `<span class="page-photo-bloc">${img}<button type="button" class="photo-suppr" data-note="${esc(n.id)}" data-point="${esc(g.pointId)}" title="Retirer la photo" aria-label="Retirer la photo">✕</button></span>`;
@@ -618,6 +640,10 @@ function htmlPage(numero) {
 }
 
 function brancherPages(livre) {
+  // Une photo du carnet s'ouvre en grand (et se télécharge)
+  livre.querySelectorAll(".page-photo").forEach((img) =>
+    img.addEventListener("click", () => ouvrirVisionneuse(img.src, img.dataset.legende || ""))
+  );
   livre.querySelectorAll(".page-voir").forEach((b) =>
     b.addEventListener("click", () => {
       const g = entrees.find((p) => p.cle === b.dataset.cle);
@@ -712,6 +738,67 @@ function brancherPages(livre) {
       await rafraichirEdition();
     })
   );
+}
+
+/* ------------------------------------------------------------------ */
+/* Visionneuse : une photo du carnet en plein écran, téléchargeable     */
+/* ------------------------------------------------------------------ */
+
+/** Nom de fichier propre : « carnet-mont-blanc-12-juillet-2026.jpg ». */
+function nomFichierPhoto(legende) {
+  const base = (legende || "photo")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "") // accents (marques combinantes)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+  return `carnet-${base || "photo"}.jpg`;
+}
+
+/** Ouvre la photo en grand, avec téléchargement. Fermeture : ✕, Échap, fond. */
+function ouvrirVisionneuse(src, legende) {
+  document.querySelector(".photo-visionneuse")?.remove();
+
+  const vis = document.createElement("div");
+  vis.className = "photo-visionneuse";
+  vis.setAttribute("role", "dialog");
+  vis.setAttribute("aria-label", "Photo en grand");
+  vis.innerHTML = `
+    <figure class="pv-cadre">
+      <img alt="${esc(legende || "Photo du carnet")}">
+      ${legende ? `<figcaption class="pv-legende">${esc(legende)}</figcaption>` : ""}
+    </figure>
+    <div class="pv-actions">
+      <a class="pv-btn pv-telecharger" download>⬇ Télécharger</a>
+      <button type="button" class="pv-btn pv-fermer">✕ Fermer</button>
+    </div>`;
+
+  // src/href posés en PROPRIÉTÉS (jamais interpolés dans du HTML) : une
+  // dataURL n'a rien à faire dans un attribut construit à la main.
+  vis.querySelector("img").src = src;
+  const lien = vis.querySelector(".pv-telecharger");
+  lien.href = src;
+  lien.download = nomFichierPhoto(legende);
+
+  const fermer = () => {
+    vis.remove();
+    document.removeEventListener("keydown", surTouche, true);
+  };
+  function surTouche(e) {
+    if (e.key !== "Escape") return;
+    e.stopPropagation(); // ne pas fermer le carnet derrière
+    fermer();
+  }
+  document.addEventListener("keydown", surTouche, true);
+  vis.querySelector(".pv-fermer").addEventListener("click", fermer);
+  // Clic sur le fond (hors image et hors boutons) : on ferme
+  vis.addEventListener("click", (e) => {
+    if (!e.target.closest(".pv-cadre, .pv-actions")) fermer();
+  });
+
+  document.body.appendChild(vis);
+  vis.querySelector(".pv-fermer").focus();
 }
 
 /** Réaffiche le carnet après une modification (reste sur une page valide). */
