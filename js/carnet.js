@@ -305,7 +305,10 @@ function batirSquelette() {
   const relancer = async () => {
     await construireEntrees();
     paginer();
-    indexPage = pagesListe.length ? 1 : 0;
+    // Toujours sur la première page : s'il n'y a aucun résultat, elle affiche
+    // « aucune correspondance » (au lieu de refermer le livre sur la
+    // couverture et son message trompeur de carnet vide).
+    indexPage = 1;
     rendre();
   };
 
@@ -391,9 +394,11 @@ function rendre() {
       ? `${entrees.length} sortie(s) sur ${pagesListe.length} page(s) — touchez la couverture pour ouvrir`
       : vue.activite
       ? "Aucune sortie ici pour l'instant — marquez ce lieu « ✓ Fait » ou ajoutez-y une note !"
-      : "Votre carnet attend sa première sortie : marquez une activité « ✓ Fait » !";
+      : "Votre carnet attend sa première sortie — touchez la couverture pour l'ouvrir !";
   } else {
-    const morceaux = [htmlPage(indexPage)];
+    // Livre ouvert sans aucune entrée (carnet vierge, ou recherche/filtre sans
+    // résultat) : une page d'accueil manuscrite remplace la page de sorties.
+    const morceaux = [pagesListe.length ? htmlPage(indexPage) : htmlPageAccueil()];
     if (doublePage()) {
       morceaux.push(
         indexPage + 1 <= pagesListe.length ? htmlPage(indexPage + 1) : '<div class="page-carnet page-vide"></div>'
@@ -406,17 +411,18 @@ function rendre() {
         <div class="carnet-pages${doublePage() ? " double" : ""}">${morceaux.join("")}</div>
       </div>`;
     brancherPages(livre);
-    pied.textContent =
-      doublePage() && indexPage + 1 <= pagesListe.length
-        ? `pages ${indexPage}-${indexPage + 1} / ${pagesListe.length}`
-        : `page ${indexPage} / ${pagesListe.length}`;
+    pied.textContent = !pagesListe.length
+      ? "page 1 / 1"
+      : doublePage() && indexPage + 1 <= pagesListe.length
+      ? `pages ${indexPage}-${indexPage + 1} / ${pagesListe.length}`
+      : `page ${indexPage} / ${pagesListe.length}`;
   }
 
   overlay.querySelector(".carnet-prec").disabled = indexPage === 0;
-  // Depuis la couverture, une seule page suffit pour ouvrir (même en double
-  // page) ; ensuite, on bloque quand la dernière page est déjà affichée.
+  // Depuis la couverture, on peut TOUJOURS ouvrir (un carnet vierge montre sa
+  // page d'accueil) ; ensuite, on bloque quand la dernière page est affichée.
   overlay.querySelector(".carnet-suiv").disabled =
-    indexPage === 0 ? pagesListe.length === 0 : indexPage + (doublePage() ? 2 : 1) > pagesListe.length;
+    indexPage === 0 ? false : indexPage + (doublePage() ? 2 : 1) > Math.max(1, pagesListe.length);
 }
 
 /** Tourne la ou les pages avec l'animation de feuilletage (pli au dos). */
@@ -424,7 +430,8 @@ function tourner(sens) {
   if (animation) return;
   const pas = indexPage === 0 ? 1 : doublePage() ? 2 : 1;
   const cible = Math.max(0, indexPage + sens * pas);
-  if (cible === indexPage || (sens > 0 && cible > pagesListe.length)) return;
+  // Math.max(1, …) : un carnet vierge s'ouvre quand même (page d'accueil)
+  if (cible === indexPage || (sens > 0 && cible > Math.max(1, pagesListe.length))) return;
   const livre = overlay.querySelector(".carnet-livre");
   animation = true;
   livre.classList.add(sens > 0 ? "plie-avant" : "plie-arriere");
@@ -636,6 +643,26 @@ function htmlPage(numero) {
       ${imperfections}
       ${groupe.map((g) => htmlEntree(g)).join("")}
       <span class="page-numero">— ${numero} —</span>
+    </article>`;
+}
+
+/** Page affichée quand le livre est ouvert mais n'a rien à montrer : carnet
+ *  encore vierge (mot de bienvenue) ou recherche/filtre sans résultat. */
+function htmlPageAccueil() {
+  const filtreActif = vue.recherche || vue.favoris || vue.activite;
+  const texte = filtreActif
+    ? `<p>Aucune sortie ne correspond${vue.recherche ? ` à «&nbsp;${esc(vue.recherche)}&nbsp;»` : " à ce filtre"}.</p>` +
+      "<p>Effacez la recherche ou le filtre pour retrouver vos pages.</p>"
+    : "<p>Votre carnet est vide… pour l'instant&nbsp;!</p>" +
+      "<p>Marquez une activité «&nbsp;✓&nbsp;Fait&nbsp;» sur la carte, ou ajoutez une note ou une photo " +
+      "depuis la fiche d'un lieu&nbsp;: votre première sortie s'écrira ici, et deviendra un souvenir de voyage.</p>";
+  return `
+    <article class="page-carnet page-v1 page-accueil">
+      <div class="accueil-carnet">
+        <span class="accueil-fleuron" aria-hidden="true">❦</span>
+        ${texte}
+      </div>
+      <span class="page-numero">— 1 —</span>
     </article>`;
 }
 

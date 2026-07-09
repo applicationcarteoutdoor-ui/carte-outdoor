@@ -30,6 +30,7 @@ from pathlib import Path
 import openpyxl
 
 import enrichissements as enr
+import recolter_cascades
 
 RACINE = Path(__file__).resolve().parent.parent
 DONNEES = RACINE / "Donné"
@@ -910,9 +911,15 @@ def main():
     cathedrales = convertir_cathedrales()
     convertir_toilettes()  # fichier séparé data/toilettes.geojson
 
+    # Cascades (OSM/Overpass + Wikipédia) : ids casc-… préservés d'une
+    # exécution à l'autre (lus dans l'ancien points.geojson AVANT réécriture) ;
+    # les doublons complètent les points des autres catégories (fusion).
+    autres = via_ferrata + refuges + escalade + chateaux + cites + grottes + cathedrales
+    cascades, _ = recolter_cascades.convertir_cascades(autres)
+    print(f"Cascades : {len(cascades)}")
+
     collection = {"type": "FeatureCollection",
-                  "features": via_ferrata + refuges + escalade + chateaux + cites
-                  + grottes + cathedrales}
+                  "features": autres + cascades}
     CIBLE_POINTS.write_text(json.dumps(collection, ensure_ascii=False, separators=(",", ":")),
                             encoding="utf-8")
     print(f"\npoints.geojson : {len(collection['features'])} features, "

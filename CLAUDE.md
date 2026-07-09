@@ -22,6 +22,8 @@ python tools/build_data.py
 
 **Agent testeur** : `.claude/agents/testeur-app.md` — test de bout en bout dans le navigateur, sur demande (« lance le testeur ») ; il parcourt toute l'app, nettoie ses données de test et produit `dev/RAPPORT-TEST-<date>.md`.
 
+**Agent enrichisseur de données** : `.claude/agents/enrichisseur-donnees.md` — outil de dev (invisible dans l'app) qui ajoute ou met à jour des catégories de lieux (« lance l'enrichisseur : cascades ») : récolte OSM/Wikipédia/data.gouv, dédoublonnage nom+distance, contrôle qualité, intégration `data/points.geojson` + entrée `themes.js`, rapport `dev/RAPPORT-ENRICHISSEMENT-<date>.md`. Il ne touche à rien d'autre et ne pousse jamais.
+
 **Tests** : ouvrir `http://localhost:8125/dev/tests.html` — mini harnais maison (`dev/tests.js`) sur les fonctions pures (`esc`, `passeFiltre`, résolution des thèmes), sans DOM ni donnée utilisateur. À lancer après toute modification de `util.js`, `filtrage.js` ou `themes.js` ; un nouvel invariant = un `check(nom, cond)` à ajouter. Pas de linter. Le reste se vérifie dans le navigateur (les modules de la page sont importables depuis la console : `await import('./js/map.js')` renvoie les instances vivantes de l'application).
 
 ## Règles critiques

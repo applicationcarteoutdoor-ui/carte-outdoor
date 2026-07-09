@@ -136,6 +136,17 @@ export const THEMES = [
     filters: [],
   },
   {
+    id: "cascade",
+    label: "Cascade",
+    color: "#0096c7",
+    icon: "💦",
+    fields: [
+      { key: "hauteur", label: "Hauteur de chute" },
+      { key: "altitude", label: "Altitude" },
+    ],
+    filters: [],
+  },
+  {
     id: "chateau",
     label: "Château",
     color: "#9d4edd",

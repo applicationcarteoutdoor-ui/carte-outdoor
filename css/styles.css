@@ -549,11 +549,13 @@ h2, h3, h4 { font-weight: 650; }
 .panel-header h2 { margin: 0; font-size: 1.02rem; }
 
 .panel-close {
-  min-width: 40px;
-  min-height: 40px;
+  /* Cible tactile généreuse et croix bien visible (retour utilisateur v44 :
+     trop discrète sur mobile pour les catégories et les filtres) */
+  min-width: 46px;
+  min-height: 46px;
   border: none;
   background: transparent;
-  font-size: 1.05rem;
+  font-size: 1.4rem;
   color: var(--text-2);
   border-radius: 10px;
   flex: none;

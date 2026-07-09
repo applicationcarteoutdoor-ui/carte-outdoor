@@ -781,10 +781,15 @@ async function demarrer() {
   await chargerPoints();
   restaurerPrefs(prefs);
 
-  initMap(prefs, {
+  const carte = initMap(prefs, {
     onPointClick: ouvrirFiche,
     onViewChange: (vue) => storage.savePrefs(vue),
   });
+  // Toucher la carte replie le tiroir des catégories (sur mobile, il recouvre
+  // la carte). Sur PC (≥ 900 px) le panneau est fixe : closeSidebar sans effet.
+  // Les clics sur les épingles ne remontent pas jusqu'à la carte : ouvrir une
+  // fiche depuis la liste ne referme donc rien d'involontaire.
+  carte.on("click", () => closeSidebar());
 
   initSidebar({
     onToggleTheme: async (id, coche) => {

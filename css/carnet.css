@@ -923,6 +923,33 @@
 .page-photo-bloc:hover .photo-suppr,
 .photo-suppr:focus-visible { opacity: 1; }
 
+/* Page d'accueil : le carnet s'ouvre même vierge — mot de bienvenue manuscrit
+   (ou « aucune correspondance » quand une recherche ne trouve rien) */
+.page-accueil {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.accueil-carnet {
+  max-width: 34ch;
+  padding: 0 8%;
+  text-align: center;
+  font-family: "Caveat", cursive;
+  font-size: 1.5rem;
+  line-height: 1.4;
+  color: #24466e; /* encre bleue de plume, comme les boutons du carnet */
+}
+.accueil-carnet p { margin: 10px 0; }
+.accueil-fleuron {
+  display: block;
+  font-size: 2.1rem;
+  opacity: 0.55;
+  margin-bottom: 4px;
+}
+/* Papiers sombres (grimoire en mode nuit, thème nuit) : encre craie */
+body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit) .accueil-carnet,
+.carnet-theme-nuit .accueil-carnet { color: #ece0c2; }
+
 /* Sur écran tactile, pas de survol : les commandes restent visibles */
 @media (hover: none) {
   .note-editer,
