@@ -344,7 +344,19 @@ function construireMessage(lieu) {
 /* ------------------------------------------------------------------ */
 
 function enLigne(t) {
-  return esc(t).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  return (
+    esc(t)
+      // Lien interne vers un point de NOTRE carte : {{p:ID}}texte{{/p}}.
+      // Posé par le mode Gratuit (sectionCarte). L'ID est validé
+      // alphanumérique/tiret, le texte est déjà échappé par esc() → sûr même
+      // si un modèle IA tentait d'imiter ce marqueur (un ID inconnu ne fera
+      // rien au clic, voir le gestionnaire dans initOracle).
+      .replace(
+        /\{\{p:([\w-]+)\}\}([\s\S]+?)\{\{\/p\}\}/g,
+        (m, id, texte) => `<button type="button" class="oracle-point" data-id="${id}">${texte}</button>`
+      )
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+  );
 }
 
 function formaterReponse(texte) {
@@ -669,7 +681,13 @@ function sectionCarte(lieu) {
         p.d < 0.15
           ? "sur place"
           : `à ${kmLisible(p.d)} km ${versDirection(direction(lieu.lat, lieu.lon, p.lat, p.lon))}`;
-      return `- **${p.f.properties.name}** — ${ou}`;
+      // Le nom devient un LIEN vers le point sur la carte (marqueur {{p:ID}}
+      // interprété par enLigne). Repli en simple gras si l'id est atypique.
+      const id = p.f.properties.id;
+      const nom = /^[\w-]+$/.test(id)
+        ? `{{p:${id}}}**${p.f.properties.name}**{{/p}}`
+        : `**${p.f.properties.name}**`;
+      return `- ${nom} — ${ou}`;
     });
     blocs.push(`### ${proches[0].t.icon} ${proches[0].t.label}\n${lignes.join("\n")}`);
   }
@@ -878,6 +896,15 @@ export function initOracle(callbacks = {}) {
 
   document.getElementById("btn-oracle").addEventListener("click", ouvrir);
   dialog.querySelector(".oracle-close").addEventListener("click", () => dialog.close());
+
+  // Clic sur un point annoncé (mode Gratuit) → on ferme l'Oracle et on montre
+  // le point sur la carte. L'id vient d'un marqueur validé (voir enLigne).
+  elReponse.addEventListener("click", (e) => {
+    const btn = e.target.closest(".oracle-point");
+    if (!btn) return;
+    dialog.close();
+    cb.onVoirPoint?.(btn.dataset.id);
+  });
   dialog.querySelector(".oracle-cle-toggle").addEventListener("click", () => ouvrirPanneauCle());
 
   // Fermeture en touchant le fond, hors de la fenêtre (indispensable sur

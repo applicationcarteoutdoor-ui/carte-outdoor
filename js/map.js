@@ -262,7 +262,7 @@ export function focusPoint(feature) {
 /** Cercle de recherche (ex. toilettes à moins de 1 km) : un seul à la fois. */
 let cercleRayon = null;
 
-export function montrerRayon(lat, lon, rayon) {
+export function montrerRayon(lat, lon, rayon, zoom = 15) {
   if (cercleRayon) cercleRayon.remove();
   cercleRayon = L.circle([lat, lon], {
     radius: rayon,
@@ -273,7 +273,7 @@ export function montrerRayon(lat, lon, rayon) {
   }).addTo(map);
   // Sans animation : le centre doit être à jour IMMÉDIATEMENT, car le tri
   // par distance de setPoints (gros lots) lit map.getCenter() juste après.
-  map.setView([lat, lon], 15, { animate: false });
+  map.setView([lat, lon], zoom, { animate: false });
 }
 
 export function getMap() {
@@ -383,6 +383,14 @@ export async function toggleLocate() {
     });
   });
   const { latitude, longitude, accuracy } = pos.coords;
+  // Pastille « vous êtes ici » : un gros point vert bien visible, cerné de
+  // blanc, avec un halo qui pulse (divIcon → animation CSS .position-gps).
+  const iconePosition = L.divIcon({
+    className: "",
+    html: '<div class="position-gps"><span class="position-gps-halo"></span><span class="position-gps-point"></span></div>',
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+  });
   positionLayer = L.layerGroup([
     L.circle([latitude, longitude], {
       radius: accuracy,
@@ -390,13 +398,7 @@ export async function toggleLocate() {
       weight: 1,
       fillOpacity: 0.12,
     }),
-    L.circleMarker([latitude, longitude], {
-      radius: 8,
-      color: "#ffffff",
-      weight: 3,
-      fillColor: "#2e7d52",
-      fillOpacity: 1,
-    }),
+    L.marker([latitude, longitude], { icon: iconePosition, keyboard: false, interactive: false }),
   ]).addTo(map);
   map.flyTo([latitude, longitude], Math.max(map.getZoom(), 13), { duration: 0.8 });
   return "on";

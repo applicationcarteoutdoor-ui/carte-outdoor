@@ -29,9 +29,24 @@ import websocket  # pip install websocket-client
 CHROME = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
 PORT = 9333
 HOTE_APP = "http://localhost:8125"
-SCENES = ["carte", "fiche", "oracle", "carnet", "carnet-photo"]
+TELEPHONE = (390, 844)  # 9:16, format des réseaux et du Play Store
+TABLETTE = (1180, 820)  # paysage : le carnet s'ouvre alors en DOUBLE page
 
-LARGEUR, HAUTEUR, ECHELLE = 390, 844, 2  # téléphone, image doublée (nette)
+# (nom de la scène, taille du viewport)
+SCENES = [
+    ("carte", TELEPHONE),
+    ("fiche-viaferrata", TELEPHONE),
+    ("fiche-chateau", TELEPHONE),
+    ("fiche-grotte", TELEPHONE),
+    ("oracle", TELEPHONE),
+    ("carnet-p1", TELEPHONE),
+    ("carnet-p2", TELEPHONE),
+    ("carnet-p3", TELEPHONE),
+    ("carnet-photo", TELEPHONE),
+    ("carnet-double", TABLETTE),
+]
+
+ECHELLE = 2  # image doublée : nette au montage
 SORTIE = pathlib.Path(__file__).parent / "captures"
 
 
@@ -73,7 +88,7 @@ def demarrer_chrome(profil):
             "--remote-allow-origins=*",
             f"--remote-debugging-port={PORT}",
             f"--user-data-dir={profil}",
-            f"--window-size={LARGEUR},{HAUTEUR}",
+            "--window-size=1280,900",  # la taille réelle vient de l'émulation
             "about:blank",
         ],
         stdout=subprocess.DEVNULL,
@@ -97,15 +112,16 @@ def url_page():
     raise RuntimeError("Aucun onglet exploitable.")
 
 
-def capturer(cdp, scene):
+def capturer(cdp, scene, taille):
     """Navigue, attend le signal de la scène, photographie."""
+    largeur, hauteur = taille
     cdp.envoyer("Page.enable")
     cdp.envoyer(
         "Emulation.setDeviceMetricsOverride",
-        width=LARGEUR,
-        height=HAUTEUR,
+        width=largeur,
+        height=hauteur,
         deviceScaleFactor=ECHELLE,
-        mobile=True,
+        mobile=largeur < 900,
     )
     cdp.envoyer("Page.navigate", url=f"{HOTE_APP}/dev/video/capture.html?scene={scene}")
 
@@ -130,17 +146,21 @@ def capturer(cdp, scene):
 
 
 def main():
+    # Sans argument : toutes les scènes. Sinon : celles nommées.
+    voulues = [a for a in __import__("sys").argv[1:]]
+    scenes = [s for s in SCENES if not voulues or s[0] in voulues]
+
     SORTIE.mkdir(parents=True, exist_ok=True)
     profil = tempfile.mkdtemp(prefix="carte-capture-")
     proc = demarrer_chrome(profil)
     cdp = Cdp(url_page())
     try:
-        for scene in SCENES:
-            chemin = capturer(cdp, scene)
+        for scene, taille in scenes:
+            chemin = capturer(cdp, scene, taille)
             if chemin:
-                print(f"  OK   {scene:14s} -> {chemin.name} ({chemin.stat().st_size // 1024} Ko)")
+                print(f"  OK    {scene:18s} -> {chemin.name} ({chemin.stat().st_size // 1024} Ko)")
             else:
-                print(f"  ECHEC {scene:14s} (scène jamais prête)")
+                print(f"  ECHEC {scene:18s} (scène jamais prête)")
     finally:
         cdp.fermer()
         proc.terminate()

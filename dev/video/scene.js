@@ -34,6 +34,12 @@ function fermerTuto() {
   document.getElementById("backup-dialog")?.close?.();
 }
 
+/** Le panneau de filtres s'ouvre tout seul (catégories filtrables cochées) :
+ *  pour une capture, on veut la carte nue. */
+function fermerFiltres() {
+  document.querySelector("#filter-panel .panel-close")?.click();
+}
+
 /** Fige les animations : une capture nette, pas un flou de scintillement. */
 function figerAnimations() {
   const st = document.createElement("style");
@@ -49,10 +55,25 @@ async function pretPour(selecteur, essais = 40) {
   return false;
 }
 
-/** Le panneau de filtres s'ouvre tout seul (catégories filtrables cochées) :
- *  pour une capture, on veut la carte nue. */
-function fermerFiltres() {
-  document.querySelector("#filter-panel .panel-close")?.click();
+/** Ouvre la fiche du point, carte centrée dessus — le geste du plan « il clique ». */
+async function ouvrirFiche(id) {
+  const pts = await fetch("./data/points.geojson").then((r) => r.json());
+  const feature = pts.features.find((f) => f.properties.id === id);
+  const { focusPoint } = await import("../../js/map.js");
+  focusPoint(feature); // la carte se centre sur le spot, épingle en avant
+  await attendre(1500);
+  const details = await import("../../js/details.js");
+  details.openDetails(feature, null);
+  await pretPour(".details-panel, #details-panel");
+  await attendre(1400); // laisse la photo Wikipédia arriver
+}
+
+/** Feuillette le grimoire : le carnet écoute les flèches sur `document`. */
+async function tournerPages(nb) {
+  for (let i = 0; i < nb; i++) {
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    await attendre(800); // l'animation de pli dure ~300 ms
+  }
 }
 
 (async () => {
@@ -69,29 +90,24 @@ function fermerFiltres() {
     await attendre(2200); // les tuiles du nouveau cadrage
   }
 
-  if (scene === "fiche") {
-    const pts = await fetch("./data/points.geojson").then((r) => r.json());
-    const feature = pts.features.find((f) => f.properties.id === pointId);
-    const { focusPoint } = await import("../../js/map.js");
-    focusPoint(feature); // la carte se centre sur le spot, épingle en avant
-    await attendre(1400);
-    const details = await import("../../js/details.js");
-    details.openDetails(feature, null);
-    await pretPour(".details-panel, #details-panel");
-    await attendre(1400); // laisse la photo Wikipédia arriver
-  }
+  if (scene.startsWith("fiche-")) await ouvrirFiche(pointId);
 
   if (scene === "oracle") {
     document.getElementById("btn-oracle").click();
     await attendre(700);
   }
 
-  if (scene === "carnet" || scene === "carnet-photo") {
+  if (scene.startsWith("carnet")) {
     const carnet = await import("../../js/carnet.js");
     await carnet.ouvrirCarnet();
     await attendre(900);
     document.querySelector(".carnet-couverture")?.click(); // on ouvre le livre
-    await attendre(1100);
+    await attendre(1200);
+
+    // carnet-p1 / p2 / p3 : la page voulue du grimoire
+    const page = Number((scene.match(/^carnet-p(\d+)$/) || [])[1] || 1);
+    if (page > 1) await tournerPages(page - 1);
+
     if (scene === "carnet-photo") {
       document.querySelector(".page-photo")?.click(); // visionneuse plein écran
       await attendre(700);

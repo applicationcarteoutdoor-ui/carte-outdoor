@@ -10,15 +10,15 @@
     Harnais de CAPTURE D'ÉCRAN (outil de développement, hors application).
 
     Charge l'application dans une iframe de la taille d'un téléphone, prépare
-    l'état voulu (une « scène »), puis laisse Chrome headless photographier le
-    résultat. Rien ici n'est pré-caché ni servi aux visiteurs.
+    l'état voulu (une « scène »), puis laisse le pilote CDP (capturer.py)
+    photographier le résultat. Rien ici n'est pré-caché ni servi aux visiteurs.
 
-    Usage :
-      capture.html?scene=carte | fiche | oracle | carnet | carnet-photo
+    Scènes : carte · fiche-viaferrata · fiche-chateau · fiche-grotte · oracle
+             carnet-p1 · carnet-p2 · carnet-p3 · carnet-photo
 
-    Les données de démonstration (sortie + selfie dans le carnet) sont écrites
-    dans le stockage de CETTE origine : lancer Chrome avec un --user-data-dir
-    temporaire pour ne rien laisser derrière soi (voir capturer.ps1).
+    Les trois sorties de démonstration (via ferrata, château, grotte) sont
+    écrites dans le stockage de CETTE origine : capturer.py lance Chrome avec un
+    --user-data-dir temporaire, rien ne reste dans le navigateur de personne.
   -->
   <style>
     html, body { margin: 0; padding: 0; overflow: hidden; background: #fff; }
@@ -30,11 +30,39 @@
 import * as storage from "../../js/storage.js";
 
 const scene = new URLSearchParams(location.search).get("scene") || "carte";
-const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Les trois lieux de la vidéo : « il clique, il y est ». Trois univers qui
+ * n'ont rien à voir entre eux — c'est tout le propos de l'application.
+ */
+const SPOTS = [
+  {
+    id: "vf-024",
+    photo: "photos/via-ferrata.jpg",
+    note: "Le vide sous les pieds, la vallée en dessous. J'ai adoré.",
+  },
+  {
+    id: "ch-0197",
+    photo: "photos/chateau.jpg",
+    note: "Chambord un dimanche de juillet. Presque personne.",
+  },
+  {
+    id: "grot-0030",
+    photo: "photos/grotte.jpg",
+    note: "Sous terre, le silence est total. On entend l'eau tomber.",
+  },
+];
+
+/** Le point mis en avant selon la scène (pour les fiches). */
+const POINT_DE_LA_SCENE = {
+  "fiche-viaferrata": "vf-024",
+  "fiche-chateau": "ch-0197",
+  "fiche-grotte": "grot-0030",
+};
 
 /** Table rase : ni service worker, ni cache, ni données d'une exécution passée. */
 async function nettoyer() {
-  const regs = await navigator.serviceWorker?.getRegistrations?.() ?? [];
+  const regs = (await navigator.serviceWorker?.getRegistrations?.()) ?? [];
   for (const r of regs) await r.unregister();
   for (const k of await caches.keys()) await caches.delete(k);
   localStorage.clear();
@@ -44,18 +72,8 @@ async function nettoyer() {
   });
 }
 
-/** Le point vedette de la vidéo : une via ferrata (le « spot » du héros). */
-async function pointVedette() {
-  const pts = await fetch("../../data/points.geojson").then((r) => r.json());
-  return (
-    pts.features.find((f) => f.properties.theme === "via-ferrata" && /Chamonix|Curalla|Ancelle/i.test(f.properties.name)) ||
-    pts.features.find((f) => f.properties.theme === "via-ferrata")
-  );
-}
-
-/** La photo du héros, telle qu'elle atterrit dans le carnet. */
-async function selfieDataUrl() {
-  const blob = await fetch("./selfie-placeholder.jpg").then((r) => r.blob());
+async function versDataUrl(chemin) {
+  const blob = await fetch(chemin).then((r) => r.blob());
   return new Promise((ok) => {
     const fr = new FileReader();
     fr.onload = () => ok(fr.result);
@@ -63,17 +81,21 @@ async function selfieDataUrl() {
   });
 }
 
-/** Prépare le carnet : la sortie est faite, la photo est collée, la note écrite. */
-async function semerCarnet(feature) {
-  const id = feature.properties.id;
-  await storage.setStatus(id, "fait");
-  await storage.addSortie(id);
-  await storage.addJournalEntry(id, {
-    id: "j-video-1",
-    date: new Date().toISOString(),
-    text: "Je ne savais pas quoi faire de mon week-end. Maintenant si.",
-    photo: await selfieDataUrl(),
-  });
+/**
+ * Sème les trois sorties du même jour, chacune avec sa photo et sa note.
+ * Le carnet les regroupe par (lieu, jour) : une entrée par spot.
+ */
+async function semerCarnet() {
+  for (const [i, spot] of SPOTS.entries()) {
+    await storage.setStatus(spot.id, "fait");
+    await storage.addSortie(spot.id);
+    await storage.addJournalEntry(spot.id, {
+      id: `j-video-${i}`,
+      date: new Date().toISOString(),
+      text: spot.note,
+      photo: await versDataUrl(spot.photo),
+    });
+  }
 }
 
 (async () => {
@@ -82,13 +104,12 @@ async function semerCarnet(feature) {
   // dès qu'il y a des données : les deux masqueraient la capture.
   await storage.savePrefs({
     tutoVu: true,
-    activeThemes: ["via-ferrata", "refuge", "chateau"],
+    activeThemes: ["via-ferrata", "refuge", "chateau", "grotte"],
     dernierExport: Date.now(),
     dernierRappelSauvegarde: Date.now(),
   });
 
-  const feature = await pointVedette();
-  if (scene === "carnet" || scene === "carnet-photo") await semerCarnet(feature);
+  if (scene.startsWith("carnet")) await semerCarnet();
 
   const iframe = document.createElement("iframe");
   iframe.src = "../../index.html";
@@ -100,7 +121,8 @@ async function semerCarnet(feature) {
     const doc = iframe.contentWindow.document;
     const s = doc.createElement("script");
     s.type = "module";
-    s.src = `/dev/video/scene.js?scene=${encodeURIComponent(scene)}&point=${encodeURIComponent(feature.properties.id)}`;
+    const point = POINT_DE_LA_SCENE[scene] || SPOTS[0].id;
+    s.src = `/dev/video/scene.js?scene=${encodeURIComponent(scene)}&point=${encodeURIComponent(point)}`;
     doc.body.appendChild(s);
   });
 })();

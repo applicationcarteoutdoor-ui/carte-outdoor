@@ -317,8 +317,25 @@ function initRecherche() {
   const resultats = document.getElementById("search-results");
 
   input.addEventListener("input", () => {
-    const requete = normaliser(input.value.trim());
+    const brut = input.value.trim();
     resultats.textContent = "";
+
+    // Un code postal (5 chiffres) : on propose d'aller sur la carte à cet
+    // endroit plutôt que de chercher un point nommé « 05100 ».
+    if (/^\d{5}$/.test(brut)) {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "search-result";
+      item.innerHTML =
+        '<span class="group-icon" style="--pin-color:#2e7d52;--pin-text:#fff" aria-hidden="true">📍</span>' +
+        '<span class="search-result-text"><strong></strong><small>Aller sur la carte</small></span>';
+      item.querySelector("strong").textContent = `Code postal ${brut}`;
+      item.addEventListener("click", () => allerAuCodePostal(brut));
+      resultats.appendChild(item);
+      return;
+    }
+
+    const requete = normaliser(brut);
     if (requete.length < 2) return;
     const trouves = state.allPoints
       .filter((f) => normaliser(f.properties.name).includes(requete))
@@ -355,6 +372,31 @@ function initRecherche() {
       resultats.querySelector(".search-result")?.click();
     }
   });
+}
+
+/** Recentre la carte sur un code postal (commune résolue via geo.api.gouv.fr). */
+async function allerAuCodePostal(cp) {
+  const input = document.getElementById("search-input");
+  const resultats = document.getElementById("search-results");
+  try {
+    const res = await fetch(
+      `https://geo.api.gouv.fr/communes?codePostal=${encodeURIComponent(cp)}&fields=nom,centre&format=json`
+    );
+    const arr = res.ok ? await res.json() : null;
+    const coords = Array.isArray(arr) && arr[0]?.centre?.coordinates;
+    if (!coords) {
+      toast(`Aucune commune trouvée pour le code postal ${cp}.`);
+      return;
+    }
+    input.value = "";
+    resultats.textContent = "";
+    if (window.innerWidth < 900) closeSidebar();
+    // Vue d'ensemble de la commune (zoom 12) + cercle indicatif de 3 km.
+    montrerRayon(coords[1], coords[0], 3000, 12);
+    toast(`Code postal ${cp} — ${arr[0].nom}`);
+  } catch {
+    toast("Impossible de localiser ce code postal (connexion ?).");
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -890,8 +932,15 @@ async function demarrer() {
   initFondsCarte();
   initToilettesProches();
   initIdeas();
-  // L'Oracle : le mode « sans clé » puise dans les points déjà chargés
-  initOracle({ getPoints: () => state.allPoints });
+  // L'Oracle : le mode « sans clé » puise dans les points déjà chargés, et un
+  // point annoncé peut être ouvert directement sur la carte.
+  initOracle({
+    getPoints: () => state.allPoints,
+    onVoirPoint: (id) => {
+      const f = state.allPoints.find((p) => p.properties.id === id);
+      if (f) allerAuPoint(f);
+    },
+  });
   // Synchronisation multi-appareils : après une fusion « légère » (thème/
   // statuts), on ré-applique l'état sans recharger. Une fusion qui apporte de
   // nouveaux points/sorties déclenche, elle, un rechargement (voir sync.js).

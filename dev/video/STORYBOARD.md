@@ -1,117 +1,134 @@
-# Vidéo de lancement — « Le dimanche où il ne savait pas quoi faire »
+# Vidéo de lancement — « Il ne savait pas quoi faire »
 
-Durée : **13 s** (tient dans les 10-15 s demandées). Format : **9:16** (1080 × 1920) pour Play Store, Instagram, TikTok. Une version 16:9 se recadre ensuite.
+Durée : **13 s**. Format : **9:16** (1080 × 1920) pour le Play Store, Instagram, TikTok.
 
-Le fil : *un type s'ennuie → il ouvre l'app → il touche un point → il y est → il se prend en photo → la photo se colle dans son carnet.* Tout tient sur une seule idée : **l'app transforme un dimanche vide en souvenir**.
+Le fil : *il s'ennuie → il touche une via ferrata, il y est → il touche un château, il y est → il touche une grotte, il y est → les trois photos atterrissent dans son carnet.*
 
----
-
-## 1. Ce qui est déjà prêt
-
-Les captures de l'application, en vraies images (780 × 1688, format téléphone) :
-
-| Fichier | Ce qu'on y voit | Sert au plan |
-|---|---|---|
-| `captures/carte.png` | La carte, massif du Mont-Blanc, épingles et grappes de spots | 2 |
-| `captures/fiche.png` | La fiche « Via ferrata de Ancelle » (cotation, Google Maps, carnet) | 3 |
-| `captures/carnet.png` | La page du grimoire : photo en polaroïd + note manuscrite | 7 |
-| `captures/carnet-photo.png` | La photo ouverte en plein écran, avec Télécharger | bonus |
-| `captures/oracle.png` | La boule de cristal (mode Gratuit) | variante du plan 2 |
-
-Régénérables à volonté : `python tools/dev_server.py 8125` dans un terminal, puis `python dev/video/capturer.py`.
-
-⚠️ **`selfie-placeholder.jpg` est une silhouette dessinée**, pas une vraie photo. Une fois le tournage fait : remplacer ce fichier par la vraie photo du héros, relancer `capturer.py`, et la page du carnet contiendra **sa** photo. C'est ce détail qui rendra la fin crédible.
+**La règle de trois.** Une téléportation, c'est un gadget. Trois, c'est une promesse : *tout ce que tu touches, tu peux le vivre.* Et les trois lieux disent ce qu'aucun plan unique ne dirait — l'application ne parle pas d'escalade, elle parle de **7 400 façons de sortir de chez soi**.
 
 ---
 
-## 2. Le découpage, plan par plan
+## 1. Le découpage
 
 | # | Temps | Plan | Texte à l'écran | Son |
 |---|---|---|---|---|
-| 1 | 0,0 → 1,6 s | Il est avachi dans son canapé, téléphone à la main, il soupire. Lumière grise de dimanche. | « Dimanche. Rien de prévu. » | Silence, une horloge |
-| 2 | 1,6 → 3,2 s | Plan serré sur l'écran : `carte.png`, la carte se peuple d'épingles, léger zoom avant | — | *Whoosh* + musique qui démarre |
-| 3 | 3,2 → 4,4 s | Son pouce touche une épingle → `fiche.png` remonte depuis le bas | « Via ferrata de Ancelle » | *Tap* net |
-| 4 | 4,4 → 5,4 s | **La téléportation** : on plonge DANS l'épingle, flash blanc, la carte devient la vraie montagne | — | Montée + coup sourd |
-| 5 | 5,4 → 7,6 s | Il est sur la via ferrata : câble, vide sous lui, vallée immense. Il sourit. | — | Vent, mousquetons |
-| 6 | 7,6 → 9,2 s | Bras levé, il se prend en photo. **Flash + arrêt sur image** | — | *Clic* d'obturateur |
-| 7 | 9,2 → 11,4 s | L'arrêt sur image devient un polaroïd qui tombe dans le grimoire : `carnet.png`, la note s'écrit à la plume | « Je ne savais pas quoi faire de mon week-end. Maintenant si. » | Plume qui gratte |
-| 8 | 11,4 → 13,0 s | Fond sombre, logo, accroche | **Carte Outdoor**<br>7 400 spots. Ton carnet d'aventures.<br>*applicationcarteoutdoor-ui.github.io/carte-outdoor* | Musique qui retombe |
+| 1 | 0 → 1,2 s | Avachi sur son canapé, lumière grise de dimanche, il soupire | « Dimanche. Rien de prévu. » | Une horloge, puis rien |
+| 2 | 1,2 → 2,2 s | `carte.png` : la carte se peuple d'épingles, zoom avant | — | *Whoosh*, la musique démarre |
+| 3 | 2,2 → 4,2 s | **VIA FERRATA** — tap sur l'épingle (`fiche-viaferrata.png`) → plongée dans l'épingle → il est sur le câble, le vide dessous → **flash** | — | *Tap*, vent, **clic d'obturateur** |
+| 4 | 4,2 → 6,2 s | **CHÂTEAU** — tap (`fiche-chateau.png`) → il est devant Chambord, contre-plongée → **flash** | — | *Tap*, corbeaux, **clic** |
+| 5 | 6,2 → 8,2 s | **GROTTE** — tap (`fiche-grotte.png`) → il est sous terre, lampe frontale → **flash** | — | *Tap*, goutte d'eau, **clic** |
+| 6 | 8,2 → 11,2 s | Le grimoire s'ouvre. Les trois photos se collent une à une, la plume écrit | « Une journée. Trois souvenirs. » | Plume qui gratte, page qui tourne |
+| 7 | 11,2 → 13 s | Fond sombre, logo | **Carte Outdoor**<br>7 400 spots. Ton carnet d'aventures.<br>*applicationcarteoutdoor-ui.github.io/carte-outdoor* | La musique retombe |
 
-**La règle d'or du plan 4** : le mouvement doit être *continu*. On zoome sur l'épingle brune de la fiche, le flash blanc couvre la coupe, et le plan suivant démarre déjà en mouvement (caméra qui recule sur la falaise). C'est ce raccord qui donne la téléportation.
+**Le battement.** Chaque bloc de 2 s se découpe en `0,5 s de tap → 1 s sur place → 0,5 s de flash`. Les **trois flashs** sont la respiration de la vidéo : cale-les sur les temps forts de la musique et la vidéo se monte toute seule. Ne filme pas le personnage en train de sortir son téléphone : **le flash EST la photo**. C'est plus rapide et plus élégant.
+
+**Le raccord de téléportation** (le seul truc à réussir) : zoome dans l'épingle de la fiche jusqu'à ce que sa couleur remplisse l'écran, coupe sur un **flash blanc de 3 images**, et démarre le plan suivant *déjà en mouvement* (caméra qui recule). Le cerveau recolle tout seul.
 
 ---
 
-## 3. Les prompts (à coller dans l'outil de génération)
+## 2. Ce qui est déjà prêt : les captures de l'app
 
-Trois plans seulement sont à générer ou à filmer : **1** (le canapé), **5** (la via ferrata), **6** (le selfie). Les autres sont les captures de l'app.
+Vraies images de l'application, dans `captures/` (780 × 1688, sauf la double page).
 
-Les IA vidéo comprennent mieux l'anglais : le prompt anglais est la version à coller, le français est là pour que tu saches ce qu'il dit.
+| Fichier | Plan | Ce qu'on y voit |
+|---|---|---|
+| `carte.png` | 2 | La carte, massif du Mont-Blanc, épingles et grappes |
+| `fiche-viaferrata.png` | 3 | Fiche « Via ferrata de Chamonix » |
+| `fiche-chateau.png` | 4 | Fiche « Chambord », avec sa photo |
+| `fiche-grotte.png` | 5 | Fiche « Aven d'Orgnac » |
+| `carnet-p1.png` `carnet-p2.png` `carnet-p3.png` | 6 | Les trois pages du grimoire (grotte, château, via ferrata) |
+| `carnet-double.png` | 6 (variante) | **Le grimoire ouvert en double page : deux souvenirs d'un coup** |
+| `carnet-photo.png` | bonus | Une photo du carnet en plein écran |
+| `oracle.png` | bonus | La boule de cristal |
 
-### Plan 1 — L'ennui (1,6 s)
+Régénérer : `python tools/dev_server.py 8125` dans un terminal, puis `python dev/video/capturer.py` (ou `python dev/video/capturer.py carnet-double` pour une seule scène).
 
-> **EN** — *Vertical 9:16. A young man in his late twenties slumped on a grey sofa in a dim living room, overcast Sunday light through the window, phone loose in his hand, he exhales and stares at the ceiling, bored. Static shot, 35mm lens, shallow depth of field, muted desaturated colors, cinematic, photorealistic. Subtle slow push-in. No text, no logo.*
+### ⚠️ Une contrainte réelle, à connaître avant de monter
+
+Sur un téléphone, **le carnet affiche une entrée par page** (mesuré : « page 1 / 3 »). Les trois photos ne tiennent donc **pas** sur une seule page verticale. Trois façons de faire le plan 6, par ordre de préférence :
+
+1. **Le feuilletage** (le plus beau et le plus vrai) : `carnet-p1` → `carnet-p2` → `carnet-p3`, 0,6 s chacune, avec le bruit de page. Trois photos, trois pages, trois souvenirs.
+2. **La double page** : `carnet-double.png` (format tablette) montre deux entrées côte à côte. Superbe en 16:9.
+3. Composer un montage de trois polaroïds qui tombent sur une page — joli, mais ce n'est plus l'écran réel de l'app. À éviter : la sincérité est ton meilleur argument.
+
+### Les photos du carnet
+
+`photos/via-ferrata.jpg`, `photos/chateau.jpg`, `photos/grotte.jpg` sont des **illustrations de substitution** que j'ai dessinées. Une fois le tournage fait : remplace ces trois fichiers par les vraies photos, relance `capturer.py`, et les pages du grimoire contiendront **ses** photos. C'est ce détail qui rendra la fin vraie — le carnet de la vidéo sera littéralement le carnet de l'app.
+
+---
+
+## 3. Les prompts
+
+Quatre plans à générer ou filmer : le canapé, et les trois arrivées. Les modèles répondent mieux en anglais ; le français est là pour que tu saches ce que tu colles.
+
+### Plan 1 — L'ennui (1,2 s)
+
+> **EN** — *Vertical 9:16. A man in his late twenties slumped on a grey sofa in a dim living room, overcast Sunday light through the window, phone loose in his hand, he exhales and stares at the ceiling, bored. Static shot with a very slow push-in, 35mm lens, shallow depth of field, muted desaturated colors, photorealistic, cinematic.*
 >
-> **FR** — Un homme d'une trentaine d'années affalé sur un canapé gris, lumière grise de dimanche, téléphone mou dans la main, il souffle et fixe le plafond. Plan fixe, léger travelling avant, couleurs désaturées, photoréaliste.
+> **FR** — Un homme d'une trentaine d'années affalé sur un canapé gris, lumière grise de dimanche, téléphone mou dans la main. Il souffle, fixe le plafond. Plan fixe, très lent travelling avant, couleurs désaturées.
 
-Négatif : `text, watermark, distorted hands, extra fingers, cartoon`
+### Plan 3 — L'arrivée sur la via ferrata (1 s)
 
-### Plan 5 — La via ferrata (2,2 s)
-
-> **EN** — *Vertical 9:16. A hiker in a helmet and harness clipped to a steel cable on a vertical limestone via ferrata, deep alpine valley far below, late afternoon golden light, French Alps. Camera pulls back and slightly up, revealing the drop. Handheld energy, natural motion blur, photorealistic, cinematic color grade, 24mm wide lens.*
+> **EN** — *Vertical 9:16. A man in a helmet and harness suddenly standing on a vertical limestone cliff, clipped to a steel cable, a deep alpine valley thousands of feet below, French Alps, late afternoon golden light. The camera pulls back and tilts up to reveal the drop. Handheld energy, natural motion blur, 24mm wide lens, photorealistic, cinematic color grade.*
 >
-> **FR** — Un randonneur casqué et encordé sur une via ferrata verticale, vallée alpine loin en contrebas, lumière dorée de fin d'après-midi. La caméra recule et monte pour révéler le vide. Grand-angle, photoréaliste.
+> **FR** — Un homme casqué et encordé, debout sur une falaise verticale, câble d'acier, vallée alpine très loin en dessous, lumière dorée. La caméra recule et bascule vers le haut pour révéler le vide.
 
-Négatif : `text, watermark, floating body, wrong anatomy, fake plastic rock`
+### Plan 4 — L'arrivée au château (1 s)
 
-### Plan 6 — Le selfie (1,6 s)
-
-> **EN** — *Vertical 9:16. Same hiker standing on a rocky summit, raises his arm holding a phone to take a selfie, wind in his jacket, huge mountain panorama behind him, golden hour. The frame freezes for an instant as the shutter fires, a soft white flash. Photorealistic, cinematic, 35mm.*
+> **EN** — *Vertical 9:16. The same man standing in front of the château de Chambord at golden hour, low angle looking up at the towers and chimneys, reflecting pool in the foreground, warm light, few tourists. Slow camera rise. Photorealistic, cinematic, 28mm.*
 >
-> **FR** — Le même randonneur, debout sur une arête, lève le bras avec son téléphone pour un selfie, vent dans la veste, panorama immense derrière lui. L'image se fige au déclenchement, léger flash blanc.
+> **FR** — Le même homme devant le château de Chambord à l'heure dorée, contre-plongée sur les tours, bassin au premier plan. La caméra s'élève lentement.
 
-Négatif : `text, watermark, deformed phone, extra arms`
+### Plan 5 — L'arrivée dans la grotte (1 s)
 
-### Plan 4 — La transition (facultatif, 1 s)
+> **EN** — *Vertical 9:16. The same man deep inside a vast limestone cave, wearing a headlamp, its beam sweeping across enormous stalactites, wet rock glistening, total darkness beyond the light. Camera slowly orbits him. Photorealistic, cinematic, high contrast, 24mm.*
+>
+> **FR** — Le même homme au fond d'une immense grotte calcaire, lampe frontale, faisceau balayant d'énormes stalactites, roche humide qui brille, noir total au-delà. La caméra tourne lentement autour de lui.
 
-Souvent plus propre à faire au montage (zoom + flash) qu'à générer. Si tu veux l'essayer en IA :
+**Prompt négatif, pour les quatre** : `text, watermark, logo, distorted hands, extra fingers, deformed face, cartoon, plastic look`
 
-> **EN** — *Vertical 9:16. Extreme close-up push into a brown map pin on a phone screen, the screen dissolves into a real alpine cliff face, seamless morph transition, white flash at the midpoint, cinematic, photorealistic.*
+### La continuité du personnage — le point qui rate le plus souvent
 
-### Cohérence du personnage
+Trois lieux = trois chances d'obtenir trois hommes différents. La méthode :
 
-Génère le **plan 5 d'abord**, garde son image, puis pour le plan 6 utilise la fonction **image-to-video** (Runway Gen-3, Kling) en partant de la dernière image du plan 5 : le personnage, sa veste et la lumière restent identiques. Sinon, tu auras deux hommes différents — l'erreur classique.
+1. Génère **le plan 3** (via ferrata) jusqu'à obtenir un personnage qui te plaît.
+2. Extrais une image de ce plan où on voit bien son visage et sa veste.
+3. Pour les plans 4 et 5, utilise le mode **image-to-video** (Runway Gen-3, Kling) en partant de cette image, et décris seulement le *nouveau décor*.
+
+Sans ça, ta vidéo racontera l'histoire de trois personnes, et personne ne comprendra.
 
 ### Quel outil ?
 
-- **Veo 3** (via Gemini) : le seul qui génère aussi le **son** (vent, obturateur). Le plus simple pour toi.
+- **Veo 3** (dans Gemini) : le seul qui génère aussi **le son** — vent, gouttes, obturateur. Le plus simple si tu ne veux pas bricoler la bande-son.
 - **Runway Gen-3** : le meilleur en *image-to-video*, donc pour la continuité du personnage.
-- **Kling** : très bon sur les morphs (le plan 4).
+- **Kling** : le plus fort sur les morphs, si tu veux tenter les transitions épingle → décor en génération plutôt qu'au montage.
 
 ---
 
 ## 4. Les plans de l'app : capture ou enregistrement d'écran ?
 
-Les PNG suffisent si tu les animes au montage (zoom lent, glissement de la fiche). Mais **un enregistrement d'écran est plus vivant** pour le plan 3 (le doigt qui touche l'épingle) :
+Les PNG suffisent si tu les animes (zoom lent, fiche qui glisse). Mais pour les trois **taps**, un enregistrement d'écran est plus vivant — on voit le vrai doigt, le vrai geste :
 
-- **Téléphone** : ouvre le site, lance l'enregistrement d'écran d'Android/iOS, touche l'épingle, ouvre le carnet. Tu filmes le vrai geste.
-- **Ordinateur** : Chrome → F12 → mode téléphone (Ctrl+Maj+M) → enregistre la fenêtre avec OBS.
+- **Téléphone** : ouvre le site, lance l'enregistrement d'écran, touche les trois épingles, ouvre le carnet.
+- **Ordinateur** : Chrome → F12 → mode téléphone (Ctrl+Maj+M) → OBS pour enregistrer la fenêtre.
 
-Dis-moi si tu veux d'autres états capturés (l'Oracle qui donne une réponse, le carnet qui se feuillette, le mode nuit) : `capturer.py` sait déjà les mettre en scène, il suffit d'ajouter une scène.
+Besoin d'autres états (l'Oracle qui répond, le mode nuit, une page précise) ? `capturer.py` sait les mettre en scène : il suffit d'ajouter une scène dans `scene.js`.
 
 ---
 
 ## 5. Montage
 
-- **CapCut** (gratuit, mobile ou PC) suffit largement. DaVinci Resolve si tu veux étalonner.
-- **Musique** : quelque chose qui démarre discret et s'ouvre au plan 4. Libre de droits : YouTube Audio Library, Pixabay Music, Uppbeat. Cherche « uplifting cinematic adventure ».
-- **Zone de sécurité** : sur 9:16, garde les textes entre 15 % et 85 % de la hauteur — les interfaces des réseaux mangent les bords.
-- **Fin** : la dernière image (logo + URL) doit rester **au moins 1,5 s** et lisible sans le son.
-- **Sous-titres** : incruste les textes à l'écran. 85 % des gens regardent sans le son.
+- **CapCut** suffit (gratuit, PC ou mobile). DaVinci Resolve si tu veux étalonner.
+- **Musique** : discrète au plan 1, elle s'ouvre au premier flash. Libre de droits : Pixabay Music, Uppbeat, YouTube Audio Library. Cherche *« uplifting cinematic adventure »*.
+- **Les flashs** : 2 à 3 images de blanc pur, pas plus. Au-delà, ça pique.
+- **Zone de sécurité 9:16** : garde les textes entre 15 % et 85 % de la hauteur, les interfaces des réseaux mangent les bords.
+- **La dernière image** (logo + URL) reste **au moins 1,5 s**, lisible sans le son.
+- **Sous-titres incrustés** : la majorité des gens regardent sans le son.
 
 ---
 
-## 6. Ce qui rend cette vidéo honnête
+## 6. Rester honnête
 
-Tout ce qui est montré de l'application est **réel** : la carte, les 7 400 points, la fiche, le grimoire. Rien n'est une maquette. Le seul élément fabriqué est le héros — et c'est normal, c'est une fiction.
+Tout ce qui est montré de l'application est **réel** : la carte, les fiches, le grimoire, les photos de Chambord et de l'Aven d'Orgnac. Rien n'est une maquette. Le seul élément fabriqué est le héros — et c'est le propre d'une fiction.
 
-Ne surpromets pas : pas de « l'IA planifie ton week-end » si le mode Gratuit ne fait pas ça. La promesse tenue par l'app est plus belle et plus simple : **« Tu ne sais pas quoi faire ? Voilà 7 400 idées, et un carnet pour t'en souvenir. »**
+Ne promets pas ce que l'app ne fait pas. Sa promesse tenue est déjà la bonne : **« Tu ne sais pas quoi faire ? Voilà 7 400 idées — et un carnet pour t'en souvenir. »**
