@@ -144,9 +144,25 @@ export const THEMES = [
       { key: "hauteur", label: "Hauteur de chute" },
       { key: "altitude", label: "Altitude" },
     ],
-    filters: [],
+    // « Fiche » : Référencée (photo + informations) / À vérifier (incomplète).
+    // Le champ details.fiche est posé par le pipeline de données.
+    filters: [
+      {
+        key: "fiche",
+        label: "Fiche",
+        type: "value",
+        field: "fiche",
+        options: [
+          { value: "Référencée", icon: "✅" },
+          { value: "À vérifier", icon: "🔍" },
+        ],
+      },
+    ],
   },
   {
+    // Une seule catégorie Château (l'ancienne « chateau-a-verifier » a été
+    // fusionnée ici en v45 : c'est le filtre « Fiche » qui distingue les
+    // châteaux documentés de ceux restant à confirmer).
     id: "chateau",
     label: "Château",
     color: "#9d4edd",
@@ -157,22 +173,18 @@ export const THEMES = [
       { key: "tarif", label: "Tarif" },
       { key: "accessibilite", label: "Accessibilité" },
     ],
-    filters: [],
-  },
-  {
-    // Châteaux du fichier source sans page Wikipédia : existence non
-    // confirmée (nom approximatif, ruine, confusion possible…)
-    id: "chateau-a-verifier",
-    label: "Château à vérifier",
-    color: "#7d6b94",
-    icon: "🏚️",
-    fields: [
-      { key: "periode", label: "Période" },
-      { key: "horaires", label: "Horaires" },
-      { key: "tarif", label: "Tarif" },
-      { key: "accessibilite", label: "Accessibilité" },
+    filters: [
+      {
+        key: "fiche",
+        label: "Fiche",
+        type: "value",
+        field: "fiche",
+        options: [
+          { value: "Référencé", icon: "✅" },
+          { value: "À vérifier", icon: "🔍" },
+        ],
+      },
     ],
-    filters: [],
   },
   {
     id: "cathedrale",

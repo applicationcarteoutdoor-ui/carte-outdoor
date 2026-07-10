@@ -1031,41 +1031,6 @@ dialog .panel-header { padding: 0 0 4px; }
 .btn-report { width: 100%; margin-top: 16px; }
 .btn-delete-point { width: 100%; margin-top: 8px; }
 
-/* Bandeau discret « données escalade partielles » (croix pour fermer) */
-#banner-escalade {
-  position: fixed;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  /* au-dessus de TOUS les panneaux (tiroir 1350, filtres 1500 sur mobile,
-     fiche 1360) : cocher Escalade ouvre justement le panneau de filtres */
-  z-index: 1600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  max-width: min(540px, calc(100vw - 130px));
-  padding: 7px 6px 7px 12px;
-  background: rgba(30, 41, 51, 0.85);
-  color: #fff;
-  font-size: 0.78rem;
-  line-height: 1.35;
-  border-radius: 10px;
-  box-shadow: var(--shadow);
-}
-#banner-escalade .banner-close {
-  flex: none;
-  background: none;
-  border: none;
-  color: #fff;
-  cursor: pointer;
-  font-size: 15px;
-  min-width: 38px;
-  min-height: 38px;
-  opacity: 0.8;
-}
-#banner-escalade .banner-close:hover { opacity: 1; }
-
 .ideas-form { margin: 8px 0; }
 .ideas-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; max-height: 38dvh; overflow-y: auto; }
 

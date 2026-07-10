@@ -91,11 +91,12 @@ Le réimporter restaure tout — pratique pour changer d'appareil.
 
 ## Identifiants de catégorie valides
 
-`via-ferrata`, `escalade`, `grotte`, `chateau`, `chateau-a-verifier`,
-`cathedrale`, `cite-caractere`, `refuge`, `toilettes`, plus vos catégories
-personnalisées (`perso-…`, créées via le bouton ➕ « Ajouter un point »).
+`via-ferrata`, `escalade`, `grotte`, `cascade`, `chateau`, `cathedrale`,
+`cite-caractere`, `refuge`, `toilettes`, plus vos catégories personnalisées
+(`perso-…`, créées via le bouton ➕ « Ajouter un point »).
 
-Les points importés avec une catégorie inconnue sont rattachés à « Autre ».
+Les points importés avec une catégorie inconnue sont rattachés à « Autre »
+(dont l'ancienne `chateau-a-verifier`, fusionnée dans `chateau` en v45).
 
 ⚠️ Ces identifiants sont **stables** : renommer une catégorie dans
 l'application (panneau liste → ✎) ne change que son nom affiché, jamais son

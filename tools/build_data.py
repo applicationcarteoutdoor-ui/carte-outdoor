@@ -620,18 +620,21 @@ def convertir_chateaux(communes):
         entrees_wiki.append((feature, texte))
     print(f"Châteaux : {len(features)} (échecs : {len(echecs)})")
     enr.enrichir_chateaux(entrees_wiki)
-    # Sans page Wikipédia, l'existence (ou le nom exact) n'est pas confirmée :
-    # ces châteaux passent dans la catégorie séparée « Château à vérifier ».
+    # Une seule catégorie Château (v45) : le champ details.fiche distingue les
+    # châteaux documentés (photo + page Wikipédia) de ceux restant à confirmer.
+    # Il alimente le filtre déclaratif « Fiche » de js/config/themes.js.
     non_confirmes = 0
     for feature in features:
-        if not feature["properties"]["link"]:
-            feature["properties"]["theme"] = "chateau-a-verifier"
-            feature["properties"]["description"] += (
+        p = feature["properties"]
+        complet = bool(p.get("photos")) and bool(p.get("link"))
+        p["details"]["fiche"] = "Référencé" if complet else "À vérifier"
+        if not p["link"]:
+            p["description"] += (
                 "\n\n! Existence non confirmée : aucune page Wikipédia trouvée "
                 "pour ce château (nom approximatif ou site disparu possible)."
             )
             non_confirmes += 1
-    print(f"  châteaux sans page Wikipédia -> « à vérifier » : {non_confirmes}")
+    print(f"  châteaux sans page Wikipédia -> fiche « À vérifier » : {non_confirmes}")
     return features, echecs
 
 

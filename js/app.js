@@ -72,7 +72,6 @@ const cycleUserPoint = {};
 
 /** Bandeau « données escalade partielles » : la croix le ferme, mais il
  *  réapparaît à chaque nouvelle activation de la catégorie Escalade. */
-let bandeauEscaladeFerme = false;
 
 /** Invite d'installation PWA (Android/Chrome) : capturée au niveau module —
  *  beforeinstallprompt peut arriver avant la fin du démarrage. */
@@ -221,8 +220,6 @@ function rafraichir() {
     statusActif: state.statusFilters.size > 0,
   });
   setPoints(pointsVisibles(), state.statuses);
-  document.getElementById("banner-escalade").hidden =
-    !state.activeThemes.has("escalade") || bandeauEscaladeFerme;
   planifierPrefs({
     activeThemes: [...state.activeThemes],
     statusFilters: [...state.statusFilters],
@@ -315,10 +312,13 @@ function normaliser(texte) {
 function initRecherche() {
   const input = document.getElementById("search-input");
   const resultats = document.getElementById("search-results");
+  let minuterieVilles = null;
+  let requeteVilles = 0; // anti-course : seule la DERNIÈRE réponse s'affiche
 
   input.addEventListener("input", () => {
     const brut = input.value.trim();
     resultats.textContent = "";
+    clearTimeout(minuterieVilles);
 
     // Un code postal (5 chiffres) : on propose d'aller sur la carte à cet
     // endroit plutôt que de chercher un point nommé « 05100 ».
@@ -360,6 +360,14 @@ function initRecherche() {
     if (!trouves.length) {
       resultats.innerHTML = '<p class="list-empty">Aucun point trouvé.</p>';
     }
+
+    // En complément des points : les VILLES qui portent ce nom (≥ 3 lettres),
+    // pour se déplacer sur la carte. Débouncé (une frappe = pas un appel),
+    // et gardé contre les réponses réseau arrivées dans le désordre.
+    if (brut.length >= 3) {
+      const jeton = ++requeteVilles;
+      minuterieVilles = setTimeout(() => proposerVilles(brut, jeton, resultats), 250);
+    }
   });
 
   input.addEventListener("keydown", (e) => {
@@ -372,6 +380,42 @@ function initRecherche() {
       resultats.querySelector(".search-result")?.click();
     }
   });
+
+  /** Suggestions de VILLES (geo.api.gouv.fr), ajoutées sous les points. */
+  async function proposerVilles(nom, jeton, conteneur) {
+    let communes = [];
+    try {
+      const res = await fetch(
+        `https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(nom)}` +
+          "&fields=nom,centre,departement&boost=population&limit=3"
+      );
+      communes = res.ok ? await res.json() : [];
+    } catch {
+      return; // hors connexion : la recherche de points reste utilisable
+    }
+    // Une frappe plus récente a relancé une recherche : réponse périmée
+    if (jeton !== requeteVilles) return;
+    for (const c of communes) {
+      const coords = c.centre?.coordinates;
+      if (!coords) continue;
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "search-result search-ville";
+      item.innerHTML =
+        '<span class="group-icon" style="--pin-color:#2e7d52;--pin-text:#fff" aria-hidden="true">📍</span>' +
+        '<span class="search-result-text"><strong></strong><small>Ville — aller sur la carte</small></span>';
+      item.querySelector("strong").textContent =
+        c.nom + (c.departement ? ` (${c.departement.code})` : "");
+      item.addEventListener("click", () => {
+        input.value = "";
+        conteneur.textContent = "";
+        if (window.innerWidth < 900) closeSidebar();
+        montrerRayon(coords[1], coords[0], 3000, 12);
+        toast(c.nom + (c.departement ? ` — ${c.departement.nom}` : ""));
+      });
+      conteneur.appendChild(item);
+    }
+  }
 }
 
 /** Recentre la carte sur un code postal (commune résolue via geo.api.gouv.fr). */
@@ -810,7 +854,6 @@ async function demarrer() {
       coche ? state.activeThemes.add(id) : state.activeThemes.delete(id);
       if (coche) {
         state.statusFilters.clear(); // exclusif avec le mode suivi
-        if (id === "escalade") bandeauEscaladeFerme = false; // le bandeau revient
         if (id === "toilettes" && !(await chargerToilettes())) {
           state.activeThemes.delete(id);
         }
@@ -967,20 +1010,6 @@ async function demarrer() {
     getPoints: () => state.allPoints,
     getStatuses: () => state.statuses,
     onVoirSurCarte: (feature) => allerAuPoint(feature),
-  });
-
-  // Fermeture du bandeau escalade : clic N'IMPORTE OÙ sur le bandeau
-  // (pas seulement la croix) ou touche Échap. Volontairement non persisté :
-  // il revient à la prochaine activation de la catégorie.
-  const fermerBandeau = () => {
-    bandeauEscaladeFerme = true;
-    document.getElementById("banner-escalade").hidden = true;
-  };
-  document.getElementById("banner-escalade").addEventListener("click", fermerBandeau);
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !document.getElementById("banner-escalade").hidden) {
-      fermerBandeau();
-    }
   });
 
   // Étape « filtres » du tuto : elle montre TOUJOURS les filtres des via

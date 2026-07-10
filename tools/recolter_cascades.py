@@ -457,6 +457,12 @@ def _construire_feature(c, id_):
                 "Cascade référencée par les contributeurs OpenStreetMap.")
     if c["intermittent"]:
         desc += " Cours d'eau intermittent : la cascade peut être à sec une partie de l'année."
+    # Filtre « Fiche » (themes.js) : Référencée = photo ET au moins une vraie
+    # information (lien, extrait ou hauteur) ; sinon À vérifier.
+    complet = bool(c.get("photo")) and bool(
+        c.get("wiki_url") or c.get("website") or c.get("extrait") or c.get("hauteur")
+    )
+    details["fiche"] = "Référencée" if complet else "À vérifier"
     props = {
         "id": id_,
         "name": c["nom"],

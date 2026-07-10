@@ -657,7 +657,7 @@ function sectionCarte(lieu) {
     ["escalade"],
     ["refuge"],
     ["grotte"],
-    ["chateau", "chateau-a-verifier"],
+    ["chateau"],
     ["cathedrale"],
     ["cite-caractere"],
   ];
