@@ -160,6 +160,45 @@ export const THEMES = [
     ],
   },
   {
+    // Sélection qualitative : uniquement les lacs ayant un article Wikipédia
+    // (lacs de montagne, grands lacs, étangs célèbres) — pas les plans d'eau
+    // anonymes. Données : Wikipédia + Wikidata, altitudes complétées par OSM.
+    id: "lac",
+    label: "Lac",
+    color: "#1a659e",
+    icon: "🏞️",
+    fields: [
+      { key: "altitude", label: "Altitude" },
+      { key: "superficie", label: "Superficie" },
+      { key: "profondeur", label: "Profondeur max" },
+    ],
+    // « Fiche » : Référencé (photo + informations) / À vérifier (incomplète).
+    // Le champ details.fiche est posé par le pipeline de données.
+    filters: [
+      {
+        key: "fiche",
+        label: "Fiche",
+        type: "value",
+        field: "fiche",
+        options: [
+          { value: "Référencé", icon: "✅" },
+          { value: "À vérifier", icon: "🔍" },
+        ],
+      },
+      {
+        key: "altitude",
+        label: "Altitude",
+        type: "bucket",
+        field: "altitude_n",
+        options: [
+          { value: "alt1", label: "Plaine (< 600 m)", max: 600 },
+          { value: "alt2", label: "600 à 1 500 m", min: 600, max: 1500 },
+          { value: "alt3", label: "Montagne (> 1 500 m)", icon: "🏔️", min: 1500 },
+        ],
+      },
+    ],
+  },
+  {
     // Une seule catégorie Château (l'ancienne « chateau-a-verifier » a été
     // fusionnée ici en v45 : c'est le filtre « Fiche » qui distingue les
     // châteaux documentés de ceux restant à confirmer).
@@ -198,14 +237,29 @@ export const THEMES = [
     filters: [],
   },
   {
-    id: "cite-caractere",
-    label: "Cité de caractère",
+    // Une seule catégorie « Village » : les Cités de caractère du fichier
+    // source (211) ET les Plus Beaux Villages de France (récolte enrichisseur)
+    // y cohabitent, distingués par le filtre « Label » (details.label, type
+    // contains : un village peut cumuler les deux labels).
+    id: "cite-caractere", // id historique STABLE — ne jamais renommer
+    label: "Village",
     color: "#f77f00",
     icon: "🏘️",
     fields: [
       { key: "label", label: "Label" },
     ],
-    filters: [],
+    filters: [
+      {
+        key: "label",
+        label: "Label",
+        type: "contains",
+        field: "label",
+        options: [
+          { value: "Plus Beaux Villages", label: "Plus beau village de France", icon: "⭐" },
+          { value: "Cité de caractère", label: "Cité de caractère", icon: "🏘️" },
+        ],
+      },
+    ],
   },
   {
     id: "refuge",

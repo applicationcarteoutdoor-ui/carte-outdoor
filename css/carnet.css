@@ -1028,6 +1028,9 @@ body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit)
 @media (max-width: 640px) {
   .carnet-fleche { display: none; }
   .carnet-scene { gap: 0; }
+  /* Le ✎ quitte la bande de tap du bord droit (14 %) qui tourne les pages :
+     il reste ainsi touchable sans entrer en conflit avec la navigation. */
+  .note-editer { margin-right: 46px; }
 }
 
 /* Le bouton flottant du carnet : petit grimoire de cuir brun et or.

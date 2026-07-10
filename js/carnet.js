@@ -355,16 +355,31 @@ function batirSquelette() {
   );
 
   // Sur téléphone, les flèches latérales sont masquées (place au livre) :
-  // toucher le BORD gauche/droit de la page tourne aussi les pages. Les
-  // éléments interactifs (boutons, champs, couverture) restent prioritaires.
-  livre.addEventListener("click", (e) => {
-    if (window.innerWidth > 640) return; // flèches visibles ailleurs
-    if (e.target.closest("button, input, a, select, textarea, label, .carnet-couverture, .page-photo")) return;
-    const r = livre.getBoundingClientRect();
-    const x = e.clientX - r.left;
-    if (x < r.width * 0.22) tourner(-1);
-    else if (x > r.width * 0.78) tourner(1);
-  });
+  // toucher le BORD gauche/droit tourne les pages. Les bandes (14 %) GAGNENT
+  // sur les petits boutons qui traînent près du bord (le ✎ d'édition surtout :
+  // « taper à droite ouvrait les notes », bug signalé en v45) — d'où la phase
+  // de CAPTURE + stopPropagation. Restent prioritaires : la saisie en cours
+  // (champ, Enregistrer/Annuler), les labels (＋ Photo = choix de fichier),
+  // les liens et la couverture. Le ✎, lui, est décalé du bord en CSS pour
+  // rester atteignable hors bande.
+  livre.addEventListener(
+    "click",
+    (e) => {
+      if (window.innerWidth > 640) return; // flèches visibles ailleurs
+      const r = livre.getBoundingClientRect();
+      const x = e.clientX - r.left;
+      const bande = r.width * 0.14;
+      const sens = x < bande ? -1 : x > r.width - bande ? 1 : 0;
+      if (!sens) return;
+      if (e.target.closest("input, textarea, select, label, a, .note-edit-actions, .carnet-couverture")) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation(); // le bouton sous le doigt ne reçoit PAS le clic
+      tourner(sens);
+    },
+    true // capture : passe AVANT les gestionnaires des boutons de la page
+  );
 }
 
 /* ------------------------------------------------------------------ */

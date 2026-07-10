@@ -31,6 +31,7 @@ import openpyxl
 
 import enrichissements as enr
 import recolter_cascades
+import recolter_lacs
 
 RACINE = Path(__file__).resolve().parent.parent
 DONNEES = RACINE / "Donné"
@@ -921,8 +922,13 @@ def main():
     cascades, _ = recolter_cascades.convertir_cascades(autres)
     print(f"Cascades : {len(cascades)}")
 
+    # Lacs (Wikipédia + Wikidata + OSM) : même logique, ids lac-… préservés ;
+    # les doublons complètent les points des autres catégories (fusion).
+    lacs, _, _ = recolter_lacs.convertir_lacs(autres + cascades)
+    print(f"Lacs : {len(lacs)}")
+
     collection = {"type": "FeatureCollection",
-                  "features": autres + cascades}
+                  "features": autres + cascades + lacs}
     CIBLE_POINTS.write_text(json.dumps(collection, ensure_ascii=False, separators=(",", ":")),
                             encoding="utf-8")
     print(f"\npoints.geojson : {len(collection['features'])} features, "
