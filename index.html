@@ -52,9 +52,6 @@
         <button type="button" id="btn-settings" class="btn-icon btn-settings" title="Réglages" aria-label="Ouvrir les réglages">⚙️</button>
         <button type="button" id="btn-ideas" class="btn-icon" title="Boîte à idées" aria-label="Boîte à idées">💡</button>
         <button type="button" id="btn-tuto" class="btn-icon" title="Revoir le tuto" aria-label="Revoir le tuto">🎓</button>
-        <button type="button" id="btn-locate" class="btn-icon" title="Ma position" aria-label="Afficher ma position">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-        </button>
         <button type="button" id="btn-layers" class="btn-icon" title="Fond de carte" aria-label="Choisir le fond de carte">🗺️</button>
       </div>
       <p id="app-version" class="app-version"></p>
@@ -106,6 +103,9 @@
     </button>
     <button type="button" id="btn-oracle" class="fab fab-oracle" title="L'Oracle — que faire dans le coin ?" aria-label="L'Oracle : idées de sorties autour de moi">🔮</button>
     <button type="button" id="btn-wc" class="fab fab-wc" title="Toilettes à moins de 1 km de moi" aria-label="Toilettes autour de moi"><span class="wc-runner" aria-hidden="true">🏃</span><span aria-hidden="true">🚻</span></button>
+    <button type="button" id="btn-locate" class="fab fab-locate" title="Ma position" aria-label="Afficher ma position">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+    </button>
   </div>
 
   <!-- Fiche détaillée d'un point -->
@@ -305,8 +305,8 @@
         </header>
 
         <form class="oracle-form">
-          <input type="text" inputmode="numeric" class="oracle-cp" placeholder="Code postal"
-                 aria-label="Code postal" maxlength="5" autocomplete="off">
+          <input type="text" class="oracle-cp" placeholder="Code postal ou commune"
+                 aria-label="Code postal ou nom de commune" autocomplete="off">
           <button type="button" class="oracle-position" title="Utiliser ma position" aria-label="Utiliser ma position">📍</button>
           <button type="submit" class="oracle-consulter">Consulter</button>
         </form>
@@ -346,7 +346,6 @@
         <div class="oracle-reponse" aria-live="polite"></div>
       </div>
     </div>
-    <div class="oracle-socle" aria-hidden="true"></div>
   </dialog>
 
   <!-- Le Carnet : grimoire plein écran (contenu construit par js/carnet.js) -->

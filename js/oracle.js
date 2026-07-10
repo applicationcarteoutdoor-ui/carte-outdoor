@@ -284,6 +284,25 @@ function versLieu(commune, cp) {
   };
 }
 
+/** Résout un NOM de commune (« Chamonix », « Riquewihr »…) — la commune la
+ *  plus peuplée gagne en cas d'homonymes (boost=population). */
+async function resoudreNomCommune(nom) {
+  const url =
+    `${GEO_URL}?nom=${encodeURIComponent(nom)}` +
+    `&fields=nom,centre,departement,region,codesPostaux&boost=population&limit=1&format=json`;
+  let arr;
+  try {
+    const res = await fetch(url);
+    arr = res.ok ? await res.json() : null;
+  } catch {
+    throw new Error("Impossible de chercher cette commune (connexion ?).");
+  }
+  if (!Array.isArray(arr) || !arr.length) {
+    throw new Error(`Aucune commune trouvée pour « ${nom} ».`);
+  }
+  return versLieu(arr[0]);
+}
+
 async function resoudreCodePostal(cp) {
   const url = `${GEO_URL}?codePostal=${encodeURIComponent(cp)}&fields=nom,centre,departement,region,codesPostaux&format=json`;
   let arr;
@@ -432,8 +451,8 @@ function etatVide() {
   contenuActuel = "vide";
   elReponse.innerHTML =
     '<div class="oracle-vide"><div class="oracle-vide-signe" aria-hidden="true">✦</div>' +
-    "<p>Entre un code postal (ou touche 📍) : l'Oracle révèle ce qu'il y a à faire autour. " +
-    "✨ Le mode Gratuit ne demande aucune clé.</p></div>";
+    "<p>Entre un code postal ou une commune (ou touche 📍) : l'Oracle révèle ce qu'il y a à " +
+    "faire autour. ✨ Le mode Gratuit ne demande aucune clé.</p></div>";
   majForme();
 }
 
@@ -858,6 +877,17 @@ async function depuisCodePostal(cp) {
   }
 }
 
+async function depuisNomCommune(nom) {
+  if (enCours) return;
+  loaderTexte("Localisation…");
+  try {
+    const lieu = await resoudreNomCommune(nom);
+    await lancer(lieu);
+  } catch (e) {
+    afficherErreur(e);
+  }
+}
+
 async function depuisPosition() {
   if (enCours) return;
   if (lireMode() === "ia" && !cleCourante()) {
@@ -917,14 +947,17 @@ export function initOracle(callbacks = {}) {
     if (dehors) dialog.close();
   });
 
+  // Code postal (5 chiffres) OU nom de commune — les deux mènent au même lieu
   dialog.querySelector(".oracle-form").addEventListener("submit", (e) => {
     e.preventDefault();
-    const cp = (dialog.querySelector(".oracle-cp").value || "").trim();
-    if (!/^\d{5}$/.test(cp)) {
-      toast("Entre un code postal à 5 chiffres.");
+    const brut = (dialog.querySelector(".oracle-cp").value || "").trim();
+    if (!brut) {
+      toast("Entre un code postal ou un nom de commune.");
       return;
     }
-    depuisCodePostal(cp);
+    if (/^\d{5}$/.test(brut)) depuisCodePostal(brut);
+    else if (/^\d+$/.test(brut)) toast("Un code postal fait 5 chiffres.");
+    else depuisNomCommune(brut);
   });
 
   dialog.querySelector(".oracle-position").addEventListener("click", depuisPosition);

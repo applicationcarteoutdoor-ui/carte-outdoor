@@ -21,6 +21,8 @@ import {
   highlightPoint,
   clearHighlight,
   montrerRayon,
+  montrerTraceRando,
+  cacherTraceRando,
   getFonds,
   setFond,
 } from "./map.js";
@@ -242,6 +244,13 @@ function rafraichir() {
 function ouvrirFiche(feature) {
   highlightPoint(feature.properties.id); // épingle agrandie + halo
   openDetails(feature, state.statuses[feature.properties.id]);
+  // Randonnée : son CHEMIN se dessine sur la carte tant que la fiche est
+  // ouverte (tracés dans data/randos.geojson, chargés à la demande).
+  if (getTheme(feature.properties.theme).id === "randonnee") {
+    montrerTraceRando(feature.properties.id);
+  } else {
+    cacherTraceRando();
+  }
 }
 
 async function changerStatut(pointId, statut) {
@@ -937,7 +946,10 @@ async function demarrer() {
 
   initDetails({
     onStatusChange: changerStatut,
-    onClose: clearHighlight,
+    onClose: () => {
+      clearHighlight();
+      cacherTraceRando(); // le chemin disparaît avec la fiche
+    },
     isUserPoint: (id) => state.userPointIds.has(id),
     onDeletePoint: supprimerPoint,
     onVoirCarnet: ouvrirCarnetPourPoint,

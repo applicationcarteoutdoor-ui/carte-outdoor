@@ -288,8 +288,8 @@ let grLayer = null;
 let grChargement = null;
 let grSelectionne = null; // tracé mis en évidence
 
-const GR_STYLE = { color: "#b02a2a", weight: 2.5, opacity: 0.75, dashArray: "6 4" };
-const GR_STYLE_ACTIF = { color: "#ff9500", weight: 5, opacity: 1, dashArray: null };
+const GR_STYLE = { color: "#e02b2b", weight: 4, opacity: 0.9, dashArray: "6 4" };
+const GR_STYLE_ACTIF = { color: "#ff9500", weight: 5.5, opacity: 1, dashArray: null };
 
 /** Contenu de la bulle d'un GR : nom, distance, D+ estimé, liens. */
 function popupGr(p) {
@@ -319,6 +319,10 @@ export async function setGrVisible(visible) {
         .then((geojson) => {
           grLayer = L.geoJSON(geojson, {
             style: GR_STYLE,
+            // Canvas DÉDIÉ avec tolérance : sans elle, il faut toucher le
+            // trait au pixel près (bug « impossible de cliquer un GR »,
+            // surtout au doigt). 12 px de marge autour du tracé.
+            renderer: L.canvas({ tolerance: 12 }),
             onEachFeature: (f, layer) => {
               layer.bindPopup(popupGr(f.properties || {}));
               // Au clic : le GR sélectionné change de couleur pour être repérable
@@ -334,6 +338,45 @@ export async function setGrVisible(visible) {
     await grChargement;
   }
   grLayer.addTo(map);
+}
+
+/* ------------------------------------------------------------------ */
+/* Tracé d'une randonnée : affiché quand sa fiche est OUVERTE           */
+/* ------------------------------------------------------------------ */
+
+let randoTraces = null; // FeatureCollection de data/randos.geojson (chargée une fois)
+let randoTracesChargement = null;
+let randoTraceActive = null; // le tracé actuellement dessiné
+
+const TRACE_RANDO_STYLE = { color: "#2d6a4f", weight: 5, opacity: 0.95 };
+
+/**
+ * Dessine le tracé de la randonnée `pointId` (fichier data/randos.geojson,
+ * chargé à la demande : propriété `rando` = id du point). Le tracé précédent
+ * disparaît. Renvoie true si un tracé existe pour ce point.
+ */
+export async function montrerTraceRando(pointId) {
+  cacherTraceRando();
+  if (!randoTraces) {
+    if (!randoTracesChargement) {
+      randoTracesChargement = fetch("data/randos.geojson")
+        .then((r) => (r.ok ? r.json() : { features: [] }))
+        .catch(() => ({ features: [] })); // fichier absent : pas de tracés, pas d'erreur
+    }
+    randoTraces = await randoTracesChargement;
+  }
+  const morceaux = (randoTraces.features || []).filter((f) => f.properties?.rando === pointId);
+  if (!morceaux.length) return false;
+  randoTraceActive = L.geoJSON(
+    { type: "FeatureCollection", features: morceaux },
+    { style: TRACE_RANDO_STYLE, interactive: false }
+  ).addTo(map);
+  return true;
+}
+
+export function cacherTraceRando() {
+  randoTraceActive?.remove();
+  randoTraceActive = null;
 }
 
 /* ------------------------------------------------------------------ */

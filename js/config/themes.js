@@ -122,6 +122,50 @@ export const THEMES = [
     ],
   },
   {
+    // Randonnées remarquables — sélection éditoriale (sommets à voie normale
+    // documentée, objectifs emblématiques), validée par Wikipédia et OSM.
+    // PILOTE : massif de la Chartreuse uniquement (extension France à venir —
+    // le filtre « Massif » est prévu pour accueillir les massifs suivants).
+    // Convention : le point est placé au SOMMET/objectif de la randonnée,
+    // jamais au parking ; details.depart donne le départ classique.
+    id: "randonnee",
+    label: "Randonnée",
+    color: "#2d6a4f",
+    icon: "🥾",
+    fields: [
+      { key: "altitude", label: "Altitude" },
+      { key: "denivele", label: "Dénivelé (estimation)" },
+      { key: "duree", label: "Durée" },
+      { key: "depart", label: "Départ classique" },
+      { key: "acces", label: "Voie normale" },
+      { key: "itineraire", label: "Itinéraire balisé (OSM)" },
+      { key: "massif", label: "Massif" },
+    ],
+    // « Fiche » : Référencée (photo + informations) / À vérifier (incomplète).
+    // Le champ details.fiche est posé par le pipeline de données.
+    filters: [
+      {
+        key: "fiche",
+        label: "Fiche",
+        type: "value",
+        field: "fiche",
+        options: [
+          { value: "Référencée", icon: "✅" },
+          { value: "À vérifier", icon: "🔍" },
+        ],
+      },
+      {
+        key: "massif",
+        label: "Massif",
+        type: "value",
+        field: "massif",
+        options: [
+          { value: "Chartreuse", icon: "⛰️" },
+        ],
+      },
+    ],
+  },
+  {
     id: "grotte",
     label: "Grotte",
     color: "#7f5539",

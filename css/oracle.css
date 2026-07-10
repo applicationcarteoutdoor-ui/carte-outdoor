@@ -54,10 +54,11 @@
   position: relative;
   width: var(--od);
   height: var(--od);
-  border-radius: 50%; /* cercle — et ELLIPSE quand elle s'étire : toujours une boule */
+  border-radius: 50%; /* cercle — capsule quand elle s'étire */
   overflow: hidden;
-  /* Verre bleu : profondeur + léger voile clair (le GROS reflet blanc a été
-     remplacé par des petites étoiles — il gâchait la lisibilité) */
+  /* Verre bleu : profondeur + léger voile clair, étoiles en ::before.
+     (La version « photo galaxie + socle de bois » a été essayée puis retirée
+     à la demande de l'utilisateur : juste le rond bleu et ses paillettes.) */
   background:
     radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.32) 0%, rgba(213, 232, 255, 0.12) 5%, transparent 13%),
     radial-gradient(circle at 72% 80%, rgba(110, 180, 255, 0.35), transparent 55%),
@@ -114,39 +115,9 @@
   50% { opacity: 1; transform: scale(1.5); }
 }
 
-/* Le socle : pied évasé + base, sous la boule. BOIS ciré (noyer) : la boule
-   de cristal repose sur un vrai socle de bois, pas sur du verre bleu.
-   Les stries verticales imitent le fil du bois, le reflet du haut la cire. */
-.oracle-socle {
-  position: relative;
-  width: calc(var(--od) * 0.4);
-  height: calc(var(--od) * 0.075);
-  margin-top: calc(var(--od) * -0.015);
-  background:
-    repeating-linear-gradient(
-      90deg,
-      rgba(46, 24, 10, 0.32) 0px,
-      rgba(46, 24, 10, 0) 2px,
-      rgba(140, 92, 46, 0.16) 4px,
-      rgba(46, 24, 10, 0) 7px
-    ),
-    linear-gradient(#a06a37 0%, #8a5a2e 12%, #6b4220 45%, #4a2b13 78%, #2f1a09 100%);
-  clip-path: polygon(14% 0, 86% 0, 100% 100%, 0 100%);
-  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.5));
-}
-
-/* La base, en bois plus sombre (l'ombre de la boule y tombe) */
-.oracle-socle::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: calc(var(--od) * -0.022);
-  transform: translateX(-50%);
-  width: 118%;
-  height: calc(var(--od) * 0.025);
-  border-radius: 6px;
-  background: linear-gradient(#7a4b23, #33200e);
-}
+/* Plus de socle : « juste le rond bleu » (demande utilisateur v47) —
+   la boule flotte, son halo lumineux suffit. */
+.oracle-socle { display: none; }
 
 /* --- Forme ÉTIRÉE : la boule se déploie en grande CAPSULE rectangulaire
    de verre (coins très arrondis) pour le contenu long — réponse, clés.
@@ -178,10 +149,6 @@
   inset: 16px 20px;
 }
 
-/* La capsule occupe l'écran : le socle s'efface le temps de la lecture */
-.oracle-dialog.forme-etiree .oracle-socle {
-  display: none;
-}
 
 /* --- En-tête ---------------------------------------------------------- */
 

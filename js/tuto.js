@@ -109,8 +109,9 @@ const ETAPES = [
     placement: "cote",
     titre: "Les outils",
     texte:
-      "À côté des réglages ⚙️ : 💡 pour noter vos idées, 🎓 pour revoir ce tuto, " +
-      "◎ pour afficher votre position et 🗺️ pour changer le fond de carte (plan, relief, IGN, satellite). " +
+      "À côté des réglages ⚙️ : 💡 pour noter vos idées, 🎓 pour revoir ce tuto " +
+      "et 🗺️ pour changer le fond de carte (plan, relief, IGN, satellite). " +
+      "Votre position ◎, elle, s'affiche depuis le bouton rond sous les toilettes. " +
       "L'application fonctionne aussi hors connexion : les zones déjà consultées restent visibles. " +
       "Astuce : ajoutez cette carte à votre écran d'accueil pour l'utiliser comme une vraie application. " +
       "Bonne exploration !",
