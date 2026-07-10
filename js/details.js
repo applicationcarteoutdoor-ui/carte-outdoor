@@ -27,17 +27,36 @@ let onCloseCallback = null;
 let isUserPointCallback = null;
 let onDeletePointCallback = null;
 let onVoirCarnetCallback = null;
+let onTelechargerGpxCallback = null;
 let featureCourante = null;
 
-export function initDetails({ onStatusChange, onClose, isUserPoint, onDeletePoint, onVoirCarnet }) {
+export function initDetails({ onStatusChange, onClose, isUserPoint, onDeletePoint, onVoirCarnet, onTelechargerGpx }) {
   onStatusChangeCallback = onStatusChange;
   onCloseCallback = onClose;
   isUserPointCallback = isUserPoint;
   onDeletePointCallback = onDeletePoint;
   onVoirCarnetCallback = onVoirCarnet;
+  onTelechargerGpxCallback = onTelechargerGpx;
   panel = document.getElementById("details-panel");
   panel.querySelector(".panel-close").addEventListener("click", closeDetails);
+  initReduction();
   initSignalement();
+}
+
+/**
+ * Réduction de la fiche à ~un tiers de sa hauteur (▾) pour voir la carte
+ * derrière, et ré-agrandissement (▴). L'état survit d'une fiche à l'autre :
+ * on garde le mode choisi tant que la session dure.
+ */
+function initReduction() {
+  const btn = panel.querySelector(".panel-reduce");
+  btn.addEventListener("click", () => {
+    const reduit = panel.classList.toggle("reduit");
+    btn.textContent = reduit ? "▴" : "▾";
+    const titre = reduit ? "Agrandir la fiche" : "Réduire la fiche";
+    btn.title = titre;
+    btn.setAttribute("aria-label", titre);
+  });
 }
 
 /* ------------------------------------------------------------------ */
@@ -145,6 +164,9 @@ export function openDetails(feature, statut) {
     <div class="details-route">
       ${lienItineraireMaps(lat, lon)}
       ${lienItineraireWaze(lat, lon)}
+      ${theme.id === "randonnee"
+        ? '<button type="button" class="btn btn-route btn-gpx" title="Télécharger le tracé au format GPX">📥 GPX</button>'
+        : ""}
     </div>
 
     ${p.description ? `<p class="details-description">${glossaireHTML(p.description).replaceAll("\n", "<br>")}</p>` : ""}
@@ -224,6 +246,12 @@ export function openDetails(feature, statut) {
   // Passerelle vers le grand carnet : toutes mes sorties sur ce lieu
   panel.querySelector(".btn-voir-carnet").addEventListener("click", () => {
     onVoirCarnetCallback?.(p.id);
+  });
+
+  // Randonnée : téléchargement du tracé en GPX (utilisable dans Komoot,
+  // AllTrails, une montre GPS… — c'est la passerelle vers les autres applis)
+  panel.querySelector(".btn-gpx")?.addEventListener("click", () => {
+    onTelechargerGpxCallback?.(feature);
   });
 
   // Signalement (tous les points) : ouvre le dialogue pré-rempli

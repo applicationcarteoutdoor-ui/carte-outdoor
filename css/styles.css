@@ -1135,6 +1135,83 @@ dialog .panel-header { padding: 0 0 4px; }
 }
 
 /* --------------------------------------------------------------------------
+   Partage de l'application (QR code, lien) et randonnée épinglée
+   -------------------------------------------------------------------------- */
+
+/* Mini QR dans la pile de boutons : plaque blanche pour rester lisible */
+.fab-partage { background: #fff; }
+.fab-partage img { width: 30px; height: 30px; display: block; }
+
+#partage-dialog .partage-corps {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding-top: 6px;
+}
+
+/* Grand QR : plaque BLANCHE quel que soit le thème (contraste de scan) */
+.partage-qr {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  padding: 14px;
+}
+.partage-qr img { display: block; width: min(62vw, 280px); height: auto; }
+
+#partage-dialog .btn { width: 100%; max-width: 300px; }
+#partage-dialog .menu-note { text-align: center; margin: 0; }
+
+/* Pastille de la randonnée épinglée : le tracé reste sur la carte après la
+   fermeture de la fiche, cette pastille (sous le bouton Filtres) la rouvre. */
+#rando-chip {
+  position: fixed;
+  top: 58px;
+  right: 10px;
+  z-index: 1200;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 6px 14px 6px 10px;
+  max-width: min(62vw, 300px);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+
+#rando-chip .rando-chip-nom {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Fiche réduite à ~un tiers de hauteur (bouton ▾/▴) : la carte respire */
+.panel-details .panel-reduce {
+  position: absolute;
+  top: 6px;
+  right: 56px;
+  z-index: 2;
+  min-width: 46px;
+  min-height: 46px;
+  border: none;
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+
+.panel-details .panel-reduce:hover { background: var(--bg); }
+
+.panel-details.reduit { max-height: 30dvh; }
+
+/* --------------------------------------------------------------------------
    Grand écran : panneau gauche fixe, fiche à droite
    -------------------------------------------------------------------------- */
 
@@ -1160,6 +1237,12 @@ dialog .panel-header { padding: 0 0 4px; }
     max-height: none;
     border-radius: var(--radius);
     transform: translateX(calc(100% + 16px));
+  }
+
+  /* Fiche réduite sur grand écran : bloc bas-droite d'un tiers de hauteur */
+  .panel-details.reduit {
+    top: auto;
+    max-height: 34dvh;
   }
 }
 

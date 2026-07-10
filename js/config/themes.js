@@ -135,6 +135,7 @@ export const THEMES = [
     fields: [
       { key: "altitude", label: "Altitude" },
       { key: "denivele", label: "Dénivelé (estimation)" },
+      { key: "distance", label: "Distance" },
       { key: "duree", label: "Durée" },
       { key: "depart", label: "Départ classique" },
       { key: "acces", label: "Voie normale" },
@@ -161,6 +162,13 @@ export const THEMES = [
         field: "massif",
         options: [
           { value: "Chartreuse", icon: "⛰️" },
+          { value: "Vercors", icon: "⛰️" },
+          { value: "Belledonne", icon: "⛰️" },
+          { value: "Bauges", icon: "⛰️" },
+          { value: "Aravis-Bornes", icon: "⛰️" },
+          { value: "Beaufortain", icon: "⛰️" },
+          { value: "Vanoise", icon: "⛰️" },
+          { value: "Mont-Blanc", icon: "⛰️" },
         ],
       },
     ],

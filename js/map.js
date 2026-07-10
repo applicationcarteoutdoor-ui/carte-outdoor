@@ -341,7 +341,7 @@ export async function setGrVisible(visible) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Tracé d'une randonnée : affiché quand sa fiche est OUVERTE           */
+/* Tracé d'une randonnée : affiché au clic, persiste après la fiche     */
 /* ------------------------------------------------------------------ */
 
 let randoTraces = null; // FeatureCollection de data/randos.geojson (chargée une fois)
@@ -351,12 +351,11 @@ let randoTraceActive = null; // le tracé actuellement dessiné
 const TRACE_RANDO_STYLE = { color: "#2d6a4f", weight: 5, opacity: 0.95 };
 
 /**
- * Dessine le tracé de la randonnée `pointId` (fichier data/randos.geojson,
- * chargé à la demande : propriété `rando` = id du point). Le tracé précédent
- * disparaît. Renvoie true si un tracé existe pour ce point.
+ * Morceaux de tracé (features LineString) de la randonnée `pointId`,
+ * depuis data/randos.geojson (chargé à la demande, en cache mémoire :
+ * propriété `rando` = id du point). Sert aussi à l'export GPX.
  */
-export async function montrerTraceRando(pointId) {
-  cacherTraceRando();
+export async function getTraceRando(pointId) {
   if (!randoTraces) {
     if (!randoTracesChargement) {
       randoTracesChargement = fetch("data/randos.geojson")
@@ -365,7 +364,16 @@ export async function montrerTraceRando(pointId) {
     }
     randoTraces = await randoTracesChargement;
   }
-  const morceaux = (randoTraces.features || []).filter((f) => f.properties?.rando === pointId);
+  return (randoTraces.features || []).filter((f) => f.properties?.rando === pointId);
+}
+
+/**
+ * Dessine le tracé de la randonnée `pointId`. Le tracé précédent disparaît
+ * (une seule randonnée épinglée à la fois). Renvoie true si un tracé existe.
+ */
+export async function montrerTraceRando(pointId) {
+  cacherTraceRando();
+  const morceaux = await getTraceRando(pointId);
   if (!morceaux.length) return false;
   randoTraceActive = L.geoJSON(
     { type: "FeatureCollection", features: morceaux },

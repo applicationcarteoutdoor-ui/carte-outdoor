@@ -106,13 +106,38 @@
     <button type="button" id="btn-locate" class="fab fab-locate" title="Ma position" aria-label="Afficher ma position">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
     </button>
+    <button type="button" id="btn-partage" class="fab fab-partage" title="Partager l'application (QR code)" aria-label="Partager l'application : QR code et lien">
+      <img src="img/qr-site.svg" alt="" aria-hidden="true">
+    </button>
   </div>
+
+  <!-- Pastille de la randonnée épinglée : le tracé reste sur la carte après
+       fermeture de la fiche, cette pastille permet de la rouvrir. -->
+  <button type="button" id="rando-chip" hidden title="Rouvrir la fiche de la randonnée">
+    <span class="rando-chip-icone" aria-hidden="true">🥾</span>
+    <span class="rando-chip-nom"></span>
+  </button>
 
   <!-- Fiche détaillée d'un point -->
   <aside id="details-panel" class="panel panel-details" aria-label="Fiche du point sélectionné">
+    <button type="button" class="panel-reduce" title="Réduire la fiche" aria-label="Réduire la fiche pour voir la carte">▾</button>
     <button type="button" class="panel-close" title="Fermer la fiche" aria-label="Fermer la fiche">✕</button>
     <div class="panel-body"></div>
   </aside>
+
+  <!-- Partage de l'application : QR code en grand, partage natif, copie du lien -->
+  <dialog id="partage-dialog" aria-labelledby="partage-title">
+    <div class="panel-header">
+      <h2 id="partage-title">📤 Partager l'application</h2>
+      <button type="button" class="panel-close partage-close" title="Fermer" aria-label="Fermer le partage">✕</button>
+    </div>
+    <div class="partage-corps">
+      <div class="partage-qr"><img src="img/qr-site.svg" alt="QR code ouvrant Carte Outdoor"></div>
+      <p class="menu-note">Faites scanner ce code : il ouvre directement la carte dans le navigateur.</p>
+      <button type="button" id="btn-partage-natif" class="btn">📤 Partager…</button>
+      <button type="button" id="btn-copier-lien" class="btn btn-secondary">🔗 Copier le lien</button>
+    </div>
+  </dialog>
 
   <!-- Ajout d'un point -->
   <dialog id="point-dialog" aria-labelledby="point-title">

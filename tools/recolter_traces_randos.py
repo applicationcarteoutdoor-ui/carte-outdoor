@@ -32,13 +32,25 @@ Liens (volet 2) : chaque point rando reçoit properties.links = recherches
 Google restreintes par site (komoot.fr, altituderando.com, alltrails.com),
 même modèle que les sites d'escalade — pas d'URL profonde devinée.
 
-Cache : tools/traces-randos-osm.json (gitignoré), une entrée par rando
+Cache : tools/traces-cache/<id>.json (gitignoré), un fichier par rando
 (départ résolu + réseau), sauvegardé à chaque étape → reprise sur erreur.
+(L'ancien monolithe tools/traces-randos-osm.json est migré puis supprimé :
+ à ~800 Ko par rando, le réécrire en entier à chaque étape ne passait pas
+ l'échelle France.)
 
-Usage :  python tools/recolter_traces_randos.py            récolte + écriture
+EXTENSION FRANCE : les départs des randonnées rando-0014+ viennent de
+tools/randos-departs-france.json (écrit par recolter_randonnees_france.py) ;
+la table DEPARTS ci-dessous (pilote Chartreuse) reste prioritaire.
+data/randos.geojson est FUSIONNÉ (tracés existants conservés) et réécrit
+après CHAQUE nouveau tracé : une interruption ne perd rien. Par défaut,
+seules les randonnées SANS tracé sont traitées (--tout pour retracer,
+--massif X pour restreindre à un massif).
+
+Usage :  python tools/recolter_traces_randos.py [--massif M ...] [--tout]
          python tools/recolter_traces_randos.py --dry-run  bilan sans écrire
 """
 
+import argparse
 import json
 import sys
 import urllib.parse
@@ -53,7 +65,9 @@ DOSSIER = Path(__file__).resolve().parent
 RACINE = DOSSIER.parent
 CIBLE_POINTS = RACINE / "data" / "points.geojson"
 CIBLE_TRACES = RACINE / "data" / "randos.geojson"
-CACHE = DOSSIER / "traces-randos-osm.json"
+CACHE = DOSSIER / "traces-randos-osm.json"          # ancien monolithe (migré)
+CACHE_DIR = DOSSIER / "traces-cache"                # un fichier par rando
+DEPARTS_FR = DOSSIER / "randos-departs-france.json"
 
 # Douglas-Peucker : ~10 m (0.0001° ≈ 11 m en latitude) ; coordonnées à 5
 # décimales (~1 m) — même esprit que les GR de build_data.py, en plus fin.
@@ -115,14 +129,32 @@ def _distance_m(lat1, lon1, lat2, lon2):
     return 2 * 6371000 * asin(sqrt(h))
 
 
-def _charger_cache():
-    if CACHE.exists():
-        return json.loads(CACHE.read_text(encoding="utf-8"))
+def _migrer_monolithe():
+    """Éclate l'ancien cache monolithique en un fichier par rando (une fois)."""
+    if not CACHE.exists():
+        return
+    CACHE_DIR.mkdir(exist_ok=True)
+    ancien = json.loads(CACHE.read_text(encoding="utf-8"))
+    for pid, entree in ancien.items():
+        shard = CACHE_DIR / f"{pid}.json"
+        if not shard.exists():
+            shard.write_text(json.dumps(entree, ensure_ascii=False),
+                             encoding="utf-8")
+    CACHE.unlink()
+    print(f"(cache migré : {len(ancien)} entrées → {CACHE_DIR.name}/)")
+
+
+def _charger_entree(pid):
+    shard = CACHE_DIR / f"{pid}.json"
+    if shard.exists():
+        return json.loads(shard.read_text(encoding="utf-8"))
     return {}
 
 
-def _sauver_cache(cache):
-    CACHE.write_text(json.dumps(cache, ensure_ascii=False), encoding="utf-8")
+def _sauver_entree(pid, entree):
+    CACHE_DIR.mkdir(exist_ok=True)
+    (CACHE_DIR / f"{pid}.json").write_text(
+        json.dumps(entree, ensure_ascii=False), encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
@@ -337,32 +369,36 @@ def tracer_relation(entree, id_relation, depart, pid, nom):
 # 3) Tracé d'une randonnée
 # ---------------------------------------------------------------------------
 
-def tracer(rando, cache):
+def tracer(rando, spec):
     """→ (features | None, motif, longueur_km, nb_points_avant, nb_apres)."""
     pid = rando["properties"]["id"]
     nom = rando["properties"]["name"]
     lon_s, lat_s = rando["geometry"]["coordinates"][:2]
-    spec = DEPARTS.get(pid)
     if not spec:
         return None, "pas d'entrée DEPARTS (nouvelle randonnée ?)", 0, 0, 0
 
-    entree = cache.setdefault(pid, {})
+    entree = _charger_entree(pid)
+    # Spécification de départ modifiée (correctif éditorial) → cache invalide.
+    spec_cle = json.dumps(spec, sort_keys=True, ensure_ascii=False)
+    if "spec" in entree and entree["spec"] != spec_cle:
+        entree = {}
+    entree["spec"] = spec_cle
     if "depart" not in entree:
         entree["depart"] = resoudre_depart(spec, lat_s, lon_s)
-        _sauver_cache(cache)
+        _sauver_entree(pid, entree)
     depart = entree["depart"]
     if not depart:
         return None, "départ introuvable dans OSM", 0, 0, 0
 
     if spec.get("relation"):                  # boucle balisée dédiée
         resultat = tracer_relation(entree, spec["relation"], depart, pid, nom)
-        _sauver_cache(cache)
+        _sauver_entree(pid, entree)
         return resultat
 
     if "reseau" not in entree:
         entree["reseau"] = telecharger_reseau(depart["lat"], depart["lon"],
                                               lat_s, lon_s)
-        _sauver_cache(cache)
+        _sauver_entree(pid, entree)
     arcs, coords = construire_graphe(entree["reseau"])
     if not arcs:
         return None, "aucun chemin praticable dans la zone", 0, 0, 0
@@ -413,28 +449,71 @@ def liens_recherche(nom, massif):
 # Exécution
 # ---------------------------------------------------------------------------
 
-def main(dry_run=False):
+def _ecrire_traces(traces_par_rando):
+    """Réécrit data/randos.geojson (tri stable par id de rando)."""
+    features = [f for pid in sorted(traces_par_rando)
+                for f in traces_par_rando[pid]]
+    CIBLE_TRACES.write_text(
+        json.dumps({"type": "FeatureCollection", "features": features},
+                   ensure_ascii=False, separators=(",", ":")),
+        encoding="utf-8")
+
+
+def main():
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--massif", nargs="+", default=None,
+                    help="restreindre aux randonnées de ces massifs")
+    ap.add_argument("--tout", action="store_true",
+                    help="retracer aussi les randonnées déjà tracées")
+    ap.add_argument("--dry-run", action="store_true")
+    args = ap.parse_args()
+
+    _migrer_monolithe()
+    departs = dict(DEPARTS)
+    if DEPARTS_FR.exists():                    # départs de l'extension France
+        extra = json.loads(DEPARTS_FR.read_text(encoding="utf-8"))
+        departs = {**extra, **departs}         # la table du pilote prime
+
     collection = json.loads(CIBLE_POINTS.read_text(encoding="utf-8"))
     randos = [f for f in collection["features"]
               if f["properties"].get("theme") == "randonnee"]
     randos.sort(key=lambda f: f["properties"]["id"])
-    print(f"{len(randos)} randonnées dans points.geojson")
 
-    cache = _charger_cache()
-    features, absents, traces = [], [], 0
+    # Tracés existants (fusion : jamais perdus, remplacés seulement si retracés)
+    traces_par_rando = {}
+    if CIBLE_TRACES.exists():
+        for f in json.loads(CIBLE_TRACES.read_text(encoding="utf-8"))["features"]:
+            rid = f.get("properties", {}).get("rando")
+            if rid:
+                traces_par_rando.setdefault(rid, []).append(f)
+
+    a_traiter = []
     for r in randos:
+        p = r["properties"]
+        if args.massif and p.get("details", {}).get("massif") not in args.massif:
+            continue
+        if p["id"] in traces_par_rando and not args.tout:
+            continue
+        a_traiter.append(r)
+    print(f"{len(randos)} randonnées, {len(traces_par_rando)} déjà tracées, "
+          f"{len(a_traiter)} à traiter")
+
+    absents, nouvelles = [], 0
+    for r in a_traiter:
+        pid = r["properties"]["id"]
         try:
-            morceaux, motif, *_ = tracer(r, cache)
+            morceaux, motif, *_ = tracer(r, departs.get(pid))
         except Exception as e:                            # Overpass épuisé…
             morceaux, motif = None, f"erreur : {e}"
         if morceaux:
-            features.extend(morceaux)
-            traces += 1
+            traces_par_rando[pid] = morceaux
+            nouvelles += 1
+            if not args.dry_run:       # écrit après CHAQUE tracé (interruption)
+                _ecrire_traces(traces_par_rando)
         else:
-            absents.append((r["properties"]["id"], r["properties"]["name"], motif))
-            print(f"  {r['properties']['id']} {r['properties']['name']} : "
-                  f"SANS TRACÉ — {motif}")
+            absents.append((pid, r["properties"]["name"], motif))
+            print(f"  {pid} {r['properties']['name']} : SANS TRACÉ — {motif}")
 
     # Liens de recherche sur chaque point rando (remplace un éventuel ancien).
     for r in randos:
@@ -442,16 +521,14 @@ def main(dry_run=False):
             r["properties"]["name"],
             r["properties"].get("details", {}).get("massif", ""))
 
-    print(f"\nBilan : {traces} tracés / {len(randos)} randonnées"
-          + (f", absents : {[a[0] for a in absents]}" if absents else ""))
-    if dry_run:
+    print(f"\nBilan : {nouvelles} nouveau(x) tracé(s), "
+          f"{len(traces_par_rando)} randonnées tracées / {len(randos)}"
+          + (f"\n  ÉCHECS : {[(a[0], a[2]) for a in absents]}" if absents else ""))
+    if args.dry_run:
         print("(--dry-run : rien n'a été écrit)")
         return 0
 
-    CIBLE_TRACES.write_text(
-        json.dumps({"type": "FeatureCollection", "features": features},
-                   ensure_ascii=False, separators=(",", ":")),
-        encoding="utf-8")
+    _ecrire_traces(traces_par_rando)
     print(f"data/randos.geojson : {CIBLE_TRACES.stat().st_size / 1024:.0f} Ko")
     CIBLE_POINTS.write_text(
         json.dumps(collection, ensure_ascii=False, separators=(",", ":")),
@@ -461,4 +538,4 @@ def main(dry_run=False):
 
 
 if __name__ == "__main__":
-    sys.exit(main(dry_run="--dry-run" in sys.argv))
+    sys.exit(main())

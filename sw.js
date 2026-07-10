@@ -14,7 +14,7 @@
  *    pour invalider l'ancien cache.
  */
 
-const VERSION = "v47";
+const VERSION = "v48";
 const CACHE_SHELL = `carte-outdoor-shell-${VERSION}`;
 const CACHE_TUILES = "carte-outdoor-tuiles-v1";
 const MAX_TUILES = 600;
@@ -45,6 +45,7 @@ const SHELL = [
   "./js/tuto.js",
   "./js/ideas.js",
   "./js/addpoint.js",
+  "./js/partage.js",
   "./js/config/themes.js",
   "./js/config/glossaire.js",
   "./js/config/supabase.js",
@@ -67,6 +68,7 @@ const SHELL = [
   "./img/carnet-page-2.jpg",
   "./img/carnet-page-3.jpg",
   "./img/carnet-page-4.jpg",
+  "./img/qr-site.svg",
 ];
 
 /** Hôtes des serveurs de tuiles (cache dédié). */
