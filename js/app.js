@@ -75,6 +75,10 @@ const state = {
  *  « toilettes autour de moi ». */
 let pointsToilettes = [];
 
+/** Points d'eau (data/eau.geojson, ~49 500 points) : même modèle que les
+ *  toilettes — fichier séparé non pré-caché, chargé à la première activation. */
+let pointsEau = [];
+
 /** Indices du cycle « flèche ➤ » (clics successifs → point suivant). */
 const cycleUserPoint = {};
 
@@ -100,7 +104,7 @@ async function chargerPoints() {
   const importes = await storage.getUserPoints().catch(() => []);
   state.userPointIds = new Set(importes.map((f) => f.properties.id));
   const parId = new Map();
-  for (const f of [...defauts, ...pointsToilettes, ...importes]) parId.set(f.properties.id, f);
+  for (const f of [...defauts, ...pointsToilettes, ...pointsEau, ...importes]) parId.set(f.properties.id, f);
   state.allPoints = [...parId.values()];
 }
 
@@ -120,6 +124,22 @@ async function chargerToilettes() {
   }
 }
 
+/** Charge les points d'eau si nécessaire ; renvoie false en cas d'échec. */
+async function chargerEau() {
+  if (pointsEau.length) return true;
+  toast("Chargement des points d'eau…");
+  try {
+    const reponse = await fetch("data/eau.geojson");
+    pointsEau = (await reponse.json()).features || [];
+    await chargerPoints();
+    return true;
+  } catch (e) {
+    console.error("Impossible de charger data/eau.geojson :", e);
+    toast("Points d'eau indisponibles pour le moment (hors connexion ?).");
+    return false;
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* Filtrage                                                             */
 /* ------------------------------------------------------------------ */
@@ -130,8 +150,9 @@ function compteursParTheme() {
     const id = getTheme(f.properties.theme).id;
     compteurs.set(id, (compteurs.get(id) || 0) + 1);
   }
-  // Toilettes pas encore chargées : « … » plutôt qu'un 0 trompeur
+  // Couches lourdes pas encore chargées : « … » plutôt qu'un 0 trompeur
   if (!pointsToilettes.length) compteurs.set("toilettes", "…");
+  if (!pointsEau.length) compteurs.set("eau", "…");
   return compteurs;
 }
 
@@ -1004,6 +1025,9 @@ async function demarrer() {
         if (id === "toilettes" && !(await chargerToilettes())) {
           state.activeThemes.delete(id);
         }
+        if (id === "eau" && !(await chargerEau())) {
+          state.activeThemes.delete(id);
+        }
         if (getThemeFilters(id).length) state.filtersCollapsed = false;
       }
       rafraichir();
@@ -1209,6 +1233,9 @@ async function demarrer() {
   // pour ne pas retarder le premier affichage.
   if (state.activeThemes.has("toilettes")) {
     chargerToilettes().then((ok) => ok && rafraichir());
+  }
+  if (state.activeThemes.has("eau")) {
+    chargerEau().then((ok) => ok && rafraichir());
   }
 
   // Tuto lancé automatiquement à la toute première connexion (skippable)

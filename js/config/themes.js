@@ -420,6 +420,46 @@ export const THEMES = [
       },
     ],
   },
+  {
+    // Points d'eau (fontaines, robinets, sources) — couche utilitaire chargée
+    // à la demande depuis data/eau.geojson (comme les toilettes, ~49 500 points).
+    // La potabilité des SOURCES n'est jamais présumée : « non garantie ».
+    id: "eau",
+    label: "Fontaines & sources",
+    color: "#1a9ec4",
+    icon: "💧",
+    fields: [
+      { key: "type", label: "Type" },
+      { key: "potabilite", label: "Potabilité" },
+      { key: "operator", label: "Gestionnaire" },
+      { key: "description", label: "Description" },
+    ],
+    filters: [
+      {
+        key: "potabilite",
+        label: "Potabilité",
+        type: "value",
+        field: "potabilite",
+        options: [
+          { value: "Eau potable", icon: "💧" },
+          { value: "Non potable", icon: "🚱" },
+          { value: "Potabilité non garantie", icon: "⚠️" },
+        ],
+      },
+      {
+        key: "type",
+        label: "Type",
+        type: "value",
+        field: "type",
+        options: [
+          { value: "Fontaine", icon: "⛲" },
+          { value: "Source", icon: "🏔️" },
+          { value: "Robinet", icon: "🚰" },
+          { value: "Point d'eau", icon: "💧" },
+        ],
+      },
+    ],
+  },
 ];
 
 /** Catégorie de repli pour les points dont la catégorie est inconnue

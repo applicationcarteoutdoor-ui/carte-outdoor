@@ -9,4 +9,5 @@ Claude Setup.exe
 tools/__pycache__/
 tools/*.json
 tools/*.html
+tools/*.log
 tools/traces-cache/
