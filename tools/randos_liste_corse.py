@@ -59,13 +59,9 @@ MASSIFS = {
              "voie": "Le sommet du Cap Corse depuis la marine de Pozzo — "
                      "maquis, crêtes et mer des deux côtés.",
              "osm": {"noms": ["Pozzo"], "rayon": 5500}},
-            {"nom": "Capu Rossu", "titres": ["Capu Rossu", "Capo Rosso"],
-             "altitude": 331, "depart": "Route de Piana (D824) (≈ 300 m)",
-             "depart_alt": None,
-             "duree": "≈ 3 h aller-retour",
-             "voie": "La presqu'île de porphyre rouge et la tour génoise "
-                     "de Turghiu, face aux calanche de Piana.",
-             "osm": {"parking": True, "rayon": 4500}},
+            # Capu Rossu : coordonnées Wikipédia à mi-presqu'île, dans le
+            # maquis à 315 m du premier sentier → routage refusé, ÉCARTÉ
+            # (rando-0128 retiré, id gelé au registre). Rien d'inventé.
         ],
     },
 }

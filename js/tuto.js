@@ -17,7 +17,7 @@ const ETAPES = [
   {
     titre: "Bienvenue sur Carte Outdoor ! 🏔️",
     texte:
-      "Une carte de points d'intérêt outdoor : via ferrata, escalade, refuges, châteaux, cités de caractère, GR… " +
+      "Une carte de points d'intérêt outdoor : randonnées, via ferrata, escalade, refuges, cascades, lacs, châteaux, villages, GR… " +
       "Ce petit tour vous montre l'essentiel (vous pouvez le revoir à tout moment avec le bouton 🎓).",
   },
   {

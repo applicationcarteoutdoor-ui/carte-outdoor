@@ -20,11 +20,14 @@ MASSIFS = {
                      "palombières — vue sur toute la côte basque.",
              "osm": {"noms": ["Col de Saint-Ignace"], "rayon": 4500}},
             {"nom": "Pic d'Orhy", "titres": ["Pic d'Orhy", "Orhy"],
-             "altitude": 2017, "depart": "Port de Larrau (≈ 1573 m)",
-             "depart_alt": 1573,
+             "altitude": 2017, "depart": "Chalets d'Iraty, col Bagargiak (≈ 1327 m)",
+             "depart_alt": 1327,
              "voie": "Premier 2000 des Pyrénées depuis l'Atlantique, par "
-                     "la crête frontière de Soule.",
-             "osm": {"noms": ["Port de Larrau", "Col de Larrau"], "rayon": 4500}},
+                     "la crête frontière de Soule depuis les cols d'Iraty "
+                     "(le port de Larrau n'est pas nommé dans OSM).",
+             "osm": {"noms": ["Col Bagargiak", "Chalets d'Iraty",
+                              "Col d'Organbidexka", "Col d'Orgambidesca"],
+                     "rayon": 6500}},
             {"nom": "Pic d'Iparla", "titres": ["Iparla"],
              "altitude": 1044, "depart": "Bidarray (≈ 150 m)", "depart_alt": 150,
              "voie": "La grande crête d'Iparla au-dessus de la vallée des "
@@ -66,13 +69,18 @@ MASSIFS = {
              "voie": "Par le port de Boucharo et le refuge des Sarradets — "
                      "l'entaille légendaire de la muraille de Gavarnie "
                      "(névés fréquents, randonnée exigeante).",
-             "osm": {"noms": ["Col des Tentes"], "rayon": 5500}},
+             "osm": {"noms": ["Col de Tentes", "Col des Tentes",
+                              "Port de Boucharo", "Col de Boucharo"],
+                     "rayon": 5500}},
             {"nom": "Pic de Néouvielle", "titres": ["Pic de Néouvielle"],
              "altitude": 3091, "depart": "Lac d'Aubert, réserve du Néouvielle (≈ 2150 m)",
              "depart_alt": 2150,
              "voie": "Voie normale par la brèche de Chausenque — 3000 "
                      "classique au-dessus des lacs de la réserve.",
-             "osm": {"noms": ["Lac d'Aubert"], "rayon": 5000}},
+             # parking le plus proche du sommet = parking du lac d'Aubert
+             # (le nom « Lac d'Aubert » résout au CENTRE du lac, sans sentier
+             # à moins de 300 m — vécu au premier routage).
+             "osm": {"parking": True, "rayon": 5000}},
             # Pic de Cabaliros : pas d'article Wikipédia fr → écarté.
         ],
     },
@@ -154,8 +162,9 @@ MASSIFS = {
              "depart_alt": 2020,
              "voie": "Toit des Pyrénées-Orientales par le désert du Carlit "
                      "et ses douze lacs — final raide et rocheux.",
-             "osm": {"noms": ["Lac des Bouillouses", "Les Bouillouses"],
-                     "rayon": 7500}},
+             # parking du barrage des Bouillouses (le nom « Lac des
+             # Bouillouses » résout au centre du lac, loin des sentiers).
+             "osm": {"parking": True, "rayon": 7500}},
             {"nom": "Cambre d'Aze", "titres": ["Cambre d'Aze"],
              "altitude": 2711, "depart": "Eyne (≈ 1600 m)", "depart_alt": 1600,
              "voie": "Par la vallée d'Eyne, « vallée des fleurs » classée "

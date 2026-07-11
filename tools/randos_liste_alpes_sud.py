@@ -45,7 +45,8 @@ MASSIFS = {
              "depart_alt": 1670,
              "voie": "Point culminant du Dévoluy — voie normale cairnée "
                      "exigeante par le col des Faïsses, terrain à chamois.",
-             "osm": {"noms": ["Les Payas"], "rayon": 5500}},
+             "osm": {"noms": ["Les Payas", "Les Baumes", "Col de la Samblue",
+                              "La Posterle"], "rayon": 6500}},
             {"nom": "Grand Ferrand", "titres": ["Grand Ferrand"],
              "altitude": 2758, "depart": "La Jarjatte, Lus-la-Croix-Haute (≈ 1180 m)",
              "depart_alt": 1180,
@@ -68,12 +69,14 @@ MASSIFS = {
              "duree": "≈ 3 h aller-retour",
              "voie": "Courte voie normale raide et cairnée depuis le col "
                      "Agnel — vue plongeante sur le Viso.",
-             "osm": {"noms": ["Col Agnel"], "rayon": 3500}},
+             "osm": {"noms": ["Col Agnel", "Colle dell'Agnello",
+                              "Refuge Agnel"], "rayon": 3500}},
             {"nom": "Pic de Caramantran", "titres": ["Pic de Caramantran"],
              "altitude": 3025, "depart": "Col Agnel (≈ 2744 m)", "depart_alt": 2744,
              "voie": "Un 3000 débonnaire par le col de Chamoussière — "
                      "sommet panoramique idéal en premier 3000.",
-             "osm": {"noms": ["Col Agnel"], "rayon": 4000}},
+             "osm": {"noms": ["Col Agnel", "Colle dell'Agnello",
+                              "Refuge Agnel"], "rayon": 4000}},
             {"nom": "Pic de Château Renard", "titres": ["Pic de Château Renard"],
              "altitude": 2989, "depart": "Saint-Véran (≈ 2040 m)", "depart_alt": 2040,
              "voie": "Montée depuis la plus haute commune d'Europe, par la "
@@ -124,7 +127,11 @@ MASSIFS = {
              "depart_alt": 1900,
              "voie": "Point culminant des Alpes-Maritimes — voie normale "
                      "exigeante depuis le sanctuaire de la Madone.",
-             "osm": {"noms": ["Madone de Fenestre"], "rayon": 5000}},
+             "osm": {"noms": ["Madone de Fenestre",
+                              "Sanctuaire de la Madone de Fenestre",
+                              "Refuge de la Madone de Fenestre",
+                              "Vacherie de la Madone de Fenestre"],
+                     "rayon": 5000}},
             {"nom": "Mont Mounier", "titres": ["Mont Mounier"],
              "altitude": 2817, "depart": "Beuil (≈ 1450 m)", "depart_alt": 1450,
              "voie": "Longue croupe panoramique dominant les gorges du "

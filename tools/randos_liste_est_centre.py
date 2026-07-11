@@ -45,7 +45,8 @@ MASSIFS = {
              "duree": "≈ 2 h aller-retour",
              "voie": "Le belvédère de la région des lacs — enchaînable "
                      "avec le belvédère des Quatre Lacs.",
-             "osm": {"noms": ["La Chaux-du-Dombief"], "rayon": 4000}},
+             "osm": {"noms": ["La Chaux-du-Dombief"], "rayon": 4000,
+                     "marge": 0.06}},
             {"nom": "Crêt de Chalam", "titres": ["Crêt de Chalam"],
              "altitude": 1540, "depart": "La Pesse (≈ 1160 m)", "depart_alt": 1160,
              "voie": "La pyramide du haut Jura au-dessus de la Valserine, "

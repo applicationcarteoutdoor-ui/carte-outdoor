@@ -34,11 +34,12 @@ MASSIFS = {
                      "balcon spectaculaire au-dessus de Grenoble.",
              "osm": {"noms": ["Saint-Nizier-du-Moucherotte"], "rayon": 4500}},
             {"nom": "Pic Saint-Michel", "titres": ["Pic Saint-Michel"],
-             "altitude": 1966, "depart": "Parking des Allières, Lans-en-Vercors (≈ 1420 m)",
-             "depart_alt": 1420,
-             "voie": "Voie normale par le col de l'Arc — vue sur toute la "
-                     "chaîne de Belledonne.",
-             "osm": {"noms": ["Les Allières"], "rayon": 5500}},
+             "altitude": 1966, "depart": "Lans-en-Vercors (≈ 1020 m)",
+             "depart_alt": 1020,
+             "voie": "Voie normale par les Allières et le col de l'Arc — "
+                     "vue sur toute la chaîne de Belledonne.",
+             "osm": {"noms": ["Lans-en-Vercors", "Les Allières",
+                              "les Allières"], "rayon": 8000}},
             {"nom": "Grande Moucherolle", "titres": ["Grande Moucherolle"],
              "altitude": 2284, "depart": "Corrençon-en-Vercors (≈ 1110 m)",
              "depart_alt": 1110,
@@ -46,11 +47,11 @@ MASSIFS = {
                      "Sœurs — deuxième sommet du massif.",
              "osm": {"noms": ["Corrençon-en-Vercors"], "rayon": 7500}},
             {"nom": "Roc Cornafion", "titres": ["Roc Cornafion", "Cornafion"],
-             "altitude": 2049, "depart": "Col de l'Arzelier (≈ 1150 m)",
-             "depart_alt": 1150,
-             "voie": "Montée en forêt puis en crête depuis le col de "
-                     "l'Arzelier — belvédère sur le Trièves.",
-             "osm": {"noms": ["Col de l'Arzelier"], "rayon": 5500}},
+             "altitude": 2049, "depart": "Villard-de-Lans (≈ 1050 m)",
+             "depart_alt": 1050,
+             "voie": "Montée par le vallon de la Fauge — belvédère en "
+                     "crête entre Villard-de-Lans et le Trièves.",
+             "osm": {"noms": ["Villard-de-Lans"], "rayon": 7500}},
             # Glandasse : article sans coordonnées → écartée (dry-run 10/07).
         ],
     },
@@ -100,7 +101,7 @@ MASSIFS = {
              "depart_alt": 1495,
              "voie": "Voie normale par l'arête sud-ouest depuis le col de "
                      "Chérel, au cœur de la réserve des Bauges.",
-             "osm": {"noms": ["Col de Chérel"], "rayon": 5500}},
+             "osm": {"noms": ["Col de Chérel"], "rayon": 5500, "marge": 0.07}},
             {"nom": "Pointe d'Arcalod", "titres": ["Pointe d'Arcalod", "Arcalod"],
              "altitude": 2217, "depart": "Col de Chérel (≈ 1495 m)",
              "depart_alt": 1495,
@@ -121,11 +122,12 @@ MASSIFS = {
                      "dent emblématique de la combe de Savoie.",
              "osm": {"noms": ["Col du Frêne"], "rayon": 6000}},
             {"nom": "Pointe de la Galoppaz", "titres": ["Pointe de la Galoppaz"],
-             "altitude": 1680, "depart": "Col de Plainpalais (≈ 1170 m)",
-             "depart_alt": 1170,
-             "voie": "Boucle facile en forêt puis en alpage — belvédère "
+             "altitude": 1680, "depart": "Col de la Buffaz (≈ 1440 m)",
+             "depart_alt": 1440,
+             "voie": "Montée facile en forêt puis en alpage — belvédère "
                      "familial sur les Bauges et Belledonne.",
-             "osm": {"noms": ["Col de Plainpalais"], "rayon": 5500}},
+             "osm": {"noms": ["Col de la Buffaz", "Col de Plainpalais",
+                              "Plainpalais"], "rayon": 6500}},
             {"nom": "Mont Margériaz", "titres": ["Mont Margériaz", "Margériaz"],
              "altitude": 1845, "depart": "Aillon-le-Jeune (≈ 1000 m)",
              "depart_alt": 1000,
@@ -163,7 +165,8 @@ MASSIFS = {
              "depart_alt": 950,
              "voie": "Voie normale par le lac du Charvin — pyramide "
                      "solitaire entre Aravis et val d'Arly.",
-             "osm": {"noms": ["Le Bouchet"], "rayon": 7500}},
+             "osm": {"noms": ["Le Bouchet-Mont-Charvin", "Le Bouchet"],
+                     "rayon": 8500}},
             # Trou de la Mouche : pas d'article Wikipédia dédié → écarté.
             {"nom": "Pic de Jallouvre", "titres": ["Pic de Jallouvre"],
              "altitude": 2408, "depart": "Col de la Colombière (≈ 1613 m)",

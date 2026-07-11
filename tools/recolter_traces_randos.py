@@ -192,6 +192,11 @@ def resoudre_depart(spec, lat_sommet, lon_sommet):
     d = enr._overpass(f"[out:json][timeout:90];({clauses});out center tags;")
     candidats = []
     for e in d.get("elements", []):
+        # Les relations sont exclues : `around` matche dès qu'UN membre est
+        # dans le rayon mais leur centre peut être à des kilomètres (vécu :
+        # relation « Port de Larrau » centrée à 3,8 km du col réel).
+        if e.get("type") == "relation":
+            continue
         lat, lon = _centre(e)
         tags = e.get("tags", {})
         if lat is None or tags.get("natural") == "peak":   # pas le sommet !
@@ -210,9 +215,9 @@ def resoudre_depart(spec, lat_sommet, lon_sommet):
 # 2) Réseau piéton de la boîte départ-sommet
 # ---------------------------------------------------------------------------
 
-def telecharger_reseau(lat1, lon1, lat2, lon2):
-    bbox = (f"{min(lat1, lat2) - MARGE_BBOX},{min(lon1, lon2) - MARGE_BBOX},"
-            f"{max(lat1, lat2) + MARGE_BBOX},{max(lon1, lon2) + MARGE_BBOX}")
+def telecharger_reseau(lat1, lon1, lat2, lon2, marge=MARGE_BBOX):
+    bbox = (f"{min(lat1, lat2) - marge},{min(lon1, lon2) - marge},"
+            f"{max(lat1, lat2) + marge},{max(lon1, lon2) + marge}")
     d = enr._overpass(f'[out:json][timeout:180];way["highway"]({bbox});out geom;')
     # On ne garde que le praticable (allège le cache) ; tags utiles seulement.
     utiles = []
@@ -261,22 +266,31 @@ def construire_graphe(ways):
     return arcs, coords
 
 
-def noeud_le_plus_proche(coords, arcs, lat, lon, maxi):
-    meilleur, dist = None, maxi
+def noeuds_proches(coords, arcs, lat, lon, maxi, cap=40):
+    """Nœuds du graphe à moins de `maxi` m, du plus proche au plus loin.
+    Plusieurs candidats car le plus proche peut appartenir à un îlot isolé
+    (ex. terrasses de l'observatoire du pic du Midi : footways non reliés
+    au sentier des Laquets qui passe à 137 m)."""
+    cands = []
     for n, (la, lo) in coords.items():
         if n not in arcs:
             continue
         d = _distance_m(la, lo, lat, lon)
-        if d < dist:
-            meilleur, dist = n, d
-    return meilleur, dist
+        if d < maxi:
+            cands.append((d, n))
+    cands.sort()
+    return cands[:cap]
 
 
-def dijkstra(arcs, depart, arrivee):
+def dijkstra_vers(arcs, depart, cibles):
+    """Plus court chemin de `depart` vers N'IMPORTE quelle cible.
+    → (chemin | None, dists) — dists sert à détecter les composantes."""
     dists, precedes, file_ = {depart: 0.0}, {}, [(0.0, depart)]
+    atteint = None
     while file_:
         d, n = heappop(file_)
-        if n == arrivee:
+        if n in cibles:
+            atteint = n
             break
         if d > dists.get(n, float("inf")):
             continue
@@ -285,13 +299,13 @@ def dijkstra(arcs, depart, arrivee):
             if nd < dists.get(voisin, float("inf")):
                 dists[voisin], precedes[voisin] = nd, n
                 heappush(file_, (nd, voisin))
-    if arrivee not in dists:
-        return None
-    chemin, n = [arrivee], arrivee
+    if atteint is None:
+        return None, dists
+    chemin, n = [atteint], atteint
     while n != depart:
         n = precedes[n]
         chemin.append(n)
-    return chemin[::-1]
+    return chemin[::-1], dists
 
 
 # ---------------------------------------------------------------------------
@@ -396,25 +410,42 @@ def tracer(rando, spec):
         return resultat
 
     if "reseau" not in entree:
+        # marge élargie possible par rando (réseaux disjoints dans la petite
+        # bbox : le raccord entre sentiers se fait parfois plus loin).
         entree["reseau"] = telecharger_reseau(depart["lat"], depart["lon"],
-                                              lat_s, lon_s)
+                                              lat_s, lon_s,
+                                              spec.get("marge", MARGE_BBOX))
         _sauver_entree(pid, entree)
     arcs, coords = construire_graphe(entree["reseau"])
     if not arcs:
         return None, "aucun chemin praticable dans la zone", 0, 0, 0
 
-    n_dep, d_dep = noeud_le_plus_proche(coords, arcs, depart["lat"],
-                                        depart["lon"], SEUIL_EXTREMITE_M)
-    n_som, d_som = noeud_le_plus_proche(coords, arcs, lat_s, lon_s,
-                                        SEUIL_EXTREMITE_M)
-    if n_dep is None:
+    cands_dep = noeuds_proches(coords, arcs, depart["lat"], depart["lon"],
+                               SEUIL_EXTREMITE_M)
+    cands_som = noeuds_proches(coords, arcs, lat_s, lon_s, SEUIL_EXTREMITE_M)
+    if not cands_dep:
         return None, f"aucun sentier à moins de {SEUIL_EXTREMITE_M} m du départ", 0, 0, 0
-    if n_som is None:
+    if not cands_som:
         return None, f"aucun sentier à moins de {SEUIL_EXTREMITE_M} m du sommet", 0, 0, 0
 
-    chemin = dijkstra(arcs, n_dep, n_som)
+    # Jusqu'à 5 COMPOSANTES distinctes côté départ, vers le PREMIER nœud
+    # sommital atteignable — robuste aux îlots isolés du réseau (placette
+    # de village de 10 nœuds, terrasses d'observatoire…).
+    cibles = {n for _, n in cands_som}
+    d_soms = {n: d for d, n in cands_som}
+    chemin, essais_rates = None, []
+    for d_dep, n_dep in cands_dep:
+        if any(n_dep in dists for dists in essais_rates):
+            continue                       # même composante qu'un essai raté
+        chemin, dists = dijkstra_vers(arcs, n_dep, cibles)
+        if chemin:
+            break
+        essais_rates.append(dists)
+        if len(essais_rates) >= 5:
+            break
     if not chemin:
         return None, "départ et sommet non reliés par le réseau OSM", 0, 0, 0
+    d_som = d_soms[chemin[-1]]
 
     points = [coords[n] for n in chemin]                  # (lat, lon)
     longueur = sum(_distance_m(*a, *b) for a, b in zip(points, points[1:]))
