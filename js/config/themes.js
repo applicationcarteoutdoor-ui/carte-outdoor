@@ -431,6 +431,11 @@ export const THEMES = [
     fields: [
       { key: "type", label: "Type" },
       { key: "potabilite", label: "Potabilité" },
+      { key: "fee", label: "Tarif" },
+      { key: "charge", label: "Prix" },
+      { key: "seasonal", label: "Disponibilité" },
+      { key: "ele", label: "Altitude" },
+      { key: "wheelchair", label: "Accès PMR" },
       { key: "operator", label: "Gestionnaire" },
       { key: "description", label: "Description" },
     ],

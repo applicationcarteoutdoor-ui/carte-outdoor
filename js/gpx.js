@@ -12,6 +12,9 @@
 
 import * as storage from "./storage.js";
 import { getMap } from "./map.js";
+// Cycle import-export ⇄ gpx sans danger : `confirmer` est une déclaration de
+// fonction (hissée) et n'est appelée qu'au clic, longtemps après le chargement.
+import { confirmer } from "./import-export.js";
 import { esc } from "./util.js";
 
 /* global L */
@@ -209,7 +212,8 @@ function renderTracks() {
     });
     item.querySelector(".track-profile").addEventListener("click", () => afficherProfil(track));
     item.querySelector(".track-delete").addEventListener("click", async () => {
-      if (!confirm(`Supprimer la trace « ${track.name} » ?`)) return;
+      // JAMAIS confirm() natif : silencieusement ignoré en PWA installée
+      if (!(await confirmer(`Supprimer la trace « ${track.name} » ?`))) return;
       const couche = layersById.get(track.id);
       if (couche) trackGroup.removeLayer(couche);
       layersById.delete(track.id);

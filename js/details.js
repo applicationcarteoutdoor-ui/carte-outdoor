@@ -168,13 +168,16 @@ export function openDetails(feature, statut) {
         `<div class="detail-row"><dt>${esc(champ.label)}</dt><dd>${glossaireHTML(String(details[champ.key]))}</dd></div>`
     );
   // Champs non déclarés dans le thème : affichés aussi, SAUF les champs
-  // techniques destinés aux filtres (suffixes _n et _type)
+  // techniques destinés aux filtres (suffixes _n et _type, et `fiche` :
+  // métadonnée du pipeline de données — « fiche Référencée » en brut dans
+  // la fiche n'apprend rien au visiteur, bug cosmétique relevé au test v53).
   const clesConnues = new Set(theme.fields.map((c) => c.key));
   for (const [cle, valeur] of Object.entries(details)) {
     if (
       !clesConnues.has(cle) &&
       valeur !== "" &&
       valeur !== undefined &&
+      cle !== "fiche" &&
       !cle.endsWith("_n") &&
       !cle.endsWith("_type")
     ) {

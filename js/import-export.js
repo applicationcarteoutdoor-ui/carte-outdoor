@@ -16,7 +16,7 @@
  * Les fichiers sont traités séquentiellement (un dialogue à la fois).
  */
 
-import { allThemes, themeExists, registerCustomThemes } from "./config/themes.js";
+import { allThemes, themeExists, registerCustomThemes, getTheme } from "./config/themes.js";
 import * as storage from "./storage.js";
 import { importTraceGeojson } from "./gpx.js";
 
@@ -365,7 +365,10 @@ function afficherRapportEtAttendre(nomFichier, resultat) {
   if (resultat.themeRequis && resultat.valides.length) {
     select.textContent = "";
     select.appendChild(new Option("— Choisir la catégorie des points —", ""));
-    for (const t of allThemes()) select.appendChild(new Option(`${t.icon} ${t.label}`, t.id));
+    for (const t of allThemes()) {
+      const theme = getTheme(t.id); // applique la personnalisation (label/icône)
+      select.appendChild(new Option(`${theme.icon} ${theme.label}`, t.id));
+    }
     zoneTheme.style.display = "";
   } else {
     zoneTheme.style.display = "none";
@@ -390,7 +393,10 @@ function majBoutonConfirmer() {
     analyseEnCours?.themeRequis && !dialog.querySelector("#import-theme-select").value;
   const nb = analyseEnCours?.valides.length || 0;
   btn.disabled = nb === 0 || themeManquant;
-  btn.textContent = nb ? `Importer ${nb} point(s)` : "Rien à importer";
+  // Le bouton dit POURQUOI il est inactif (retour utilisateur : cliquer un
+  // bouton grisé sans explication = refus silencieux, relevé au test v53).
+  btn.textContent =
+    nb === 0 ? "Rien à importer" : themeManquant ? "Choisissez une catégorie ↑" : `Importer ${nb} point(s)`;
 }
 
 async function confirmerImport() {
@@ -441,7 +447,9 @@ async function exporter() {
   a.href = url;
   a.download = `carte-outdoor-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
-  URL.revokeObjectURL(url);
+  // Révocation DIFFÉRÉE : la révoquer tout de suite peut couper un
+  // téléchargement pas encore démarré (Safari, appareils lents).
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
   // Date de dernière sauvegarde : sert au rappel de sauvegarde (app.js)
   await storage.savePrefs({ dernierExport: Date.now() });
   toast("Sauvegarde exportée (points importés, suivi et carnet).");

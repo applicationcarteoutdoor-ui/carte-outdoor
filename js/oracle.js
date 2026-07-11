@@ -7,9 +7,10 @@
  * visites, activités.
  *
  * Multi-fournisseurs : l'utilisateur peut renseigner une clé Anthropic
- * (Claude), OpenAI (GPT) et/ou Google (Gemini), et choisir le moteur utilisé.
- * Chaque fournisseur a son propre format de requête ET son propre mécanisme
- * de recherche web — d'où l'abstraction FOURNISSEURS ci-dessous.
+ * (Claude) et/ou Google (Gemini), et choisir le moteur utilisé. Chaque
+ * fournisseur a son propre format de requête ET son propre mécanisme de
+ * recherche web — d'où l'abstraction FOURNISSEURS ci-dessous (OpenAI retiré :
+ * pas de CORS sur son API, voir la note dans FOURNISSEURS).
  *
  * Confidentialité :
  *  - Les clés et l'historique restent dans le navigateur (localStorage, CET
@@ -827,6 +828,7 @@ async function lancer(lieu) {
   const cle = lireCles()[choix.provider];
   if (!cle) {
     toast(`Renseigne d'abord ta clé ${f.nom} (ou passe en mode ✨ Gratuit).`);
+    etatVide(); // la boule affichait « Localisation… » : ne pas l'y laisser
     ouvrirPanneauCle(true);
     return;
   }

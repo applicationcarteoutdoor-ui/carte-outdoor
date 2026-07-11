@@ -138,7 +138,8 @@ export function renderSidebar(etat) {
       couleur: "#b02a2a",
       texte: "#fff",
       label: "Sentiers GR",
-      count: 190,
+      count: 190, // nombre de tracés de data/gr.geojson — à tenir en phase si le fichier change
+
       coche: etat.grVisible,
       onCheck: (on) => cb.onToggleGr(on),
     })
