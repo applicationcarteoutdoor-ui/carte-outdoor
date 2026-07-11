@@ -622,28 +622,43 @@ function distanceM(lat1, lon1, lat2, lon2) {
   return 2 * 6371000 * Math.asin(Math.sqrt(x));
 }
 
-/** Dialogue d'avertissement à l'activation de la catégorie Toilettes.
+/** Couches volumineuses chargées à la demande : même UX (avertissement à
+ *  l'activation + mode « autour de moi » à 1 km). `points` est un getter car
+ *  le tableau est réassigné au chargement. */
+const COUCHES_LOURDES = {
+  toilettes: {
+    dialog: "wc-dialog", charger: chargerToilettes, points: () => pointsToilettes,
+    pluriel: "toilettes", vide: "Aucunes toilettes à moins de 1 km",
+    proche: "la plus proche", aucun: "Aucunes toilettes connues.",
+  },
+  eau: {
+    dialog: "eau-dialog", charger: chargerEau, points: () => pointsEau,
+    pluriel: "points d'eau", vide: "Aucun point d'eau à moins de 1 km",
+    proche: "le plus proche", aucun: "Aucun point d'eau connu.",
+  },
+};
+
+/** Dialogue d'avertissement à l'activation d'une couche lourde (toilettes, eau).
  *  @returns {Promise<"valider"|"retour"|"proximite">} */
-function demanderModeToilettes() {
-  const dlg = document.getElementById("wc-dialog");
+function demanderModeCouche(dialogId) {
+  const dlg = document.getElementById(dialogId);
   dlg.showModal();
   return new Promise((resolve) => {
     const repondre = (choix) => {
       if (dlg.open) dlg.close();
       resolve(choix);
     };
-    dlg.querySelector(".wc-valider").onclick = () => repondre("valider");
-    dlg.querySelector(".wc-retour").onclick = () => repondre("retour");
-    dlg.querySelector(".wc-proximite").onclick = () => repondre("proximite");
+    dlg.querySelector(".mode-valider").onclick = () => repondre("valider");
+    dlg.querySelector(".mode-retour").onclick = () => repondre("retour");
+    dlg.querySelector(".mode-proximite").onclick = () => repondre("proximite");
     dlg.oncancel = () => resolve("retour"); // touche Échap
   });
 }
 
-/** Géolocalise puis affiche les toilettes seules, autour de la position
- *  (cercle de 1 km). Utilisé par le bouton 🏃🚻 et par l'avertissement. */
-async function toilettesAutourDeMoi() {
-  const bouton = document.getElementById("btn-wc");
-  bouton.disabled = true;
+/** Géolocalise puis affiche SEULE la couche `id` (toilettes/eau) autour de la
+ *  position (cercle de 1 km). Utilisé par l'avertissement et par le bouton 🏃🚻. */
+async function coucheAutourDeMoi(id) {
+  const conf = COUCHES_LOURDES[id];
   try {
     toast("Recherche de votre position…");
     const [lat, lon] = await new Promise((resolve, reject) => {
@@ -653,30 +668,38 @@ async function toilettesAutourDeMoi() {
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
       );
     });
-    if (!(await chargerToilettes())) return;
-    // Vue « toilettes seules », centrée sur la position, rayon de 1 km.
-    // Le zoom se fait AVANT le rendu : les marqueurs se remplissent en
-    // priorité autour de la position (tri par distance dans setPoints).
+    if (!(await conf.charger())) return;
+    // Le zoom se fait AVANT le rendu : les marqueurs se remplissent en priorité
+    // autour de la position (tri par distance dans setPoints).
     montrerRayon(lat, lon, 1000);
-    state.activeThemes = new Set(["toilettes"]);
+    state.activeThemes = new Set([id]);
     state.statusFilters.clear();
     rafraichir();
-    const distances = pointsToilettes.map((f) =>
+    const distances = conf.points().map((f) =>
       distanceM(lat, lon, f.geometry.coordinates[1], f.geometry.coordinates[0])
     );
     const proches = distances.filter((d) => d <= 1000).length;
     if (proches) {
-      toast(`${proches} toilettes à moins de 1 km.`);
+      toast(`${proches} ${conf.pluriel} à moins de 1 km.`);
     } else {
       const mini = Math.min(...distances);
       toast(Number.isFinite(mini)
-        ? `Aucunes toilettes à moins de 1 km — la plus proche est à ${(mini / 1000).toFixed(1)} km.`
-        : "Aucunes toilettes connues.");
+        ? `${conf.vide} — ${conf.proche} est à ${(mini / 1000).toFixed(1)} km.`
+        : conf.aucun);
     }
   } catch (e) {
     toast(e && e.code === 1
       ? "Géolocalisation refusée : autorisez-la dans votre navigateur."
       : "Position introuvable pour le moment.");
+  }
+}
+
+/** Bouton flottant 🏃🚻 : toilettes autour de moi (désactive le bouton pendant l'opération). */
+async function toilettesAutourDeMoi() {
+  const bouton = document.getElementById("btn-wc");
+  bouton.disabled = true;
+  try {
+    await coucheAutourDeMoi("toilettes");
   } finally {
     bouton.disabled = false;
   }
@@ -1005,16 +1028,17 @@ async function demarrer() {
 
   initSidebar({
     onToggleTheme: async (id, coche) => {
-      // Toilettes : ~66 000 points → avertissement avec trois choix
-      if (id === "toilettes" && coche) {
-        const choix = await demanderModeToilettes();
+      // Couches lourdes (toilettes ~66k, eau ~49k) → avertissement avec trois
+      // choix : Retour, « À moins de 1 km » (zoom sur la position), Valider.
+      if (COUCHES_LOURDES[id] && coche) {
+        const choix = await demanderModeCouche(COUCHES_LOURDES[id].dialog);
         if (choix === "retour") {
           rafraichir(); // re-décoche la case (l'état n'a pas changé)
           return;
         }
         if (choix === "proximite") {
           rafraichir();
-          await toilettesAutourDeMoi();
+          await coucheAutourDeMoi(id);
           return;
         }
         // « Valider » : affichage complet, comme une catégorie normale
@@ -1022,10 +1046,7 @@ async function demarrer() {
       coche ? state.activeThemes.add(id) : state.activeThemes.delete(id);
       if (coche) {
         state.statusFilters.clear(); // exclusif avec le mode suivi
-        if (id === "toilettes" && !(await chargerToilettes())) {
-          state.activeThemes.delete(id);
-        }
-        if (id === "eau" && !(await chargerEau())) {
+        if (COUCHES_LOURDES[id] && !(await COUCHES_LOURDES[id].charger())) {
           state.activeThemes.delete(id);
         }
         if (getThemeFilters(id).length) state.filtersCollapsed = false;

@@ -242,9 +242,23 @@
       « <span class="wc-runner" aria-hidden="true">🏃</span>🚻 À moins de 1 km », vous pouvez zoomer sur
       votre position et activer uniquement les toilettes à proximité.</p>
     <div class="dialog-actions wc-actions">
-      <button type="button" class="btn btn-secondary wc-retour">Retour</button>
-      <button type="button" class="btn btn-secondary wc-proximite"><span class="wc-runner" aria-hidden="true">🏃</span>🚻 À moins de 1 km</button>
-      <button type="button" class="btn wc-valider">Valider</button>
+      <button type="button" class="btn btn-secondary mode-retour">Retour</button>
+      <button type="button" class="btn btn-secondary mode-proximite"><span class="wc-runner" aria-hidden="true">🏃</span>🚻 À moins de 1 km</button>
+      <button type="button" class="btn mode-valider">Valider</button>
+    </div>
+  </dialog>
+
+  <!-- Points d'eau : même avertissement que les toilettes (couche volumineuse) -->
+  <dialog id="eau-dialog" aria-labelledby="eau-title">
+    <h2 id="eau-title">💧 Beaucoup de points !</h2>
+    <p class="menu-note">Risque de lag : pour éviter les ralentissements, pensez à zoomer
+      avant d'utiliser cette option. En cliquant sur le bouton
+      « <span class="wc-runner" aria-hidden="true">🏃</span>💧 À moins de 1 km », vous pouvez zoomer sur
+      votre position et activer uniquement les points d'eau à proximité.</p>
+    <div class="dialog-actions wc-actions">
+      <button type="button" class="btn btn-secondary mode-retour">Retour</button>
+      <button type="button" class="btn btn-secondary mode-proximite"><span class="wc-runner" aria-hidden="true">🏃</span>💧 À moins de 1 km</button>
+      <button type="button" class="btn mode-valider">Valider</button>
     </div>
   </dialog>
 
