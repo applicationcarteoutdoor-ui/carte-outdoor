@@ -28,15 +28,18 @@ let isUserPointCallback = null;
 let onDeletePointCallback = null;
 let onVoirCarnetCallback = null;
 let onTelechargerGpxCallback = null;
+let onTelechargerGpxGrCallback = null;
 let featureCourante = null;
+let grCourant = null; // grId du sentier GR dont la fiche est ouverte, ou null
 
-export function initDetails({ onStatusChange, onClose, isUserPoint, onDeletePoint, onVoirCarnet, onTelechargerGpx }) {
+export function initDetails({ onStatusChange, onClose, isUserPoint, onDeletePoint, onVoirCarnet, onTelechargerGpx, onTelechargerGpxGr }) {
   onStatusChangeCallback = onStatusChange;
   onCloseCallback = onClose;
   isUserPointCallback = isUserPoint;
   onDeletePointCallback = onDeletePoint;
   onVoirCarnetCallback = onVoirCarnet;
   onTelechargerGpxCallback = onTelechargerGpx;
+  onTelechargerGpxGrCallback = onTelechargerGpxGr;
   panel = document.getElementById("details-panel");
   panel.querySelector(".panel-close").addEventListener("click", closeDetails);
   initReduction();
@@ -97,12 +100,58 @@ function initSignalement() {
 export function closeDetails() {
   panel.classList.remove("open");
   featureCourante = null;
+  grCourant = null;
   onCloseCallback?.();
+}
+
+/**
+ * Fiche d'un sentier GR (LineString, pas un point) : nom, distance, D+ estimé,
+ * téléchargement GPX et liens externes. Réutilise le même panneau que les
+ * points (croix, bouton réduire) ; le tracé et l'épinglage sont gérés par app.js.
+ */
+export function openDetailsGr(feature) {
+  featureCourante = null; // un GR n'est pas un point (pas de statut, pas de carnet)
+  const p = feature.properties || {};
+  grCourant = p.grId || null;
+
+  const stats = [];
+  if (p.distance_km) stats.push(`<div class="detail-row"><dt>Distance</dt><dd>${esc(p.distance_km.toLocaleString("fr-FR"))} km</dd></div>`);
+  if (p.dplus) stats.push(`<div class="detail-row"><dt>Dénivelé (estimation)</dt><dd>≈ ${esc(p.dplus.toLocaleString("fr-FR"))} m</dd></div>`);
+
+  const liens = [];
+  if (p.grgo) liens.push(`<a href="${esc(p.grgo)}" target="_blank" rel="noopener">🔗 gr-go.fr (planificateur)</a>`);
+  if (p.wiki) liens.push(`<a href="${esc(p.wiki)}" target="_blank" rel="noopener">🔗 Wikipédia</a>`);
+  if (p.link) liens.push(`<a href="${esc(p.link)}" target="_blank" rel="noopener">🔗 gr-infos.com</a>`);
+
+  panel.querySelector(".panel-body").innerHTML = `
+    <div class="details-theme details-theme-gr">
+      <span aria-hidden="true">🥾</span> Sentier de grande randonnée
+    </div>
+    <h2 class="details-name">${esc(p.name || "GR")}</h2>
+
+    <div class="details-route">
+      <button type="button" class="btn btn-route btn-gpx-gr" title="Télécharger le tracé au format GPX">📥 GPX</button>
+    </div>
+
+    ${stats.length ? `<dl class="details-fields">${stats.join("")}</dl>` : ""}
+    ${liens.length ? `<div class="details-links">${liens.join("")}</div>` : ""}
+
+    <p class="menu-note">Le dénivelé est une estimation (altimétrie IGN). Le tracé reste
+      affiché sur la carte tant que vous ne sélectionnez pas un autre itinéraire.</p>
+  `;
+
+  panel.querySelector(".btn-gpx-gr").addEventListener("click", () => {
+    onTelechargerGpxGrCallback?.(feature);
+  });
+
+  panel.classList.add("open");
+  panel.querySelector(".panel-body").scrollTop = 0;
 }
 
 /** Ouvre (ou met à jour) la fiche du point donné. */
 export function openDetails(feature, statut) {
   featureCourante = feature;
+  grCourant = null; // on quitte une éventuelle fiche GR
   const p = feature.properties;
   const theme = getTheme(p.theme);
   const [lon, lat] = feature.geometry.coordinates;
@@ -278,6 +327,11 @@ export function refreshDetailsIfOpen(pointId, statut) {
 /** Id du point dont la fiche est ouverte, ou null. */
 export function getOpenPointId() {
   return featureCourante ? featureCourante.properties.id : null;
+}
+
+/** grId du sentier GR dont la fiche est ouverte, ou null. */
+export function getOpenGrId() {
+  return grCourant;
 }
 
 /* ------------------------------------------------------------------ */

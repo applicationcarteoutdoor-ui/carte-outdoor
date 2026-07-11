@@ -1138,9 +1138,9 @@ dialog .panel-header { padding: 0 0 4px; }
    Partage de l'application (QR code, lien) et randonnée épinglée
    -------------------------------------------------------------------------- */
 
-/* Mini QR dans la pile de boutons : plaque blanche pour rester lisible */
-.fab-partage { background: #fff; }
-.fab-partage img { width: 30px; height: 30px; display: block; }
+/* Bouton Partager : icône de partage universelle (trois nœuds reliés) */
+.fab-partage svg { width: 22px; height: 22px; }
+.fab-partage circle { fill: currentColor; stroke: none; }
 
 #partage-dialog .partage-corps {
   display: flex;
@@ -1191,25 +1191,36 @@ dialog .panel-header { padding: 0 0 4px; }
   white-space: nowrap;
 }
 
-/* Fiche réduite à ~un tiers de hauteur (bouton ▾/▴) : la carte respire */
+/* Fiche réduite à ~un tiers de hauteur (bouton ▾/▴) : la carte respire.
+   Flèche volontairement GROSSE et bien contrastée : cible tactile facile. */
 .panel-details .panel-reduce {
   position: absolute;
   top: 6px;
   right: 56px;
   z-index: 2;
-  min-width: 46px;
-  min-height: 46px;
+  min-width: 52px;
+  min-height: 52px;
+  display: grid;
+  place-items: center;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--surface);
-  color: var(--text-2);
-  font-size: 1.25rem;
+  color: var(--text);
+  font-size: 2rem;
+  line-height: 1;
   cursor: pointer;
 }
 
 .panel-details .panel-reduce:hover { background: var(--bg); }
 
 .panel-details.reduit { max-height: 30dvh; }
+
+/* Badge d'une fiche de sentier GR (rouge GR, comme le tracé) */
+.details-theme-gr {
+  background: #fdecec;
+  color: #b31d1d;
+}
+body.mode-nuit .details-theme-gr { background: #3a1c1c; color: #ff8f8f; }
 
 /* --------------------------------------------------------------------------
    Grand écran : panneau gauche fixe, fiche à droite

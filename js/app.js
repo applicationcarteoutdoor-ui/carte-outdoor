@@ -24,6 +24,8 @@ import {
   montrerTraceRando,
   cacherTraceRando,
   getTraceRando,
+  selectionnerGr,
+  deselectionnerGr,
   getFonds,
   setFond,
 } from "./map.js";
@@ -31,9 +33,11 @@ import { initFilters, renderFilters } from "./filters.js";
 import {
   initDetails,
   openDetails,
+  openDetailsGr,
   closeDetails,
   refreshDetailsIfOpen,
   getOpenPointId,
+  getOpenGrId,
 } from "./details.js";
 import { initSidebar, renderSidebar, refreshTraces, closeSidebar } from "./sidebar.js";
 import { initImportExport, toast, confirmer } from "./import-export.js";
@@ -225,12 +229,12 @@ function rafraichir() {
   });
   setPoints(pointsVisibles(), state.statuses);
   // Catégorie Randonnée décochée → tracé épinglé, pastille et fiche disparaissent
-  if (randoEpinglee && !state.activeThemes.has("randonnee")) {
-    const idEpinglee = randoEpinglee.properties.id;
-    randoEpinglee = null;
+  if (itineraireEpingle?.type === "rando" && !state.activeThemes.has("randonnee")) {
+    const idEpinglee = itineraireEpingle.id;
+    itineraireEpingle = null;
     cacherTraceRando();
     if (getOpenPointId() === idEpinglee) closeDetails();
-    else majPastilleRando();
+    else majPastilleItineraire();
   }
   planifierPrefs({
     activeThemes: [...state.activeThemes],
@@ -251,41 +255,70 @@ function rafraichir() {
 /* Actions                                                              */
 /* ------------------------------------------------------------------ */
 
-// Randonnée « épinglée » : son tracé reste sur la carte même fiche fermée ;
-// la pastille en haut à droite (#rando-chip) permet de rouvrir la fiche.
-// Une seule randonnée épinglée à la fois (la nouvelle remplace l'ancienne).
-let randoEpinglee = null;
+// Itinéraire « épinglé » : une randonnée (point) OU un sentier GR (ligne).
+// Son tracé reste sur la carte même fiche fermée ; la pastille #rando-chip la
+// rouvre. UN SEUL épinglé à la fois — sélectionner l'autre remplace le précédent.
+let itineraireEpingle = null; // { type: "rando"|"gr", id, name, icon, feature }
 
 function ouvrirFiche(feature) {
   highlightPoint(feature.properties.id); // épingle agrandie + halo
   openDetails(feature, state.statuses[feature.properties.id]);
-  // Randonnée : son CHEMIN se dessine sur la carte et y reste épinglé
-  // (tracés dans data/randos.geojson, chargés à la demande). Ouvrir un point
-  // d'une AUTRE catégorie ne retire pas le tracé épinglé (choix utilisateur).
+  // Randonnée : son CHEMIN se dessine sur la carte et y reste épinglé (tracés
+  // dans data/randos.geojson). Ouvrir un point d'une AUTRE catégorie ne retire
+  // pas l'itinéraire épinglé (choix utilisateur) ; seul un autre itinéraire le fait.
   if (getTheme(feature.properties.theme).id === "randonnee") {
-    randoEpinglee = feature;
-    majPastilleRando(); // fiche ouverte → pastille masquée
+    deselectionnerGr(); // un GR était peut-être épinglé : il cède la place
+    itineraireEpingle = {
+      type: "rando",
+      id: feature.properties.id,
+      name: feature.properties.name,
+      icon: getTheme(feature.properties.theme).icon,
+      feature,
+    };
+    majPastilleItineraire();
     montrerTraceRando(feature.properties.id).then((ok) => {
-      if (!ok && randoEpinglee === feature) {
-        randoEpinglee = null; // pas de tracé connu : rien à épingler
-        majPastilleRando();
+      if (!ok && itineraireEpingle?.id === feature.properties.id) {
+        itineraireEpingle = null; // pas de tracé connu : rien à épingler
+        majPastilleItineraire();
       }
     });
   }
 }
 
+/** Ouvre la fiche d'un sentier GR (comme une randonnée : tracé épinglé + pastille). */
+function ouvrirFicheGr(grFeature) {
+  const grId = grFeature.properties.grId;
+  cacherTraceRando(); // une rando était peut-être épinglée : elle cède la place
+  clearHighlight();
+  selectionnerGr(grId); // surligne le GR en orange, y compris fiche fermée
+  itineraireEpingle = {
+    type: "gr",
+    id: grId,
+    name: grFeature.properties.name || "GR",
+    icon: "🥾",
+    feature: grFeature,
+  };
+  openDetailsGr(grFeature);
+  majPastilleItineraire();
+}
+
 /**
- * Pastille de la randonnée épinglée : visible seulement quand un tracé est
- * affiché ET que la fiche de cette randonnée est fermée. Cliquer la rouvre.
+ * Pastille de l'itinéraire épinglé (rando ou GR) : visible seulement quand un
+ * tracé est affiché ET que sa fiche est fermée. Cliquer la rouvre.
  */
-function majPastilleRando() {
+function majPastilleItineraire() {
   const pastille = document.getElementById("rando-chip");
-  if (!randoEpinglee || getOpenPointId() === randoEpinglee.properties.id) {
+  const ficheOuverte =
+    itineraireEpingle &&
+    (itineraireEpingle.type === "gr"
+      ? getOpenGrId() === itineraireEpingle.id
+      : getOpenPointId() === itineraireEpingle.id);
+  if (!itineraireEpingle || ficheOuverte) {
     pastille.hidden = true;
     return;
   }
-  pastille.querySelector(".rando-chip-icone").textContent = getTheme(randoEpinglee.properties.theme).icon;
-  pastille.querySelector(".rando-chip-nom").textContent = randoEpinglee.properties.name;
+  pastille.querySelector(".rando-chip-icone").textContent = itineraireEpingle.icon;
+  pastille.querySelector(".rando-chip-nom").textContent = itineraireEpingle.name;
   pastille.hidden = false;
 }
 
@@ -294,49 +327,63 @@ function nomFichier(nom) {
   return (
     normaliser(nom)
       .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "") || "randonnee"
+      .replace(/^-+|-+$/g, "") || "trace"
   );
 }
 
 /**
- * Télécharge le tracé d'une randonnée au format GPX — la passerelle vers
- * Komoot, AllTrails, les montres GPS… (leurs applis importent un GPX).
+ * Écrit un GPX (une ou plusieurs `trkseg`) et déclenche son téléchargement.
+ * `segments` = tableau de segments, chaque segment = tableau de [lon, lat].
+ * `depart` optionnel = [lat, lon] posé comme waypoint (départ de la rando).
  */
-async function telechargerGpxRando(feature) {
-  const p = feature.properties;
-  const morceaux = await getTraceRando(p.id);
-  if (!morceaux.length) {
-    toast("Tracé indisponible pour cette randonnée.");
-    return;
-  }
-  const [lonPt, latPt] = feature.geometry.coordinates;
-  const segments = morceaux
+function telechargerGpx(nom, segments, depart) {
+  const trksegs = segments
     .map(
-      (m) =>
-        `    <trkseg>\n${m.geometry.coordinates
+      (seg) =>
+        `    <trkseg>\n${seg
           .map(([lon, lat]) => `      <trkpt lat="${lat}" lon="${lon}"/>`)
           .join("\n")}\n    </trkseg>`
     )
     .join("\n");
   const gpx = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="Carte Outdoor" xmlns="http://www.topografix.com/GPX/1/1">
-  <metadata><name>${esc(p.name)}</name></metadata>
-  <wpt lat="${latPt}" lon="${lonPt}"><name>${esc(p.name)}</name></wpt>
-  <trk>
-    <name>${esc(p.name)}</name>
-${segments}
+  <metadata><name>${esc(nom)}</name></metadata>
+${depart ? `  <wpt lat="${depart[0]}" lon="${depart[1]}"><name>${esc(nom)}</name></wpt>\n` : ""}  <trk>
+    <name>${esc(nom)}</name>
+${trksegs}
   </trk>
 </gpx>
 `;
   const url = URL.createObjectURL(new Blob([gpx], { type: "application/gpx+xml" }));
   const a = document.createElement("a");
   a.href = url;
-  a.download = `${nomFichier(p.name)}.gpx`;
+  a.download = `${nomFichier(nom)}.gpx`;
   document.body.appendChild(a);
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
   toast("GPX téléchargé — importable dans Komoot, AllTrails, une montre GPS…");
+}
+
+/** GPX d'une randonnée (passerelle vers Komoot, AllTrails, montres GPS). */
+async function telechargerGpxRando(feature) {
+  const morceaux = await getTraceRando(feature.properties.id);
+  if (!morceaux.length) {
+    toast("Tracé indisponible pour cette randonnée.");
+    return;
+  }
+  const [lonPt, latPt] = feature.geometry.coordinates;
+  telechargerGpx(feature.properties.name, morceaux.map((m) => m.geometry.coordinates), [latPt, lonPt]);
+}
+
+/** GPX d'un sentier GR (sa géométrie LineString est directement dans la feature). */
+function telechargerGpxGr(grFeature) {
+  const coords = grFeature.geometry?.coordinates || [];
+  if (!coords.length) {
+    toast("Tracé indisponible pour ce GR.");
+    return;
+  }
+  telechargerGpx(grFeature.properties?.name || "GR", [coords], null);
 }
 
 async function changerStatut(pointId, statut) {
@@ -379,8 +426,8 @@ async function supprimerPoint(feature) {
   await storage.deleteJournal(feature.properties.id).catch(() => {});
   await storage.deleteSortiesDuPoint(feature.properties.id).catch(() => {});
   state.statuses = await storage.setStatus(feature.properties.id, null);
-  if (randoEpinglee?.properties.id === feature.properties.id) {
-    randoEpinglee = null; // le point supprimé était la rando épinglée
+  if (itineraireEpingle?.type === "rando" && itineraireEpingle.id === feature.properties.id) {
+    itineraireEpingle = null; // le point supprimé était la rando épinglée
     cacherTraceRando();
   }
   closeDetails();
@@ -926,6 +973,7 @@ async function demarrer() {
 
   const carte = initMap(prefs, {
     onPointClick: ouvrirFiche,
+    onGrClick: ouvrirFicheGr,
     onViewChange: (vue) => storage.savePrefs(vue),
   });
   // Toucher la carte replie le tiroir des catégories (sur mobile, il recouvre
@@ -969,6 +1017,14 @@ async function demarrer() {
     onToggleGr: (on) => {
       state.grVisible = on;
       setGrVisible(on);
+      // GR masqués → un GR épinglé (tracé/pastille/fiche) doit disparaître
+      if (!on && itineraireEpingle?.type === "gr") {
+        const idEpingle = itineraireEpingle.id;
+        itineraireEpingle = null;
+        deselectionnerGr();
+        if (getOpenGrId() === idEpingle) closeDetails();
+        else majPastilleItineraire();
+      }
       rafraichir();
     },
     onToggleTraces: (on) => {
@@ -1038,17 +1094,20 @@ async function demarrer() {
     onStatusChange: changerStatut,
     onClose: () => {
       clearHighlight();
-      majPastilleRando(); // le tracé épinglé RESTE : la pastille prend le relais
+      majPastilleItineraire(); // le tracé épinglé RESTE : la pastille prend le relais
     },
     isUserPoint: (id) => state.userPointIds.has(id),
     onDeletePoint: supprimerPoint,
     onVoirCarnet: ouvrirCarnetPourPoint,
     onTelechargerGpx: telechargerGpxRando,
+    onTelechargerGpxGr: telechargerGpxGr,
   });
 
-  // Pastille de la randonnée épinglée : rouvre sa fiche telle quelle
+  // Pastille de l'itinéraire épinglé (rando ou GR) : rouvre sa fiche telle quelle
   document.getElementById("rando-chip").addEventListener("click", () => {
-    if (randoEpinglee) ouvrirFiche(randoEpinglee);
+    if (!itineraireEpingle) return;
+    if (itineraireEpingle.type === "gr") ouvrirFicheGr(itineraireEpingle.feature);
+    else ouvrirFiche(itineraireEpingle.feature);
   });
 
   initPartage();

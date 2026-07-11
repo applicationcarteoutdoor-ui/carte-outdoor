@@ -82,8 +82,11 @@ def main():
                 details["denivele_n"] = dplus
                 stats["denivele_ign"] += 1
 
-        if not details.get("duree") and "denivele_n" in details:
-            h = duree_estimee(dist, details["denivele_n"], boucle)
+        # Durée estimée : duree_n (heures) posé pour TOUTES les randos — il
+        # alimente le filtre par tranches, même quand un libellé éditorial existe.
+        h = duree_estimee(dist, details.get("denivele_n", 0), boucle)
+        details["duree_n"] = round(h, 1)
+        if not details.get("duree"):
             suffixe = "(boucle)" if boucle else "aller-retour"
             details["duree"] = f"≈ {fmt_duree(h)} {suffixe}"
             stats["duree"] += 1

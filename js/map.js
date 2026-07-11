@@ -15,13 +15,13 @@
  */
 
 import { getTheme } from "./config/themes.js";
-import { echapper } from "./util.js";
 
 /* global L */
 
 let map = null;
 let clusterGroup = null;
 let onPointClickCallback = null;
+let onGrClickCallback = null;
 
 // Cache des marqueurs : id → { marker, statut, cleTheme }
 const cache = new Map();
@@ -51,8 +51,9 @@ function creerFondsDeCarte() {
   };
 }
 
-export function initMap(prefs, { onPointClick, onViewChange }) {
+export function initMap(prefs, { onPointClick, onViewChange, onGrClick }) {
   onPointClickCallback = onPointClick;
+  onGrClickCallback = onGrClick;
 
   map = L.map("map", {
     center: prefs.center || [46.5, 2.6], // France entière par défaut
@@ -286,26 +287,11 @@ export function getMap() {
 
 let grLayer = null;
 let grChargement = null;
-let grSelectionne = null; // tracé mis en évidence
+let grSelectionne = null; // couche du GR épinglé (surligné orange)
+const grParId = new Map(); // id de session → couche Leaflet du GR
 
 const GR_STYLE = { color: "#e02b2b", weight: 4, opacity: 0.9, dashArray: "6 4" };
 const GR_STYLE_ACTIF = { color: "#ff9500", weight: 5.5, opacity: 1, dashArray: null };
-
-/** Contenu de la bulle d'un GR : nom, distance, D+ estimé, liens. */
-function popupGr(p) {
-  const stats = [];
-  if (p.distance_km) stats.push(`${p.distance_km.toLocaleString("fr-FR")} km`);
-  if (p.dplus) stats.push(`D+ estimé ${p.dplus.toLocaleString("fr-FR")} m`);
-  const liens = [];
-  if (p.grgo) liens.push(`<a href="${p.grgo}" target="_blank" rel="noopener">gr-go.fr (planificateur)</a>`);
-  if (p.wiki) liens.push(`<a href="${p.wiki}" target="_blank" rel="noopener">Wikipédia</a>`);
-  if (p.link) liens.push(`<a href="${p.link}" target="_blank" rel="noopener">gr-infos.com</a>`);
-  return (
-    `<strong>${echapper(p.name || "GR")}</strong>` +
-    (stats.length ? `<br>${stats.join(" · ")}` : "") +
-    (liens.length ? `<br>${liens.join(" · ")}` : "")
-  );
-}
 
 export async function setGrVisible(visible) {
   if (!visible) {
@@ -317,6 +303,11 @@ export async function setGrVisible(visible) {
       grChargement = fetch("data/gr.geojson")
         .then((r) => r.json())
         .then((geojson) => {
+          // Id de session stable (les GR ne stockent aucun statut : l'index suffit)
+          geojson.features.forEach((f, i) => {
+            f.properties = f.properties || {};
+            f.properties.grId = `gr-${i}`;
+          });
           grLayer = L.geoJSON(geojson, {
             style: GR_STYLE,
             // Canvas DÉDIÉ avec tolérance : sans elle, il faut toucher le
@@ -324,13 +315,9 @@ export async function setGrVisible(visible) {
             // surtout au doigt). 12 px de marge autour du tracé.
             renderer: L.canvas({ tolerance: 12 }),
             onEachFeature: (f, layer) => {
-              layer.bindPopup(popupGr(f.properties || {}));
-              // Au clic : le GR sélectionné change de couleur pour être repérable
-              layer.on("popupopen", () => {
-                grSelectionne?.setStyle(GR_STYLE);
-                layer.setStyle(GR_STYLE_ACTIF);
-                grSelectionne = layer;
-              });
+              grParId.set(f.properties.grId, layer);
+              // Clic sur un GR : ouvre la fiche (comme une randonnée), pas une bulle
+              layer.on("click", () => onGrClickCallback?.(f));
             },
           });
         });
@@ -338,6 +325,22 @@ export async function setGrVisible(visible) {
     await grChargement;
   }
   grLayer.addTo(map);
+}
+
+/** Surligne le GR `grId` en orange (les autres reviennent en rouge). */
+export function selectionnerGr(grId) {
+  grSelectionne?.setStyle(GR_STYLE);
+  const layer = grParId.get(grId);
+  if (layer) {
+    layer.setStyle(GR_STYLE_ACTIF);
+    grSelectionne = layer;
+  }
+}
+
+/** Retire le surlignage du GR épinglé. */
+export function deselectionnerGr() {
+  grSelectionne?.setStyle(GR_STYLE);
+  grSelectionne = null;
 }
 
 /* ------------------------------------------------------------------ */
