@@ -70,6 +70,8 @@ export const THEMES = [
       { key: "cotation", label: "Cotations" },
       { key: "type", label: "Type de site" },
       { key: "voies", label: "Nombre de voies" },
+      { key: "roche", label: "Roche" },
+      { key: "hauteur", label: "Hauteur" },
       { key: "corde", label: "Longueur de corde" },
       { key: "approche", label: "Marche d'approche" },
       { key: "orientation", label: "Orientation" },

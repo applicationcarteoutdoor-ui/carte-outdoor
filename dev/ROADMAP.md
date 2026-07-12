@@ -7,14 +7,28 @@ Tenue par l'agent **chef-de-projet** (`.claude/agents/chef-de-projet.md`). Derni
 - **En ligne (v52)** : ~9 800 points (135 randonnées/28 massifs avec tracés + GPX, cascades, lacs, villages…), 190 GR cliquables, 66 500 toilettes + 49 500 points d'eau à la demande, Oracle (gratuit + IA), sync Supabase, partage QR, carnet.
 - **v53 en préparation** : revue de code complète (3 bugs corrigés : confirm() natif des traces, boule Oracle bloquée sans clé, révocation d'URL d'export) — test de bout en bout en cours.
 
-## Étape 1 — 📋 Vérifier et enrichir toutes les données
+## Étape 1 — 🔄 Vérifier et enrichir toutes les données (EN COURS)
 
-Audit de complétude par catégorie puis enrichissement ciblé (agent enrichisseur, par fournées) :
+- [x] **Audit de complétude** (2026-07-11) — taux de remplissage par catégorie :
 
-- [ ] Audit : pour chaque catégorie, taux de remplissage des champs de fiche (photo, description, lien, horaires…), fiches « À vérifier » restantes, coordonnées suspectes. Livrable : rapport chiffré + liste priorisée.
-- [ ] Croisement avec les sources fiables (OSM, Wikipédia, data.gouv.fr — Google Maps n'a pas d'API de moissonnage licite : croiser via liens sortants seulement).
-- [ ] Enrichissement par fournées (une catégorie = un run reprenable), convention `details.fiche` partout.
-- ⚠️ Contrainte : plafond de dépense mensuel — découper, intégrer au fil de l'eau.
+  | Catégorie | Points | Photos | Liens | « À vérifier » |
+  |---|--:|--:|--:|--:|
+  | cascade | 1 133 | 8 % | 9 % | **91 %** 🔴 |
+  | chateau | 810 | 64 % | 67 % | 35 % 🟠 |
+  | lac | 965 | 79 % | 100 % | 20 % 🟡 |
+  | via-ferrata | 126 | 0 % | 100 % | 0 % |
+  | escalade | 2 033 | 0 % | 100 % | 0 % (24 sites DOM confirmés valides) |
+  | refuge | 3 524 | 0 % | 100 % | 0 % (refuges.info) |
+  | grotte / cathédrale / village / rando | — | 92-99 % | 100 % | 0 % 🟢 |
+
+  Constat : gros du travail sur **cascade** et **chateau**. Les 0 % photos (via-ferrata/escalade/refuge) = limite honnête (photos libres rares). Les 24 « coord hors bornes » escalade = DOM valides, PAS des erreurs → le contrôle de bornes doit inclure les DOM.
+- **Ordre de revue** : via-ferrata (pilote) → escalade → cascade → chateau → lac → reste. Une catégorie = un run reprenable (enrichisseur, avec sa mémoire).
+- [x] ✅ **via-ferrata** (2026-07-11) — pilote. **44 GPS recalés** (centroïde de commune → site OSM réel, règle conservatrice), **+7 VF manquantes** ajoutées (126 → 133, double accord OSM + viaferrata-fr.net). 47 points laissés « à vérifier manuellement » (OSM absent ou massif dense), photos toujours 0 (limite honnête). Rapport : dev/RAPPORT-REVUE-via-ferrata-2026-07-11.md. Méthode validée & réutilisable (diagnostic → recalage sûr → ajout double-accord). Scripts gabarits dans tools/.
+- [x] ✅ **escalade** (2 033 → 2 308) (2026-07-11/12) — **revue approfondie via Camp to Camp** (après retour utilisateur : fiches vides). **1 519 points recalés + enrichis** (cotation/voies/roche/hauteur/orientation + lien C2C direct ; ex. Saint-Simon : 0 voie → 17 voies, 4c-8a, calcaire), **+275 sites manquants** ajoutés (France confirmée + contenu réel). ~514 restent au centroïde (pas de site C2C proche), photos toujours quasi nulles (CSP). Rapport : dev/RAPPORT-REVUE-escalade-2026-07-11.md.
+- [ ] cascade (1 133, 91 % « à vérifier ») — le gros morceau (source : à récolter noms + coords Wikipédia/OSM).
+- [ ] chateau, lac, … (à suivre)
+- **Reste sur via-ferrata** : recaler à la main les 47 points ambigus (reverse-geocode + choix humain) ; ajouter Le Regardoir/Vouglans et Roc del Gorb (rapprochement de nom incertain).
+- ⚠️ Plafond de dépense mensuel — découper, intégrer au fil de l'eau.
 
 ## Étape 2 — 📋 Publier sur le Play Store
 
