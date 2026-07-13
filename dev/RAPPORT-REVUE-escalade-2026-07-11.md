@@ -36,9 +36,22 @@ Sites C2C à > 3 km de tout point existant, **confirmés en France** (reverse-ge
 
 `recolter_escalade_c2c.py` (récolte API C2C), `revue_escalade_c2c.py` (appariement nom+proximité, recalage, lien), `enrichir_escalade_c2c.py` (détail : cotation/voies/roche/hauteur/orientation), `ajouter_escalade_c2c.py` (manquants France + contenu). Le passage OSM initial (`recolter_escalade_osm.py`, `revue_escalade.py`) reste comme repli. Caches C2C gitignorés.
 
+## Complément — socle national RES + fusion (2026-07-12)
+
+Après retour utilisateur (« ajoute-les tous, respecte les licences »), une **recherche multi-sources** (workflow, 4 agents + synthèse) a établi le cadre licences et trouvé la meilleure source ouverte :
+
+- **RES / data-es** (Recensement des Équipements Sportifs, Ministère des Sports) — **Licence Ouverte Etalab 2.0** (réutilisation libre + attribution). **3 337 sites** récoltés (falaise + bloc), coordonnées officielles précises, hauteur, commune, gestion. C'est le SOCLE : mêmes communes que notre base FFME.
+- **Camp to Camp** — licence par document : les **FAITS** (coordonnées, cotation, roche, hauteur, nb de voies, orientation) sont libres de copie (C2C l'affirme explicitement) ; **prose = CC-BY-SA** (non recopiée), **photos = CC-BY-NC-ND + hors Wikimedia** (non utilisables, CSP). Récolte modérée, usage « identification + faits ».
+- **Corde recommandée** : aucun champ structuré réutilisable → **estimée** depuis la hauteur (≈ 2 × hauteur + marge, ≥ 18 m), toujours **libellée « estimation »**.
+- **Attribution** ajoutée dans ⚙️ Réglages → « Sources des données » (RES, Camp to Camp, OSM, Wikimedia).
+
+**Fusion (`tools/fusion_escalade.py`)** : **271** points encore au centroïde recalés sur coordonnées RES officielles ; **+1 043 sites RES manquants** ajoutés (officiels, dédoublonnés à 500 m, noms génériques → commune) ; enrichissement des faits C2C par proximité ; **749 cordes estimées**. **Escalade : 2 308 → 3 351.**
+
+Couverture finale (sur 3 351) : cotation 65 %, roche 51 %, hauteur 64 %, corde 61 %, lien réel 60 %. Les taux « baissent » car les 1 043 nouveaux sites (surtout blocs/petits sites) ont une position officielle mais pas toujours de cotation (le RES ne donne pas les cotations, C2C ne couvre pas tous les blocs) — c'est le **plafond honnête des sources réutilisables**. ~243 points restent au centroïde (ni RES ni C2C exploitable dans leur commune).
+
 ## Bilan des catégories revues
 
 | Catégorie | Points | GPS recalés | Fiches enrichies | Ajouts |
 |---|--:|--:|--:|--:|
 | via-ferrata | 126 → 133 | 44 | — | +7 |
-| **escalade** | **2 033 → 2 308** | **1 519** (C2C) | **1 519** (cotation/voies/roche/hauteur) | **+275** |
+| **escalade** | **2 033 → 3 351** | **1 790** (C2C + RES) | **~1 519** (cotation/voies/roche/hauteur/corde) | **+1 318** (C2C + RES) |

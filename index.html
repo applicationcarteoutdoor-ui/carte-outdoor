@@ -262,6 +262,21 @@
     </div>
   </dialog>
 
+  <dialog id="grottes-dialog" aria-labelledby="grottes-title">
+    <h2 id="grottes-title">🕳️ Beaucoup de cavités !</h2>
+    <p class="menu-note">Environ 50 000 grottes et cavités (source Grottocenter). Risque de lag :
+      pensez à zoomer avant d'activer, ou utilisez « <span class="wc-runner" aria-hidden="true">🏃</span>🕳️ À moins de 1 km »
+      pour n'afficher que les cavités autour de votre position.</p>
+    <p class="menu-note"><strong>⚠️ Prudence :</strong> beaucoup de ces cavités sont sauvages et dangereuses
+      (propriété privée possible, chauves-souris protégées). Ne vous y engagez pas sans matériel ni
+      encadrement adaptés.</p>
+    <div class="dialog-actions wc-actions">
+      <button type="button" class="btn btn-secondary mode-retour">Retour</button>
+      <button type="button" class="btn btn-secondary mode-proximite"><span class="wc-runner" aria-hidden="true">🏃</span>🕳️ À moins de 1 km</button>
+      <button type="button" class="btn mode-valider">Valider</button>
+    </div>
+  </dialog>
+
   <!-- Rappel de sauvegarde : les données vivent sur l'appareil, on invite
        à exporter régulièrement pour ne rien perdre -->
   <dialog id="backup-dialog" aria-labelledby="backup-titre">
@@ -297,6 +312,21 @@
     <section class="sync-section">
       <h3 class="sync-titre">☁️ Compte &amp; synchronisation</h3>
       <div id="sync-zone"></div>
+    </section>
+
+    <!-- Crédits des sources de données (attribution requise : Licence Ouverte, CC-BY-SA, ODbL) -->
+    <section class="sources-section">
+      <h3 class="sync-titre">📚 Sources des données</h3>
+      <p class="menu-note">Fonds de carte : © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>, IGN, OpenTopoMap, Esri.
+        Escalade : <a href="https://equipements.sports.gouv.fr/explore/dataset/data-es/" target="_blank" rel="noopener">RES – Ministère des Sports</a> (Licence Ouverte&nbsp;2.0),
+        <a href="https://www.camptocamp.org" target="_blank" rel="noopener">Camp to Camp</a> et OpenStreetMap.
+        Randonnées, tracés&nbsp;: OpenStreetMap. Refuges&nbsp;: refuges.info. Patrimoine&nbsp;: Wikipédia.
+        Points d'eau, toilettes&nbsp;: OpenStreetMap.
+        Grottes&nbsp;: <a href="https://grottocenter.org" target="_blank" rel="noopener">Grottocenter</a> / Wikicaves
+        (<a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener">ODbL</a>, partage à l'identique) et Wikipédia&nbsp;;
+        seuls les faits (position, profondeur, développement) sont réutilisés, jamais les descriptions, topos ni photos.
+        Les cotations, positions et données factuelles sont réutilisées ;
+        les descriptions et photos restent propres à l'application ou proviennent de Wikimedia Commons.</p>
     </section>
   </dialog>
 

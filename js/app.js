@@ -79,6 +79,10 @@ let pointsToilettes = [];
  *  toilettes — fichier séparé non pré-caché, chargé à la première activation. */
 let pointsEau = [];
 
+/** Grottes/cavités (data/grottes.geojson, ~50 000 entrées Grottocenter +
+ *  grottes Wikipédia) : même modèle de couche lourde à la demande. */
+let pointsGrottes = [];
+
 /** Indices du cycle « flèche ➤ » (clics successifs → point suivant). */
 const cycleUserPoint = {};
 
@@ -104,7 +108,7 @@ async function chargerPoints() {
   const importes = await storage.getUserPoints().catch(() => []);
   state.userPointIds = new Set(importes.map((f) => f.properties.id));
   const parId = new Map();
-  for (const f of [...defauts, ...pointsToilettes, ...pointsEau, ...importes]) parId.set(f.properties.id, f);
+  for (const f of [...defauts, ...pointsToilettes, ...pointsEau, ...pointsGrottes, ...importes]) parId.set(f.properties.id, f);
   state.allPoints = [...parId.values()];
 }
 
@@ -140,6 +144,22 @@ async function chargerEau() {
   }
 }
 
+/** Charge les grottes si nécessaire ; renvoie false en cas d'échec. */
+async function chargerGrottes() {
+  if (pointsGrottes.length) return true;
+  toast("Chargement des grottes…");
+  try {
+    const reponse = await fetch("data/grottes.geojson");
+    pointsGrottes = (await reponse.json()).features || [];
+    await chargerPoints();
+    return true;
+  } catch (e) {
+    console.error("Impossible de charger data/grottes.geojson :", e);
+    toast("Grottes indisponibles pour le moment (hors connexion ?).");
+    return false;
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* Filtrage                                                             */
 /* ------------------------------------------------------------------ */
@@ -153,6 +173,7 @@ function compteursParTheme() {
   // Couches lourdes pas encore chargées : « … » plutôt qu'un 0 trompeur
   if (!pointsToilettes.length) compteurs.set("toilettes", "…");
   if (!pointsEau.length) compteurs.set("eau", "…");
+  if (!pointsGrottes.length) compteurs.set("grotte", "…");
   return compteurs;
 }
 
@@ -635,6 +656,11 @@ const COUCHES_LOURDES = {
     dialog: "eau-dialog", charger: chargerEau, points: () => pointsEau,
     pluriel: "points d'eau", vide: "Aucun point d'eau à moins de 1 km",
     proche: "le plus proche", aucun: "Aucun point d'eau connu.",
+  },
+  grotte: {
+    dialog: "grottes-dialog", charger: chargerGrottes, points: () => pointsGrottes,
+    pluriel: "grottes", vide: "Aucune grotte à moins de 1 km",
+    proche: "la plus proche", aucun: "Aucune grotte connue.",
   },
 };
 
@@ -1257,6 +1283,9 @@ async function demarrer() {
   }
   if (state.activeThemes.has("eau")) {
     chargerEau().then((ok) => ok && rafraichir());
+  }
+  if (state.activeThemes.has("grotte")) {
+    chargerGrottes().then((ok) => ok && rafraichir());
   }
 
   // Tuto lancé automatiquement à la toute première connexion (skippable)

@@ -185,18 +185,96 @@ export const THEMES = [
     ],
   },
   {
+    // Couche lourde (data/grottes.geojson, ~50 000 cavités Grottocenter +
+    // grottes Wikipédia) chargée à la demande — voir COUCHES_LOURDES (app.js).
+    // Données spéléo = FAITS ODbL (Grottocenter) : profondeur, développement,
+    // type/eau déduits du nom. Pas de nombre de cordes / hauteur de puits
+    // (topos protégés). Voir dev/RAPPORT-REVUE-grotte.
     id: "grotte",
     label: "Grotte",
     color: "#7f5539",
     icon: "🕳️",
     fields: [
       { key: "type", label: "Type" },
+      { key: "profondeur", label: "Profondeur" },
+      { key: "developpement", label: "Développement" },
+      { key: "progression", label: "Progression" },
+      { key: "eau", label: "Présence d'eau" },
+      { key: "commune", label: "Commune" },
       { key: "duree", label: "Durée de visite" },
       { key: "equipement", label: "Équipement" },
       { key: "horaires", label: "Horaires" },
       { key: "tarif", label: "Tarif" },
     ],
-    filters: [],
+    filters: [
+      {
+        key: "type",
+        label: "Type",
+        type: "value",
+        field: "type",
+        options: [
+          { value: "Grotte", icon: "🕳️" },
+          { value: "Gouffre / aven", icon: "🕳️" },
+          { value: "Source / résurgence", icon: "💧" },
+          { value: "Cavité", icon: "⛰️" },
+        ],
+      },
+      {
+        key: "progression",
+        label: "Progression",
+        type: "value",
+        field: "progression",
+        options: [
+          { value: "Horizontale", icon: "🚶" },
+          { value: "Verticale (à cordes)", icon: "🧗" },
+          { value: "Non précisé", icon: "❔" },
+        ],
+      },
+      {
+        key: "profondeur",
+        label: "Profondeur",
+        type: "bucket",
+        field: "profondeur_n",
+        options: [
+          { value: "prof1", label: "< 30 m", max: 30 },
+          { value: "prof2", label: "30 à 100 m", min: 30, max: 100 },
+          { value: "prof3", label: "100 à 300 m", min: 100, max: 300 },
+          { value: "prof4", label: "> 300 m", icon: "⬇️", min: 300 },
+        ],
+      },
+      {
+        key: "developpement",
+        label: "Développement",
+        type: "bucket",
+        field: "developpement_n",
+        options: [
+          { value: "dev1", label: "< 500 m", max: 500 },
+          { value: "dev2", label: "0,5 à 2 km", min: 500, max: 2000 },
+          { value: "dev3", label: "2 à 10 km", min: 2000, max: 10000 },
+          { value: "dev4", label: "> 10 km", icon: "🕸️", min: 10000 },
+        ],
+      },
+      {
+        key: "eau",
+        label: "Présence d'eau",
+        type: "value",
+        field: "eau",
+        options: [
+          { value: "Actif (eau)", icon: "💧" },
+          { value: "Non renseigné", icon: "❔" },
+        ],
+      },
+      {
+        key: "fiche",
+        label: "Fiche",
+        type: "value",
+        field: "fiche",
+        options: [
+          { value: "Référencé", icon: "✅" },
+          { value: "À vérifier", icon: "🔍" },
+        ],
+      },
+    ],
   },
   {
     id: "cascade",
