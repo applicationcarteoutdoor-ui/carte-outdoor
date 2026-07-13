@@ -347,47 +347,72 @@ export function deselectionnerGr() {
 /* Tracé d'une randonnée : affiché au clic, persiste après la fiche     */
 /* ------------------------------------------------------------------ */
 
-let randoTraces = null; // FeatureCollection de data/randos.geojson (chargée une fois)
-let randoTracesChargement = null;
-let randoTraceActive = null; // le tracé actuellement dessiné
+// Tracés épinglés (randonnée OU canyon) : chargés à la demande depuis leur
+// fichier séparé, mis en cache mémoire par fichier. UN SEUL tracé dessiné à la
+// fois (l'itinéraire épinglé) — `traceActive` est ce calque unique et partagé.
+const tracesCache = {}; // fichier -> FeatureCollection (chargée une fois)
+const tracesChargement = {}; // fichier -> Promise en cours
+let traceActive = null; // le tracé actuellement dessiné (rando ou canyon)
 
 const TRACE_RANDO_STYLE = { color: "#2d6a4f", weight: 5, opacity: 0.95 };
+// Canyon : teal pointillé (évoque le fil de l'eau), distinct du vert des randos.
+const TRACE_CANYON_STYLE = { color: "#0a9396", weight: 5, opacity: 0.95, dashArray: "1 9", lineCap: "round" };
 
-/**
- * Morceaux de tracé (features LineString) de la randonnée `pointId`,
- * depuis data/randos.geojson (chargé à la demande, en cache mémoire :
- * propriété `rando` = id du point). Sert aussi à l'export GPX.
- */
-export async function getTraceRando(pointId) {
-  if (!randoTraces) {
-    if (!randoTracesChargement) {
-      randoTracesChargement = fetch("data/randos.geojson")
+async function chargerTraces(fichier) {
+  if (!tracesCache[fichier]) {
+    if (!tracesChargement[fichier]) {
+      tracesChargement[fichier] = fetch(fichier)
         .then((r) => (r.ok ? r.json() : { features: [] }))
         .catch(() => ({ features: [] })); // fichier absent : pas de tracés, pas d'erreur
     }
-    randoTraces = await randoTracesChargement;
+    tracesCache[fichier] = await tracesChargement[fichier];
   }
-  return (randoTraces.features || []).filter((f) => f.properties?.rando === pointId);
+  return tracesCache[fichier].features || [];
 }
 
 /**
- * Dessine le tracé de la randonnée `pointId`. Le tracé précédent disparaît
- * (une seule randonnée épinglée à la fois). Renvoie true si un tracé existe.
+ * Morceaux de tracé de la randonnée `pointId` (features LineString de
+ * data/randos.geojson, propriété `rando` = id du point). Sert aussi à l'export GPX.
  */
-export async function montrerTraceRando(pointId) {
+export async function getTraceRando(pointId) {
+  return (await chargerTraces("data/randos.geojson")).filter((f) => f.properties?.rando === pointId);
+}
+
+/**
+ * Tracé du canyon `pointId` (feature MultiLineString de
+ * data/canyons-traces.geojson, propriété `id` = id du point). Sert aussi au GPX.
+ */
+export async function getTraceCanyon(pointId) {
+  return (await chargerTraces("data/canyons-traces.geojson")).filter((f) => f.properties?.id === pointId);
+}
+
+async function dessinerTrace(morceaux, style) {
   cacherTraceRando();
-  const morceaux = await getTraceRando(pointId);
   if (!morceaux.length) return false;
-  randoTraceActive = L.geoJSON(
+  traceActive = L.geoJSON(
     { type: "FeatureCollection", features: morceaux },
-    { style: TRACE_RANDO_STYLE, interactive: false }
+    { style, interactive: false }
   ).addTo(map);
   return true;
 }
 
+/**
+ * Dessine le tracé de la randonnée `pointId`. Le tracé précédent disparaît
+ * (un seul itinéraire épinglé à la fois). Renvoie true si un tracé existe.
+ */
+export async function montrerTraceRando(pointId) {
+  return dessinerTrace(await getTraceRando(pointId), TRACE_RANDO_STYLE);
+}
+
+/** Dessine le tracé du canyon `pointId` (mêmes règles que la randonnée). */
+export async function montrerTraceCanyon(pointId) {
+  return dessinerTrace(await getTraceCanyon(pointId), TRACE_CANYON_STYLE);
+}
+
+/** Retire le tracé épinglé (rando ou canyon) actuellement affiché. */
 export function cacherTraceRando() {
-  randoTraceActive?.remove();
-  randoTraceActive = null;
+  traceActive?.remove();
+  traceActive = null;
 }
 
 /* ------------------------------------------------------------------ */

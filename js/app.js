@@ -22,8 +22,10 @@ import {
   clearHighlight,
   montrerRayon,
   montrerTraceRando,
+  montrerTraceCanyon,
   cacherTraceRando,
   getTraceRando,
+  getTraceCanyon,
   selectionnerGr,
   deselectionnerGr,
   getFonds,
@@ -270,8 +272,12 @@ function rafraichir() {
     statusActif: state.statusFilters.size > 0,
   });
   setPoints(pointsVisibles(), state.statuses);
-  // Catégorie Randonnée décochée → tracé épinglé, pastille et fiche disparaissent
-  if (itineraireEpingle?.type === "rando" && !state.activeThemes.has("randonnee")) {
+  // Catégorie Randonnée/Canyon décochée → tracé épinglé, pastille et fiche disparaissent
+  const catEpinglee =
+    itineraireEpingle?.type === "rando" ? "randonnee"
+    : itineraireEpingle?.type === "canyon" ? "canyon"
+    : null;
+  if (catEpinglee && !state.activeThemes.has(catEpinglee)) {
     const idEpinglee = itineraireEpingle.id;
     itineraireEpingle = null;
     cacherTraceRando();
@@ -305,20 +311,24 @@ let itineraireEpingle = null; // { type: "rando"|"gr", id, name, icon, feature }
 function ouvrirFiche(feature) {
   highlightPoint(feature.properties.id); // épingle agrandie + halo
   openDetails(feature, state.statuses[feature.properties.id]);
-  // Randonnée : son CHEMIN se dessine sur la carte et y reste épinglé (tracés
-  // dans data/randos.geojson). Ouvrir un point d'une AUTRE catégorie ne retire
-  // pas l'itinéraire épinglé (choix utilisateur) ; seul un autre itinéraire le fait.
-  if (getTheme(feature.properties.theme).id === "randonnee") {
+  // Randonnée et Canyon : leur CHEMIN se dessine sur la carte et y reste épinglé
+  // (tracés dans data/randos.geojson / data/canyons-traces.geojson). Ouvrir un
+  // point d'une AUTRE catégorie ne retire pas l'itinéraire épinglé (choix
+  // utilisateur) ; seul un autre itinéraire le fait. Tous les canyons n'ont pas
+  // de tracé (~27 recouverts par OSM) : sans tracé, rien n'est épinglé.
+  const themeId = getTheme(feature.properties.theme).id;
+  if (themeId === "randonnee" || themeId === "canyon") {
     deselectionnerGr(); // un GR était peut-être épinglé : il cède la place
     itineraireEpingle = {
-      type: "rando",
+      type: themeId === "canyon" ? "canyon" : "rando",
       id: feature.properties.id,
       name: feature.properties.name,
       icon: getTheme(feature.properties.theme).icon,
       feature,
     };
     majPastilleItineraire();
-    montrerTraceRando(feature.properties.id).then((ok) => {
+    const montrer = themeId === "canyon" ? montrerTraceCanyon : montrerTraceRando;
+    montrer(feature.properties.id).then((ok) => {
       if (!ok && itineraireEpingle?.id === feature.properties.id) {
         itineraireEpingle = null; // pas de tracé connu : rien à épingler
         majPastilleItineraire();
@@ -416,6 +426,27 @@ async function telechargerGpxRando(feature) {
   }
   const [lonPt, latPt] = feature.geometry.coordinates;
   telechargerGpx(feature.properties.name, morceaux.map((m) => m.geometry.coordinates), [latPt, lonPt]);
+}
+
+/** GPX d'un canyon (tracé MultiLineString dans data/canyons-traces.geojson). */
+async function telechargerGpxCanyon(feature) {
+  const morceaux = await getTraceCanyon(feature.properties.id);
+  if (!morceaux.length) {
+    toast("Tracé indisponible pour ce canyon.");
+    return;
+  }
+  // MultiLineString : geometry.coordinates est déjà un tableau de segments.
+  const segments = morceaux.flatMap((m) =>
+    m.geometry.type === "MultiLineString" ? m.geometry.coordinates : [m.geometry.coordinates]
+  );
+  const [lonPt, latPt] = feature.geometry.coordinates;
+  telechargerGpx(feature.properties.name, segments, [latPt, lonPt]);
+}
+
+/** Bouton 📥 GPX d'une fiche point : aiguille vers la rando ou le canyon selon le thème. */
+function telechargerGpxItineraire(feature) {
+  if (getTheme(feature.properties.theme).id === "canyon") telechargerGpxCanyon(feature);
+  else telechargerGpxRando(feature);
 }
 
 /** GPX d'un sentier GR (sa géométrie LineString est directement dans la feature). */
@@ -1170,7 +1201,7 @@ async function demarrer() {
     isUserPoint: (id) => state.userPointIds.has(id),
     onDeletePoint: supprimerPoint,
     onVoirCarnet: ouvrirCarnetPourPoint,
-    onTelechargerGpx: telechargerGpxRando,
+    onTelechargerGpx: telechargerGpxItineraire,
     onTelechargerGpxGr: telechargerGpxGr,
   });
 

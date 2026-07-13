@@ -216,7 +216,7 @@ export function openDetails(feature, statut) {
     <div class="details-route">
       ${lienItineraireMaps(lat, lon)}
       ${lienItineraireWaze(lat, lon)}
-      ${theme.id === "randonnee"
+      ${theme.id === "randonnee" || (theme.id === "canyon" && p.trace)
         ? '<button type="button" class="btn btn-route btn-gpx" title="Télécharger le tracé au format GPX">📥 GPX</button>'
         : ""}
     </div>

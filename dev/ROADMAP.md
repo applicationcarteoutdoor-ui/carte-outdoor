@@ -1,6 +1,6 @@
 # Feuille de route — Carte Outdoor
 
-Tenue par l'agent **chef-de-projet** (`.claude/agents/chef-de-projet.md`). Dernière mise à jour : 2026-07-12 (v58, revues cascade + château + lac + grotte/spéléo).
+Tenue par l'agent **chef-de-projet** (`.claude/agents/chef-de-projet.md`). Dernière mise à jour : 2026-07-13 (v59, nouvelle catégorie **canyon** ; v58 : cascade + château + lac + grotte/spéléo).
 
 ## État des lieux
 
@@ -28,6 +28,7 @@ Tenue par l'agent **chef-de-projet** (`.claude/agents/chef-de-projet.md`). Derni
 - [x] ✅ **cascade** (1 133 → **1 174**) (2026-07-12) — GPS OSM **déjà précis** (contrôle Gavarnie/Sillans/Sautadet/Ars OK) → **aucun recalage**. Enrichissement Wikipédia (garde anti-homonyme < 2 km) : **20 fiches** complétées (plafond honnête — seuls 97 noms ont un article frwiki, 79 déjà liés). Vraie valeur : **+41 cascades notables** via l'arbre catégorie « Chute d'eau en France » — surtout **l'outre-mer** (Réunion : Trou de Fer, Grand Galet ; Guadeloupe : Chutes du Carbet ; Guyane : Chutes Voltaire…), absent car la récolte OSM était bornée à la métropole. Couverture photo/lien/référencée 8-9 % → 13-14 %. Rapport : dev/RAPPORT-REVUE-cascade-2026-07-12.md.
 - [x] ✅ **chateau** (810) (2026-07-12) — **TOUS au centroïde de commune** au départ. Recalage en 2 phases : **Phase 1** (`recaler_chateaux.py`) depuis les articles Wikipédia liés (coordonnée réelle jamais récupérée jusqu'ici) → **505 recalés**, avec validation par **département** (géocodage inverse) pour les cas > 20 km : **44 centroïdes faux corrigés** (géocodés sur mauvaise commune homonyme, ex. Brissac Hérault→Maine-et-Loire) et **32 liens Wikipédia erronés déliés** (homonymes, ex. « Château de Belfort » en Suisse). **Phase 2** (`recaler_chateaux_osm.py`) via OSM `historic=castle` (15 360 objets) pour les sans-article : **161 recalés** (correspondance de nom unique < 12 km, partiels durcis) + **94 re-liés**. Total **666/810 recalés (82 %)**, 144 restent au centroïde (correspondance non certaine → laissés). Liens 67→74 %, fiche Référencé 64→72 %. Rapport : dev/RAPPORT-REVUE-chateau-2026-07-12.md.
 - [x] ✅ **lac** (965) (2026-07-12) — la mieux lotie : **100 % liens/altitude/description**, GPS déjà recentré dans l'eau (vérifié : Annecy, Léman, Serre-Ponçon, Pavin… tous OK) → **aucun recalage**. Les 196 « À vérifier » = exactement les 196 sans photo. Enrichissement Wikidata (`enrichir_lacs.py`, P18/P2046/P4511 + Commons) : **+12 photos, +7 superficies** (photo/Référencé 79→80 %). Plafond honnête : sur 196 sans photo seuls 12 ont une image Wikidata ; superficie/profondeur des manquants quasi absentes de Wikidata. Rapport : dev/RAPPORT-REVUE-lac-2026-07-12.md.
+- [x] ✅ **canyon / canyonisme** (0 → **1 274**) (2026-07-13) — **nouvelle catégorie** sur demande. Pas d'équivalent C2C (C2C n'a pas le canyoning) ; descente-canyon.com (la base riche) **écartée** (CC BY-NC-SA + droit producteur, clause non-commercial incompatible store). Socle **RES / Data ES** (type « Canyon », **Licence Ouverte Etalab 2.0**, 1 274 sites : position + longueur + dénivelé, DOM inclus) + faits **OpenStreetMap** (ODbL) sur ~27 canyons : cotation FFME, plus grand rappel (→ corde estimée), site web, **tracé** (reconstruit du cours d'eau, épinglé + GPX, mécanisme rando généralisé). Filtres Longueur/Dénivelé/Accès. **Limite dure honnête : temps d'approche/retour IMPOSSIBLES en open data** (topos protégés, comme le nb de cordes en spéléo). Scripts `recolter_canyon_res.py` + `recolter_canyon_osm.py` + `fusion_canyon.py`. Rapport : dev/RAPPORT-REVUE-canyon-2026-07-13.md.
 - [x] ✅ **grotte / spéléo** (484 → **49 717**) (2026-07-12) — chantier majeur. Recherche multi-sources (workflow, licences d'abord) → socle **Grottocenter** (API publique, faits ODbL). Nouvelle **couche lourde** `data/grottes.geojson` (24,7 Mo, à la demande, COUCHES_LOURDES + dialogue #grottes-dialog). ~50 000 cavités FR (filtre France par région + géocodage inverse), type/progression/eau déduits du nom, **profondeur/développement Grottocenter**. **6 filtres** spéléo alimentés (type, progression, profondeur, développement, eau, fiche). Les 484 Wikipédia fusionnées (ids stables, enrichies). Limites honnêtes : nombre de cordes / hauteur de puits impossibles (topos protégés). Attribution ODbL + garde-fous éthiques. Rapport : dev/RAPPORT-REVUE-grotte-2026-07-12.md.
 - **Étape 1 : reste à revoir** — les catégories déjà à 92-99 % (cathédrale, village, refuge, rando) : vérification légère, faible gain attendu. Le gros de l'étape 1 est fait (via-ferrata, escalade, cascade, château, lac, grotte).
 - **Reste sur via-ferrata** : recaler à la main les 47 points ambigus (reverse-geocode + choix humain) ; ajouter Le Regardoir/Vouglans et Roc del Gorb (rapprochement de nom incertain).
@@ -43,16 +44,15 @@ Guide existant : `docs/PLAYSTORE.md` (TWA/PWABuilder). Reste à faire :
 - [ ] Formulaire « sécurité des données » Play Console, captures d'écran, fiche store (texte + visuels).
 - [ ] Paquet TWA (PWABuilder), test interne, puis production.
 
-## Étape 3 — 📋 Modèle économique de l'Oracle
+## Étape 3 — 🔄 Modèle économique de l'Oracle (décidé)
 
-Décision d'architecture à trancher AVANT de coder (2 options) :
+**Décisions (2026-07-13)** : gratuit inchangé ; IA avec sa propre clé inchangée ; nouveau 3ᵉ mode **IA sans clé = pack de consultations** (achat unique décompté), payé via **Google Play Billing**. Détails et séquence : `docs/ORACLE-PAYANT.md`.
 
-- **Le gratuit reste gratuit** (points de la carte + Wikipédia + liens d'agendas) — inchangé.
-- **IA avec sa propre clé** — inchangé (déjà en place).
-- **IA sans clé (payant ~0,99 €)** : nécessite un **relais serveur** qui détient NOTRE clé API et vérifie le droit d'accès — impossible en statique pur (une clé embarquée serait volée en 5 minutes).
-  - Option A (recommandée) : **fonction serverless Supabase** (déjà notre back-end de sync) : vérifie l'achat, appelle l'API IA avec notre clé, plafonne par utilisateur/jour (anti-abus). Paiement : Play Billing dans la TWA (Digital Goods API) pour Android + repli web.
-  - Option B : abonnement via Stripe (site web) — plus universel, mais Google impose Play Billing pour les achats numériques DANS l'app Android → risque de rejet. À n'utiliser que hors Play Store.
-  - ⚠️ Risques à chiffrer : coût API par consultation (~0,01-0,05 €), donc 0,99 € ≈ 20-100 consultations → prévoir soit un forfait mensuel, soit un paquet de consultations. Anti-abus indispensable.
+- ⛔ **Bloqué par l'étape 2** : Play Billing exige que l'app soit publiée sur le Play Store. L'Oracle payant s'active donc **avec** la publication.
+- [x] **Fait maintenant** (indépendant du store) : relais serveur `supabase/functions/oracle-ia/index.ts` (Edge Function qui détient notre clé + décompte les crédits) + modèle de données `schema.sql` (table crédits/achats, RLS, RPC atomiques) + guide complet.
+- [ ] **Après le Play Store** : fonction `grant` (vérification du `purchaseToken` via Google Play Developer API) + câblage client `js/oracle.js` (3ᵉ mode, solde, bouton d'achat Digital Goods API) — testable de bout en bout seulement une fois l'app sur le store.
+- [ ] **Actions utilisateur** : compte Play Console + produits « pack », compte de service Google Play Developer API, déploiement des fonctions Supabase + secret `ANTHROPIC_API_KEY` (l'agent ne manipule ni comptes ni paiements ni clés).
+- 💶 Économie : ~0,01-0,05 € d'API/consultation, Google prend 15-30 % → viser un pack 30 à 1,99 € (et/ou 10 à 0,99 €). Décompte seulement après appel réussi ; plafond/jour possible.
 
 ## Étape 4 — 📋 Autres pays : Nouvelle-Zélande d'abord
 

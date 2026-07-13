@@ -124,6 +124,63 @@ export const THEMES = [
     ],
   },
   {
+    // Canyonisme — descentes de canyon. Socle RES / Data ES (Licence Ouverte
+    // Etalab 2.0 : position, longueur, dénivelé), enrichi par OpenStreetMap
+    // (ODbL) là où il existe (~27 sites) : cotation FFME, plus grand rappel
+    // (→ corde estimée), site web, tracé (data/canyons-traces.geojson).
+    // Les temps d'approche/retour sont IMPOSSIBLES en données libres (ils
+    // n'existent que dans les topos rédigés, protégés) : volontairement absents.
+    // Construction : tools/recolter_canyon_res.py + recolter_canyon_osm.py +
+    // fusion_canyon.py. Rapport : dev/RAPPORT-REVUE-canyon-*.md.
+    id: "canyon",
+    label: "Canyon",
+    color: "#0a9396",
+    icon: "🪢",
+    fields: [
+      { key: "commune", label: "Commune" },
+      { key: "longueur", label: "Longueur de la descente" },
+      { key: "denivele", label: "Dénivelé" },
+      { key: "cotation", label: "Cotation (verticalité/aquatique/engagement)" },
+      { key: "rappel", label: "Plus grand rappel" },
+      { key: "corde", label: "Corde recommandée" },
+      { key: "acces", label: "Accès" },
+    ],
+    filters: [
+      {
+        key: "longueur",
+        label: "Longueur",
+        type: "bucket",
+        field: "longueur_n",
+        options: [
+          { value: "l1", label: "< 500 m", max: 500 },
+          { value: "l2", label: "500 m à 1,5 km", min: 500, max: 1500 },
+          { value: "l3", label: "> 1,5 km", min: 1500 },
+        ],
+      },
+      {
+        key: "denivele",
+        label: "Dénivelé",
+        type: "bucket",
+        field: "denivele_n",
+        options: [
+          { value: "d1", label: "< 100 m", max: 100 },
+          { value: "d2", label: "100 à 300 m", min: 100, max: 300 },
+          { value: "d3", label: "> 300 m", min: 300 },
+        ],
+      },
+      {
+        key: "acces",
+        label: "Accès",
+        type: "value",
+        field: "acces_type",
+        options: [
+          { value: "libre", label: "Accès libre", icon: "✅" },
+          { value: "reglemente", label: "Réglementé", icon: "⚠️" },
+        ],
+      },
+    ],
+  },
+  {
     // Randonnées remarquables — sélection éditoriale (sommets à voie normale
     // documentée, objectifs emblématiques), validée par Wikipédia et OSM.
     // PILOTE : massif de la Chartreuse uniquement (extension France à venir —
