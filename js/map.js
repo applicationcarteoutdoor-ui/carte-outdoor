@@ -15,6 +15,7 @@
  */
 
 import { getTheme } from "./config/themes.js";
+import { paysActuel } from "./config/pays.js";
 
 /* global L */
 
@@ -300,7 +301,8 @@ export async function setGrVisible(visible) {
   }
   if (!grLayer) {
     if (!grChargement) {
-      grChargement = fetch("data/gr.geojson")
+      // Fichier de la surcouche selon le pays (GR en France, Great Walks en NZ)
+      grChargement = fetch(paysActuel().gr.fichier)
         .then((r) => r.json())
         .then((geojson) => {
           // Id de session stable (les GR ne stockent aucun statut : l'index suffit)

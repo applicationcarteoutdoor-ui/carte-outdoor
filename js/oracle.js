@@ -24,6 +24,7 @@
 import { toast, confirmer } from "./import-export.js";
 import { esc } from "./util.js";
 import { getTheme } from "./config/themes.js";
+import { paysActuel } from "./config/pays.js";
 
 const KEY_CLES = "carte-outdoor:oracle-cles"; // { anthropic, openai, google }
 const KEY_MODELE = "carte-outdoor:oracle-modele"; // { provider, model }
@@ -715,9 +716,12 @@ function sectionCarte(lieu) {
   return "## 🗺️ Sur ta carte, tout près\n" + blocs.join("\n");
 }
 
-/** Curiosités du coin via l'API Wikipédia (gratuite, sans clé). */
+/** Curiosités du coin via l'API Wikipédia (gratuite, sans clé).
+ *  Langue selon le pays de la carte (fr en France, en en Nouvelle-Zélande :
+ *  fr.wikipedia est quasi vide là-bas). */
 async function chercherWikipedia(lieu) {
-  const base = "https://fr.wikipedia.org/w/api.php";
+  const lang = paysActuel().wikiLang || "fr";
+  const base = `https://${lang}.wikipedia.org/w/api.php`;
   const res = await fetch(
     `${base}?action=query&list=geosearch&gscoord=${lieu.lat}%7C${lieu.lon}` +
       `&gsradius=10000&gslimit=12&format=json&origin=*`
@@ -743,7 +747,7 @@ async function chercherWikipedia(lieu) {
     return `- **${p.title}** — ${resume ? resume + " " : ""}À ${kmLisible(p.dist / 1000)} km.`;
   });
   const sources = retenus.map((p) => ({
-    url: "https://fr.wikipedia.org/wiki/" + encodeURIComponent(p.title.replace(/ /g, "_")),
+    url: `https://${lang}.wikipedia.org/wiki/` + encodeURIComponent(p.title.replace(/ /g, "_")),
     title: "Wikipédia — " + p.title,
   }));
   return { texte: "## 🏛️ À découvrir dans le coin\n" + lignes.join("\n"), sources };

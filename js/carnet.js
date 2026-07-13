@@ -112,6 +112,10 @@ export async function ouvrirCarnet(activite = null) {
     vue.recherche = "";
     vue.favoris = false;
     vue.activite = activite;
+    // Le carnet est COMMUN à tous les pays : app.js charge ici (une fois par
+    // session) les points des autres pays pour résoudre les noms de TOUS les
+    // souvenirs — sans ça, les sorties de l'autre pays seraient masquées.
+    await cb.avantOuverture?.();
     await chargerThemeCarnet();
     await construireEntrees();
     indexPage = 0; // toujours la couverture d'abord

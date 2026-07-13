@@ -1,6 +1,6 @@
 # Feuille de route — Carte Outdoor
 
-Tenue par l'agent **chef-de-projet** (`.claude/agents/chef-de-projet.md`). Dernière mise à jour : 2026-07-13 (v59, nouvelle catégorie **canyon** ; v58 : cascade + château + lac + grotte/spéléo).
+Tenue par l'agent **chef-de-projet** (`.claude/agents/chef-de-projet.md`). Dernière mise à jour : 2026-07-13 (v61 : **multi-pays + Nouvelle-Zélande complète**, 3 930 points sur 9 catégories ; v59 : canyon ; v58 : cascade + château + lac + grotte/spéléo).
 
 ## État des lieux
 
@@ -54,14 +54,14 @@ Guide existant : `docs/PLAYSTORE.md` (TWA/PWABuilder). Reste à faire :
 - [ ] **Actions utilisateur** : compte Play Console + produits « pack », compte de service Google Play Developer API, déploiement des fonctions Supabase + secret `ANTHROPIC_API_KEY` (l'agent ne manipule ni comptes ni paiements ni clés).
 - 💶 Économie : ~0,01-0,05 € d'API/consultation, Google prend 15-30 % → viser un pack 30 à 1,99 € (et/ou 10 à 0,99 €). Décompte seulement après appel réussi ; plafond/jour possible.
 
-## Étape 4 — 📋 Autres pays : Nouvelle-Zélande d'abord
+## Étape 4 — ✅ Multi-pays : Nouvelle-Zélande (LIVRÉE 2026-07-13, v61)
 
-Architecture « pack pays » à concevoir (l'app est déjà country-agnostique, le PIPELINE ne l'est pas) :
+**Décision utilisateur : même app + page de garde de choix du pays** (France / Nouvelle-Zélande, extensible). Rapport : `dev/RAPPORT-NOUVELLE-ZELANDE-2026-07-13.md`.
 
-- [ ] Abstraire ce qui est franco-centré : geo.api.gouv.fr (géocodage), IGN (altimétrie), bornes France, sources par catégorie.
-- [ ] Sources NZ : OSM/Overpass (identique), LINZ + DOC (Department of Conservation : huts, tracks — données ouvertes excellentes), Wikipédia EN.
-- [ ] Choix produit : une app par pays (carte-outdoor-nz) ou un sélecteur de pays dans la même app ? (à trancher avec l'utilisateur)
-- [ ] i18n : interface EN pour la NZ.
+- [x] Architecture multi-pays : `js/config/pays.js` (registre : fichier de points, surcouche GR/Great Walks, catégories dispo, vue, wikiLang), page de garde `#pays-overlay` + « 🌍 Changer de pays » (Réglages), vue mémorisée PAR pays, **carnet/statuts COMMUNS** (ids préfixés `nz-`, résolution croisée des noms à l'ouverture du carnet — vérifié).
+- [x] **Carte NZ : 3 930 points** (958 huttes DOC avec couchettes/catégorie/lien officiel · 1 184 campings DOC+OSM · 1 190 lacs Gazetteer · 421 cascades · **127 grottes · 22 villages · 18 cathédrales · 7 châteaux/forts · 3 via ferrata** — 2e vague v61) + **11 grands itinéraires cliquables** (9 Great Walks + Hump Ridge + Tongariro Alpine Crossing, distance + GPX + Wikipédia). Sources : DOC CC-BY 4.0, NZ Gazetteer/LINZ CC-BY 4.0, OSM ODbL, Wikipédia EN (photos Commons) — attribution aux Réglages. Nouvelle catégorie **`camping`** ⛺ (masquée en France en attendant ses données). **Couches lourdes conditionnées au pays** (`coucheLourde(id)`) : `grotte` = dialogue+fichier séparé en France, catégorie normale en NZ.
+- [x] Honnêteté : escalade NZ abandonnée (pas de source libre), Whanganui Journey écarté (rivière), pas de label officiel « joli village » en NZ (sélection éditoriale vérifiée Wikipédia), interface reste en français.
+- [ ] Reste (plus tard) : couches lourdes par pays (toilettes NZ ~4 500 dans OSM), camping France, i18n EN si demandé, pays suivants (une entrée dans pays.js + data/<pays>/).
 
 ## Backlog (petites améliorations, à grouper dans une future vague)
 

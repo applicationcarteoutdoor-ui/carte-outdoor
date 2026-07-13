@@ -405,6 +405,7 @@ export const THEMES = [
     color: "#9d4edd",
     icon: "🏰",
     fields: [
+      { key: "type", label: "Type" }, // Château / Fort (NZ notamment)
       { key: "periode", label: "Période" },
       { key: "horaires", label: "Horaires" },
       { key: "tarif", label: "Tarif" },
@@ -445,6 +446,7 @@ export const THEMES = [
     icon: "🏘️",
     fields: [
       { key: "label", label: "Label" },
+      { key: "region", label: "Région" },
     ],
     filters: [
       {
@@ -473,6 +475,11 @@ export const THEMES = [
       { key: "couvertures", label: "Couvertures" },
       { key: "etat", label: "État" },
       { key: "contact", label: "Contact" },
+      // Champs des huttes néo-zélandaises (DOC) — absents des refuges français
+      { key: "categorie", label: "Catégorie" },
+      { key: "equipements", label: "Équipements" },
+      { key: "lieu", label: "Parc / réserve" },
+      { key: "region", label: "Région" },
     ],
     filters: [
       {
@@ -518,6 +525,53 @@ export const THEMES = [
           { value: "", label: "Ouverte", icon: "🔓" },
           { value: "Clé à récupérer avant", label: "Clé à récupérer", icon: "🔑" },
           { value: "Fermée", label: "Fermée", icon: "🚫" },
+        ],
+      },
+    ],
+  },
+  {
+    // Campings — d'abord peuplée par la Nouvelle-Zélande (campsites du DOC,
+    // CC-BY 4.0) ; la France pourra suivre. Les libellés du filtre « Type »
+    // doivent correspondre EXACTEMENT aux details.type posés par le pipeline
+    // (tools/construire_nz.py) : catégories DOC traduites.
+    id: "camping",
+    label: "Camping",
+    color: "#606c38",
+    icon: "⛺",
+    fields: [
+      { key: "type", label: "Type" },
+      { key: "places", label: "Emplacements" },
+      { key: "acces", label: "Accès" },
+      { key: "chiens", label: "Chiens" },
+      { key: "paysage", label: "Paysage" },
+      { key: "tarif", label: "Tarif" },
+      { key: "etat", label: "État" },
+      { key: "lieu", label: "Parc / réserve" },
+      { key: "region", label: "Région" },
+    ],
+    filters: [
+      {
+        key: "type",
+        label: "Type",
+        type: "value",
+        field: "type",
+        options: [
+          { value: "Aménagé", label: "Aménagé", icon: "🚿" },
+          { value: "Standard", label: "Standard", icon: "⛺" },
+          { value: "Basique", label: "Basique", icon: "🌿" },
+          { value: "Arrière-pays", label: "Arrière-pays", icon: "🏔️" },
+          { value: "Great Walk", label: "Great Walk", icon: "🥾" },
+        ],
+      },
+      {
+        key: "places",
+        label: "Emplacements",
+        type: "bucket",
+        field: "places_n",
+        options: [
+          { value: "p1", label: "< 10", max: 10 },
+          { value: "p2", label: "10 à 30", min: 10, max: 30 },
+          { value: "p3", label: "30 et +", min: 30 },
         ],
       },
     ],

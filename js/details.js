@@ -8,6 +8,7 @@
  */
 
 import { getTheme } from "./config/themes.js";
+import { paysActuel } from "./config/pays.js";
 import { glossaireHTML } from "./config/glossaire.js";
 import { SUR_ANDROID, SUR_IOS } from "./config/platform.js";
 import * as storage from "./storage.js";
@@ -121,11 +122,13 @@ export function openDetailsGr(feature) {
   const liens = [];
   if (p.grgo) liens.push(`<a href="${esc(p.grgo)}" target="_blank" rel="noopener">🔗 gr-go.fr (planificateur)</a>`);
   if (p.wiki) liens.push(`<a href="${esc(p.wiki)}" target="_blank" rel="noopener">🔗 Wikipédia</a>`);
-  if (p.link) liens.push(`<a href="${esc(p.link)}" target="_blank" rel="noopener">🔗 gr-infos.com</a>`);
+  if (p.link) liens.push(`<a href="${esc(p.link)}" target="_blank" rel="noopener">🔗 ${esc(nomDeSite(p.link))}</a>`);
 
+  // Sous-titre selon le pays : « Sentier de grande randonnée » / « Great Walk »
+  const sousTitre = paysActuel().gr?.fiche || "Sentier de grande randonnée";
   panel.querySelector(".panel-body").innerHTML = `
     <div class="details-theme details-theme-gr">
-      <span aria-hidden="true">🥾</span> Sentier de grande randonnée
+      <span aria-hidden="true">🥾</span> ${esc(sousTitre)}
     </div>
     <h2 class="details-name">${esc(p.name || "GR")}</h2>
 
@@ -136,7 +139,7 @@ export function openDetailsGr(feature) {
     ${stats.length ? `<dl class="details-fields">${stats.join("")}</dl>` : ""}
     ${liens.length ? `<div class="details-links">${liens.join("")}</div>` : ""}
 
-    <p class="menu-note">Le dénivelé est une estimation (altimétrie IGN). Le tracé reste
+    <p class="menu-note">${p.dplus ? "Le dénivelé est une estimation (altimétrie IGN). " : ""}Le tracé reste
       affiché sur la carte tant que vous ne sélectionnez pas un autre itinéraire.</p>
   `;
 

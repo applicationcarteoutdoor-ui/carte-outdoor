@@ -11,7 +11,7 @@
        bug v35→v41). connect-src liste les API appelées à l'exécution (géocodage
        + IA de l'Oracle). À METTRE À JOUR si on ajoute un fournisseur/back-end
        (ex. Supabase → ajouter son domaine à connect-src). -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://upload.wikimedia.org https://tile.openstreetmap.org https://*.tile.opentopomap.org https://data.geopf.fr https://server.arcgisonline.com; font-src 'self'; connect-src 'self' https://api.anthropic.com https://generativelanguage.googleapis.com https://geo.api.gouv.fr https://fr.wikipedia.org https://*.supabase.co; worker-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://upload.wikimedia.org https://tile.openstreetmap.org https://*.tile.opentopomap.org https://data.geopf.fr https://server.arcgisonline.com; font-src 'self'; connect-src 'self' https://api.anthropic.com https://generativelanguage.googleapis.com https://geo.api.gouv.fr https://fr.wikipedia.org https://en.wikipedia.org https://*.supabase.co; worker-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#ffffff">
   <meta name="description" content="Carte interactive de points d'intérêt outdoor : via ferrata, escalade, refuges, châteaux, cités de caractère, GR…">
@@ -29,6 +29,19 @@
   <link rel="stylesheet" href="css/oracle.css">
 </head>
 <body>
+
+  <!-- Page de garde : choix du pays (premier lancement, ou « Changer de pays »
+       des Réglages). Rendue et câblée par app.js (choisirPays). Cachée par
+       défaut : la règle globale [hidden]{display:none!important} la neutralise. -->
+  <div id="pays-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="pays-titre">
+    <div class="pays-carte">
+      <img src="icons/icon.svg" alt="" class="pays-logo">
+      <h1 id="pays-titre">Carte Outdoor</h1>
+      <p class="pays-sous-titre">Choisissez votre terrain de jeu</p>
+      <div class="pays-liste"><!-- rempli par app.js depuis js/config/pays.js --></div>
+      <p class="pays-note">D'autres pays arriveront — le carnet et vos statuts vous suivent partout.</p>
+    </div>
+  </div>
 
   <!-- Panneau gauche : recherche + catégories cochables -->
   <aside id="sidebar" aria-label="Recherche et catégories">
@@ -304,6 +317,7 @@
       <!-- Masqué quand l'app est déjà lancée depuis l'écran d'accueil -->
       <button type="button" id="btn-install" class="btn btn-secondary" hidden>📲 Installer l'application</button>
       <button type="button" id="btn-mode-nuit" class="btn btn-secondary">🌙 Mode nuit</button>
+      <button type="button" id="btn-pays" class="btn btn-secondary">🌍 Changer de pays</button>
       <button type="button" id="btn-update" class="btn btn-secondary">🔄 Vérifier la mise à jour</button>
     </div>
     <p id="storage-status" class="menu-note"></p>
@@ -326,6 +340,9 @@
         Grottes&nbsp;: <a href="https://grottocenter.org" target="_blank" rel="noopener">Grottocenter</a> / Wikicaves
         (<a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener">ODbL</a>, partage à l'identique) et Wikipédia&nbsp;;
         seuls les faits (position, profondeur, développement) sont réutilisés, jamais les descriptions, topos ni photos.
+        Nouvelle-Zélande&nbsp;: <a href="https://doc-deptconservation.opendata.arcgis.com/" target="_blank" rel="noopener">Department of Conservation</a>
+        (huttes, campings, Great Walks — CC-BY&nbsp;4.0, © Crown), <a href="https://gazetteer.linz.govt.nz/" target="_blank" rel="noopener">NZ Gazetteer / LINZ</a>
+        (lacs, cascades — CC-BY&nbsp;4.0) et OpenStreetMap.
         Les cotations, positions et données factuelles sont réutilisées ;
         les descriptions et photos restent propres à l'application ou proviennent de Wikimedia Commons.</p>
     </section>

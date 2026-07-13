@@ -11,6 +11,7 @@ import {
   setThemeOverrides,
   registerCustomThemes,
 } from "./config/themes.js";
+import { PAYS, paysChoisi, paysActuel, definirPays } from "./config/pays.js";
 import * as storage from "./storage.js";
 import {
   initMap,
@@ -101,11 +102,12 @@ window.addEventListener("beforeinstallprompt", (e) => {
 
 async function chargerPoints() {
   let defauts = [];
+  const fichier = paysActuel().fichierPoints;
   try {
-    const reponse = await fetch("data/points.geojson");
+    const reponse = await fetch(fichier);
     defauts = (await reponse.json()).features || [];
   } catch (e) {
-    console.error("Impossible de charger data/points.geojson :", e);
+    console.error(`Impossible de charger ${fichier} :`, e);
   }
   const importes = await storage.getUserPoints().catch(() => []);
   state.userPointIds = new Set(importes.map((f) => f.properties.id));
@@ -172,10 +174,13 @@ function compteursParTheme() {
     const id = getTheme(f.properties.theme).id;
     compteurs.set(id, (compteurs.get(id) || 0) + 1);
   }
-  // Couches lourdes pas encore chargées : « … » plutôt qu'un 0 trompeur
-  if (!pointsToilettes.length) compteurs.set("toilettes", "…");
-  if (!pointsEau.length) compteurs.set("eau", "…");
-  if (!pointsGrottes.length) compteurs.set("grotte", "…");
+  // Couches lourdes pas encore chargées : « … » plutôt qu'un 0 trompeur.
+  // (France seulement — en NZ, `grotte` vit dans points.geojson : vrai compte.)
+  if (paysActuel().couchesLourdes) {
+    if (!pointsToilettes.length) compteurs.set("toilettes", "…");
+    if (!pointsEau.length) compteurs.set("eau", "…");
+    if (!pointsGrottes.length) compteurs.set("grotte", "…");
+  }
   return compteurs;
 }
 
@@ -449,14 +454,17 @@ function telechargerGpxItineraire(feature) {
   else telechargerGpxRando(feature);
 }
 
-/** GPX d'un sentier GR (sa géométrie LineString est directement dans la feature). */
+/** GPX d'un grand itinéraire (GR LineString, Great Walk MultiLineString) :
+ *  sa géométrie est directement dans la feature. */
 function telechargerGpxGr(grFeature) {
-  const coords = grFeature.geometry?.coordinates || [];
-  if (!coords.length) {
-    toast("Tracé indisponible pour ce GR.");
+  const geom = grFeature.geometry || {};
+  const segments =
+    geom.type === "MultiLineString" ? geom.coordinates : [geom.coordinates || []];
+  if (!segments.length || !segments[0].length) {
+    toast("Tracé indisponible pour cet itinéraire.");
     return;
   }
-  telechargerGpx(grFeature.properties?.name || "GR", [coords], null);
+  telechargerGpx(grFeature.properties?.name || "GR", segments, null);
 }
 
 async function changerStatut(pointId, statut) {
@@ -678,6 +686,10 @@ function distanceM(lat1, lon1, lat2, lon2) {
  *  l'activation + mode « autour de moi » à 1 km). `points` est un getter car
  *  le tableau est réassigné au chargement. */
 const COUCHES_LOURDES = {
+  // ⚠️ Mécanisme FRANÇAIS : ces ids ne déclenchent le dialogue + fichier séparé
+  // que si le pays courant a `couchesLourdes: true`. Ailleurs, la même catégorie
+  // (ex. `grotte` en NZ, ~300 points DANS points.geojson) se comporte comme une
+  // catégorie normale — passer par coucheLourde(id), jamais par l'objet direct.
   toilettes: {
     dialog: "wc-dialog", charger: chargerToilettes, points: () => pointsToilettes,
     pluriel: "toilettes", vide: "Aucunes toilettes à moins de 1 km",
@@ -694,6 +706,12 @@ const COUCHES_LOURDES = {
     proche: "la plus proche", aucun: "Aucune grotte connue.",
   },
 };
+
+/** Config de couche lourde pour `id` — ou undefined si le pays courant n'en a
+ *  pas (la catégorie redevient alors ordinaire, ses points sont déjà chargés). */
+function coucheLourde(id) {
+  return paysActuel().couchesLourdes ? COUCHES_LOURDES[id] : undefined;
+}
 
 /** Dialogue d'avertissement à l'activation d'une couche lourde (toilettes, eau).
  *  @returns {Promise<"valider"|"retour"|"proximite">} */
@@ -715,7 +733,8 @@ function demanderModeCouche(dialogId) {
 /** Géolocalise puis affiche SEULE la couche `id` (toilettes/eau) autour de la
  *  position (cercle de 1 km). Utilisé par l'avertissement et par le bouton 🏃🚻. */
 async function coucheAutourDeMoi(id) {
-  const conf = COUCHES_LOURDES[id];
+  const conf = coucheLourde(id);
+  if (!conf) return; // pays sans couches lourdes : bouton masqué, garde-fou
   try {
     toast("Recherche de votre position…");
     const [lat, lon] = await new Promise((resolve, reject) => {
@@ -1045,6 +1064,21 @@ function restaurerPrefs(prefs) {
     // ★ Toute première connexion : seules les cités de caractère sont affichées
     state.activeThemes = new Set(["cite-caractere"]);
   }
+  // Catégories de base INDISPONIBLES dans le pays courant : décochées — leurs
+  // points ne sont pas chargés et leurs filtres pollueraient le panneau (les
+  // catégories personnelles, hors THEMES, ne sont jamais touchées). Si plus
+  // rien n'est coché (ex. premier passage en NZ), la 1re catégorie du pays
+  // prend le relais pour ne pas ouvrir une carte vide.
+  const pays = paysActuel();
+  const exclues = pays.categoriesExclues || [];
+  for (const id of [...state.activeThemes]) {
+    const deBase = THEMES.some((t) => t.id === id);
+    const dispo = (!pays.categories || pays.categories.includes(id)) && !exclues.includes(id);
+    if (deBase && !dispo) state.activeThemes.delete(id);
+  }
+  if (!state.activeThemes.size && pays.categories?.length) {
+    state.activeThemes.add(pays.categories[0]);
+  }
   state.statusFilters = new Set(
     (Array.isArray(prefs.statusFilters) ? prefs.statusFilters : []).filter((s) =>
       ["a-faire", "fait", "favori"].includes(s)
@@ -1061,7 +1095,76 @@ function restaurerPrefs(prefs) {
   state.grVisible = prefs.grVisible === true;
 }
 
+/* ------------------------------------------------------------------ */
+/* Multi-pays : page de garde + résolution croisée pour le carnet       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Page de garde : liste les pays et résout avec l'id choisi. `annulable`
+ * (bouton Réglages) : cliquer le fond referme sans choisir (resolve null).
+ */
+function choisirPays(annulable = false) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById("pays-overlay");
+    const liste = overlay.querySelector(".pays-liste");
+    liste.textContent = "";
+    for (const p of Object.values(PAYS)) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "pays-choix";
+      btn.innerHTML =
+        `<span class="pays-drapeau" aria-hidden="true">${esc(p.drapeau)}</span>` +
+        `<span class="pays-infos"><span class="pays-nom">${esc(p.label)}</span>` +
+        `<span class="pays-desc">${esc(p.sousTitre)}</span></span>`;
+      btn.addEventListener("click", () => {
+        overlay.hidden = true;
+        resolve(p.id);
+      });
+      liste.appendChild(btn);
+    }
+    if (annulable) {
+      overlay.addEventListener("click", function fermer(e) {
+        if (e.target === overlay) {
+          overlay.removeEventListener("click", fermer);
+          overlay.hidden = true;
+          resolve(null);
+        }
+      });
+    }
+    overlay.hidden = false;
+  });
+}
+
+// Le carnet et les statuts sont COMMUNS à tous les pays (clés = ids de points,
+// préfixés par pays). Pour que le grimoire affiche aussi les souvenirs des
+// autres pays, leurs points sont chargés À L'OUVERTURE du carnet (une fois par
+// session ; celui du pays courant est déjà pré-caché par le SW). Limite : les
+// couches lourdes (toilettes/eau/grottes) des autres pays ne sont pas relues.
+let pointsAutresPays = null;
+async function chargerPointsAutresPays() {
+  if (pointsAutresPays) return pointsAutresPays;
+  const charges = [];
+  for (const p of Object.values(PAYS)) {
+    if (p.id === paysActuel().id) continue;
+    try {
+      const r = await fetch(p.fichierPoints);
+      charges.push(...((await r.json()).features || []));
+    } catch {
+      /* hors ligne ou fichier absent : les entrées de ce pays resteront masquées */
+    }
+  }
+  pointsAutresPays = charges;
+  return pointsAutresPays;
+}
+
 async function demarrer() {
+  // PAGE DE GARDE : au tout premier lancement (aucun pays mémorisé), le choix
+  // du pays précède tout — les données chargées en dépendent.
+  if (!paysChoisi()) {
+    definirPays(await choisirPays());
+  }
+  const pays = paysActuel();
+
   // Catégories personnalisées et personnalisations AVANT tout rendu
   registerCustomThemes(await storage.getCustomThemes());
   setThemeOverrides(await storage.getThemeOverrides());
@@ -1072,10 +1175,15 @@ async function demarrer() {
   await chargerPoints();
   restaurerPrefs(prefs);
 
-  const carte = initMap(prefs, {
+  // Vue mémorisée PAR PAYS (`vue_fr`, `vue_nz`…) — sinon changer de pays
+  // rouvrirait la carte sur l'autre hémisphère. Repli : l'ancienne pref
+  // globale (center/zoom, historique France), puis la vue par défaut du pays.
+  const vuePays = prefs[`vue_${pays.id}`] ||
+    (pays.id === "fr" && prefs.center ? { center: prefs.center, zoom: prefs.zoom } : pays.vue);
+  const carte = initMap({ ...prefs, center: vuePays.center, zoom: vuePays.zoom }, {
     onPointClick: ouvrirFiche,
     onGrClick: ouvrirFicheGr,
-    onViewChange: (vue) => storage.savePrefs(vue),
+    onViewChange: (vue) => storage.savePrefs({ [`vue_${pays.id}`]: vue }),
   });
   // Toucher la carte replie le tiroir des catégories (sur mobile, il recouvre
   // la carte). Sur PC (≥ 900 px) le panneau est fixe : closeSidebar sans effet.
@@ -1087,8 +1195,8 @@ async function demarrer() {
     onToggleTheme: async (id, coche) => {
       // Couches lourdes (toilettes ~66k, eau ~49k) → avertissement avec trois
       // choix : Retour, « À moins de 1 km » (zoom sur la position), Valider.
-      if (COUCHES_LOURDES[id] && coche) {
-        const choix = await demanderModeCouche(COUCHES_LOURDES[id].dialog);
+      if (coucheLourde(id) && coche) {
+        const choix = await demanderModeCouche(coucheLourde(id).dialog);
         if (choix === "retour") {
           rafraichir(); // re-décoche la case (l'état n'a pas changé)
           return;
@@ -1103,7 +1211,7 @@ async function demarrer() {
       coche ? state.activeThemes.add(id) : state.activeThemes.delete(id);
       if (coche) {
         state.statusFilters.clear(); // exclusif avec le mode suivi
-        if (COUCHES_LOURDES[id] && !(await COUCHES_LOURDES[id].charger())) {
+        if (coucheLourde(id) && !(await coucheLourde(id).charger())) {
           state.activeThemes.delete(id);
         }
         if (getThemeFilters(id).length) state.filtersCollapsed = false;
@@ -1274,13 +1382,26 @@ async function demarrer() {
   });
   initInstallation();
   initReglages();
+  // « 🌍 Changer de pays » (Réglages) : rouvre la page de garde ; un choix
+  // différent recharge la page (ré-init complète : données, vue, catégories).
+  document.getElementById("btn-pays").addEventListener("click", async () => {
+    document.getElementById("settings-dialog").close();
+    const choix = await choisirPays(true);
+    if (choix && choix !== pays.id) {
+      definirPays(choix);
+      location.reload();
+    }
+  });
   initModeNuit(prefs);
   initProtectionDonnees(prefs, premiereVisite);
   afficherVersion();
   initCarnet({
-    getPoints: () => state.allPoints,
+    // Carnet COMMUN : points du pays courant + ceux des autres pays (chargés
+    // par avantOuverture) — les souvenirs suivent l'utilisateur partout.
+    getPoints: () => [...state.allPoints, ...(pointsAutresPays || [])],
     getStatuses: () => state.statuses,
     onVoirSurCarte: (feature) => allerAuPoint(feature),
+    avantOuverture: chargerPointsAutresPays,
   });
 
   // Étape « filtres » du tuto : elle montre TOUJOURS les filtres des via
@@ -1309,14 +1430,20 @@ async function demarrer() {
   // Toilettes déjà cochées lors d'une session précédente : leur fichier
   // (chargé à la demande) doit l'être aussi au démarrage — en arrière-plan,
   // pour ne pas retarder le premier affichage.
-  if (state.activeThemes.has("toilettes")) {
-    chargerToilettes().then((ok) => ok && rafraichir());
-  }
-  if (state.activeThemes.has("eau")) {
-    chargerEau().then((ok) => ok && rafraichir());
-  }
-  if (state.activeThemes.has("grotte")) {
-    chargerGrottes().then((ok) => ok && rafraichir());
+  if (pays.couchesLourdes) {
+    if (state.activeThemes.has("toilettes")) {
+      chargerToilettes().then((ok) => ok && rafraichir());
+    }
+    if (state.activeThemes.has("eau")) {
+      chargerEau().then((ok) => ok && rafraichir());
+    }
+    if (state.activeThemes.has("grotte")) {
+      chargerGrottes().then((ok) => ok && rafraichir());
+    }
+  } else {
+    // Pays sans couches lourdes : le bouton 🏃🚻 (toilettes autour de moi)
+    // chargerait le fichier FRANÇAIS — on le masque.
+    document.getElementById("btn-wc").hidden = true;
   }
 
   // Tuto lancé automatiquement à la toute première connexion (skippable)

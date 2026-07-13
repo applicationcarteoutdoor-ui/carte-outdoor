@@ -20,6 +20,7 @@ import {
   isCustomTheme,
   FALLBACK_THEME,
 } from "./config/themes.js";
+import { paysActuel } from "./config/pays.js";
 import * as storage from "./storage.js";
 import { renderTracksInto, tracksCount } from "./gpx.js";
 import { esc } from "./util.js";
@@ -63,7 +64,19 @@ export function renderSidebar(etat) {
   const liste = panel.querySelector(".cat-list");
   liste.textContent = "";
 
-  for (const def of allThemes()) {
+  // Catégories du PAYS courant : la liste `categories` du pays filtre les
+  // catégories de base (null = toutes) ; les catégories PERSONNELLES et celles
+  // qui contiennent des points de l'utilisateur restent toujours visibles.
+  const pays = paysActuel();
+  const catPays = pays.categories;
+  const exclues = pays.categoriesExclues || [];
+  const visibles = allThemes().filter((def) => {
+    // Toujours visibles : catégories perso, et celles où l'utilisateur a des points
+    if (isCustomTheme(def.id) || (etat.userPointCounts?.get(def.id) || 0) > 0) return true;
+    if (exclues.includes(def.id)) return false;
+    return !catPays || catPays.includes(def.id);
+  });
+  for (const def of visibles) {
     const theme = getTheme(def.id);
     const count = etat.counts.get(def.id) || 0;
     const nbMiens = etat.userPointCounts?.get(def.id) || 0;
@@ -131,19 +144,23 @@ export function renderSidebar(etat) {
   sep2.textContent = "Tracés";
   liste.appendChild(sep2);
 
-  // --- Sentiers GR (surcouche de tracés, cochable comme une catégorie) ---
-  liste.appendChild(
-    ligneCategorie({
-      icone: "🥾",
-      couleur: "#b02a2a",
-      texte: "#fff",
-      label: "Sentiers GR",
-      count: 190, // nombre de tracés de data/gr.geojson — à tenir en phase si le fichier change
-
-      coche: etat.grVisible,
-      onCheck: (on) => cb.onToggleGr(on),
-    })
-  );
+  // --- Grands itinéraires (surcouche de tracés, cochable comme une catégorie)
+  //     Par pays : « Sentiers GR » en France, « Great Walks » en NZ — libellé
+  //     et compte viennent de js/config/pays.js (à tenir en phase avec le fichier).
+  const gr = paysActuel().gr;
+  if (gr) {
+    liste.appendChild(
+      ligneCategorie({
+        icone: "🥾",
+        couleur: "#b02a2a",
+        texte: "#fff",
+        label: gr.label,
+        count: gr.compte,
+        coche: etat.grVisible,
+        onCheck: (on) => cb.onToggleGr(on),
+      })
+    );
+  }
 
   // --- Traces GPX importées ---
   const ligneTraces = ligneCategorie({
