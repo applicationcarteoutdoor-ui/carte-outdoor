@@ -1300,7 +1300,7 @@ body.mode-nuit .import-errors { background: #3a2326; border-color: #5c3438; colo
 }
 
 /* ------------------------------------------------------------------ */
-/* Page de garde : choix du pays                                       */
+/* Page de garde : carte du monde cliquable (choix du pays)            */
 /* ------------------------------------------------------------------ */
 
 #pays-overlay {
@@ -1308,62 +1308,171 @@ body.mode-nuit .import-errors { background: #3a2326; border-color: #5c3438; colo
   inset: 0;
   z-index: 3000; /* au-dessus de tout (toast 2000) : rien d'autre ne compte tant que le pays n'est pas choisi */
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 18px;
+  flex-direction: column;
   background:
     radial-gradient(ellipse at 20% 15%, rgba(45, 106, 79, .35), transparent 55%),
     radial-gradient(ellipse at 80% 85%, rgba(10, 147, 150, .3), transparent 55%),
     linear-gradient(160deg, #10231b, #0d1f2d 70%);
+  color: #eef4f0;
 }
 
-.pays-carte {
-  width: min(430px, 100%);
-  max-height: 92dvh;
-  overflow-y: auto;
-  text-align: center;
-  background: var(--surface, #fff);
-  border-radius: 18px;
-  padding: 26px 22px 20px;
-  box-shadow: 0 18px 60px rgba(0, 0, 0, .45);
+.pays-entete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 18px 16px 10px;
+  text-align: left;
 }
+.pays-logo { width: 52px; height: 52px; flex: none; }
+.pays-entete h1 { margin: 0; font-size: 1.6rem; letter-spacing: .5px; }
+.pays-sous-titre { margin: 2px 0 0; font-size: .85rem; color: #b9cdc2; }
 
-.pays-logo { width: 64px; height: 64px; }
-.pays-carte h1 { margin: 8px 0 2px; font-size: 1.45rem; }
-.pays-sous-titre { margin: 0 0 18px; color: var(--muted, #667); }
+/* La carte du monde : Leaflet SANS tuiles — l'océan est ce dégradé. */
+#pays-monde {
+  flex: 1;
+  min-height: 0;
+  margin: 4px 10px;
+  border-radius: 16px;
+  background: #aad3df; /* océan OSM : visible pendant le chargement des tuiles */
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, .2);
+  overflow: hidden;
+}
+#pays-monde .leaflet-container { background: transparent; font: inherit; }
 
-.pays-liste { display: grid; gap: 12px; }
-
+.pays-pied { padding: 10px 14px calc(12px + env(safe-area-inset-bottom)); text-align: center; }
+.pays-liste {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
 .pays-choix {
   display: flex;
   align-items: center;
-  gap: 14px;
-  width: 100%;
-  padding: 14px 16px;
-  border: 2px solid rgba(45, 106, 79, .35);
-  border-radius: 14px;
-  background: transparent;
+  gap: 10px;
+  padding: 9px 16px;
+  border: 2px solid rgba(53, 196, 160, .5);
+  border-radius: 999px;
+  background: rgba(9, 34, 28, .55);
   cursor: pointer;
-  text-align: left;
   font: inherit;
-  color: inherit;
+  color: #eef4f0;
   transition: border-color .15s, transform .15s, box-shadow .15s;
 }
 .pays-choix:hover, .pays-choix:focus-visible {
-  border-color: #2d6a4f;
+  border-color: #35c4a0;
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(45, 106, 79, .25);
+  box-shadow: 0 6px 18px rgba(53, 196, 160, .3);
 }
-.pays-drapeau { font-size: 2rem; line-height: 1; }
-.pays-infos { display: grid; gap: 2px; }
+.pays-drapeau { font-size: 1.4rem; line-height: 1; }
+.pays-infos { display: grid; text-align: left; }
 .pays-nom { font-weight: 700; }
-.pays-desc { font-size: .82rem; color: var(--muted, #667); }
+.pays-desc { font-size: .72rem; color: #b9cdc2; max-width: 300px; }
 
-.pays-note { margin: 16px 0 0; font-size: .78rem; color: var(--muted, #667); }
+.pays-note { margin: 10px 0 0; font-size: .74rem; color: #93a8a0; }
 
-body.mode-nuit .pays-carte { background: var(--surface); }
-body.mode-nuit .pays-choix { border-color: rgba(10, 147, 150, .45); }
-body.mode-nuit .pays-choix:hover, body.mode-nuit .pays-choix:focus-visible {
-  border-color: #0a9396;
-  box-shadow: 0 6px 18px rgba(10, 147, 150, .3);
+@media (max-width: 640px) {
+  .pays-desc { display: none; } /* boutons compacts : drapeau + nom */
+  .pays-entete h1 { font-size: 1.35rem; }
 }
+/* Points des pays sur la carte du monde : disponibles (verts, pulsants) et
+   « bientôt » (ambrés, discrets). Le nom apparaît au survol (tooltip Leaflet). */
+.pays-point {
+  display: block;
+  width: 18px; height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 50%;
+  background: #35f0be;
+  border: 3px solid #0b3a2e;
+  box-shadow: 0 0 0 0 rgba(53, 240, 190, .6);
+  cursor: pointer;
+  animation: point-pulse 2.2s ease-out infinite;
+}
+.pays-point-bientot {
+  display: block;
+  width: 11px; height: 11px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  background: #f0b35c;
+  border: 2px solid #4a3413;
+  opacity: .9;
+  cursor: help;
+}
+@keyframes point-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(53, 240, 190, .55); }
+  70%  { box-shadow: 0 0 0 14px rgba(53, 240, 190, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(53, 240, 190, 0); }
+}
+@media (prefers-reduced-motion: reduce) { .pays-point { animation: none; } }
+
+/* Tooltips de la page de garde (nom du pays au survol) */
+.pays-tooltip {
+  background: rgba(8, 26, 21, .94);
+  border: 1px solid rgba(95, 242, 200, .4);
+  color: #eef4f0;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 4px 10px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .4);
+}
+.pays-tooltip::before { display: none; } /* pas de flèche : plus net sur fond sombre */
+.pays-tooltip-dispo { border-color: #35f0be; color: #b8ffe9; }
+
+/* Boutons communauté de la page de garde */
+.pays-communaute { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 10px; }
+.btn-communaute {
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(240, 179, 92, .5);
+  background: rgba(46, 34, 12, .5);
+  color: #f4dcb6;
+  font: inherit;
+  font-size: .8rem;
+  cursor: pointer;
+  transition: border-color .15s, transform .15s;
+}
+.btn-communaute:hover { border-color: #f0b35c; transform: translateY(-1px); }
+
+/* ------------------------------------------------------------------ */
+/* Dialogue des catégories communautaires                              */
+/* ------------------------------------------------------------------ */
+
+#communaute-dialog { width: min(480px, calc(100vw - 24px)); }
+.comm-onglets { display: flex; gap: 8px; margin: 4px 0 12px; }
+.comm-onglet {
+  flex: 1;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border, #d7dbe0);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  color: inherit;
+}
+.comm-onglet.actif { border-color: #2d6a4f; background: rgba(45, 106, 79, .12); font-weight: 700; }
+#comm-explorer, #comm-partager { display: grid; gap: 8px; max-height: 46dvh; overflow-y: auto; }
+.comm-carte {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid var(--border, #d7dbe0);
+  border-radius: 10px;
+}
+.comm-infos { display: grid; gap: 1px; min-width: 0; }
+.comm-meta { font-size: .75rem; color: var(--muted, #667); }
+.comm-desc { font-size: .8rem; color: var(--muted, #667); }
+.comm-carte .btn { flex: none; }
+#comm-partager textarea {
+  width: 100%;
+  font: inherit;
+  border: 1px solid var(--border, #d7dbe0);
+  border-radius: 10px;
+  padding: 8px;
+  resize: vertical;
+  background: transparent;
+  color: inherit;
+}
+body.mode-nuit .comm-onglet.actif { background: rgba(10, 147, 150, .18); border-color: #0a9396; }

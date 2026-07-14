@@ -363,6 +363,8 @@ def construire():
         links.append(recherche(v["nom"], "village"))
         f = point(f"nz-vill-{n:04d}", v["nom"], "cite-caractere", v["lat"], v["lon"], d, links)
         f["properties"]["description"] = v.get("fait_marquant", "")
+        if (v.get("photo") or "").startswith("https://upload.wikimedia.org"):
+            f["properties"]["photos"] = [v["photo"]]
         feats.append(f)
 
     # ---- Via ferrata (liste éditoriale, 3 parcours) ----
@@ -371,6 +373,26 @@ def construire():
         links = [{"label": "🌐 Site officiel", "url": site}, recherche(nom, "via ferrata")]
         f = point(f"nz-vf-{n:04d}", nom, "via-ferrata", lat, lon, d, links)
         f["properties"]["description"] = fait
+        feats.append(f)
+
+    # ---- Randonnées emblématiques (liste éditoriale, tracés DOC réels) ----
+    #      Produites par recolter_nz_randos.py (tools/nz-randos.json +
+    #      data/nz/randos.geojson). Point = départ du tracé (côté accès).
+    randos = json.loads((RACINE / "tools" / "nz-randos.json").read_text(encoding="utf-8"))
+    for r in randos:
+        d = {
+            "massif": r["region"],
+            "distance": r["distance"], "distance_n": r["distance_n"],
+            "duree": r["duree"], "duree_n": r["duree_n"],
+            "fiche": "Référencé",
+        }
+        f = point(r["id"], r["nom"], "randonnee", r["lat"], r["lon"], d, [
+            {"label": "🥾 Fiche DOC", "url": "https://www.google.com/search?q=" +
+             quote(f"{r['nom']} site:doc.govt.nz")},
+            {"label": "🗺️ AllTrails", "url": "https://www.google.com/search?q=" +
+             quote(f"{r['nom']} New Zealand site:alltrails.com")},
+        ])
+        f["properties"]["description"] = r["note"]
         feats.append(f)
 
     # ---- Great Walks (segments EAM regroupés par itinéraire) ----

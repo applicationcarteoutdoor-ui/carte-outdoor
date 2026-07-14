@@ -10,8 +10,10 @@ import {
   getTheme,
   setThemeOverrides,
   registerCustomThemes,
+  isCustomTheme,
 } from "./config/themes.js";
 import { PAYS, paysChoisi, paysActuel, definirPays } from "./config/pays.js";
+import { initCommunaute, ouvrirCommunaute } from "./communaute.js";
 import * as storage from "./storage.js";
 import {
   initMap,
@@ -86,6 +88,11 @@ let pointsEau = [];
  *  grottes Wikipédia) : même modèle de couche lourde à la demande. */
 let pointsGrottes = [];
 
+/** Culture France (data/culture.geojson, ~15 000 musées/galeries/sites
+ *  archéologiques/monuments OSM) : couche lourde à la demande. En NZ, la même
+ *  catégorie est ordinaire (points dans data/nz/points.geojson). */
+let pointsCulture = [];
+
 /** Indices du cycle « flèche ➤ » (clics successifs → point suivant). */
 const cycleUserPoint = {};
 
@@ -112,7 +119,7 @@ async function chargerPoints() {
   const importes = await storage.getUserPoints().catch(() => []);
   state.userPointIds = new Set(importes.map((f) => f.properties.id));
   const parId = new Map();
-  for (const f of [...defauts, ...pointsToilettes, ...pointsEau, ...pointsGrottes, ...importes]) parId.set(f.properties.id, f);
+  for (const f of [...defauts, ...pointsToilettes, ...pointsEau, ...pointsGrottes, ...pointsCulture, ...importes]) parId.set(f.properties.id, f);
   state.allPoints = [...parId.values()];
 }
 
@@ -164,6 +171,22 @@ async function chargerGrottes() {
   }
 }
 
+/** Charge la couche culture (France) si nécessaire ; false en cas d'échec. */
+async function chargerCulture() {
+  if (pointsCulture.length) return true;
+  toast("Chargement des lieux culturels…");
+  try {
+    const reponse = await fetch("data/culture.geojson");
+    pointsCulture = (await reponse.json()).features || [];
+    await chargerPoints();
+    return true;
+  } catch (e) {
+    console.error("Impossible de charger data/culture.geojson :", e);
+    toast("Lieux culturels indisponibles pour le moment (hors connexion ?).");
+    return false;
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* Filtrage                                                             */
 /* ------------------------------------------------------------------ */
@@ -180,6 +203,7 @@ function compteursParTheme() {
     if (!pointsToilettes.length) compteurs.set("toilettes", "…");
     if (!pointsEau.length) compteurs.set("eau", "…");
     if (!pointsGrottes.length) compteurs.set("grotte", "…");
+    if (!pointsCulture.length) compteurs.set("culture", "…");
   }
   return compteurs;
 }
@@ -403,7 +427,7 @@ function telechargerGpx(nom, segments, depart) {
     )
     .join("\n");
   const gpx = `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="Carte Outdoor" xmlns="http://www.topografix.com/GPX/1/1">
+<gpx version="1.1" creator="SpotMap" xmlns="http://www.topografix.com/GPX/1/1">
   <metadata><name>${esc(nom)}</name></metadata>
 ${depart ? `  <wpt lat="${depart[0]}" lon="${depart[1]}"><name>${esc(nom)}</name></wpt>\n` : ""}  <trk>
     <name>${esc(nom)}</name>
@@ -704,6 +728,11 @@ const COUCHES_LOURDES = {
     dialog: "grottes-dialog", charger: chargerGrottes, points: () => pointsGrottes,
     pluriel: "grottes", vide: "Aucune grotte à moins de 1 km",
     proche: "la plus proche", aucun: "Aucune grotte connue.",
+  },
+  culture: {
+    dialog: "culture-dialog", charger: chargerCulture, points: () => pointsCulture,
+    pluriel: "lieux culturels", vide: "Aucun lieu culturel à moins de 1 km",
+    proche: "le plus proche", aucun: "Aucun lieu culturel connu.",
   },
 };
 
@@ -1099,15 +1128,70 @@ function restaurerPrefs(prefs) {
 /* Multi-pays : page de garde + résolution croisée pour le carnet       */
 /* ------------------------------------------------------------------ */
 
+// Fond de la page de garde : le monde en polygones (data/monde.geojson,
+// Natural Earth simplifié, domaine public) — rendu Leaflet SANS tuiles,
+// donc hors-ligne. Chargé une fois par session.
+let mondePromesse = null;
+function chargerMonde() {
+  if (!mondePromesse) {
+    mondePromesse = fetch("data/monde.geojson")
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null); // fichier absent/hors ligne : les boutons suffisent
+  }
+  return mondePromesse;
+}
+
+// Pays « bientôt » de la page de garde : petits points ambrés, purement
+// TEASER (survol = nom, clic = clin d'œil). Liste éditoriale, dans l'ordre
+// de nos envies — en ajouter un = une ligne.
+const PAYS_BIENTOT = [
+  ["Pérou", -9.2, -75.0], ["Pays-Bas", 52.2, 5.3], ["Népal", 28.2, 84.0],
+  ["Singapour", 1.35, 103.82], ["Laos", 19.0, 103.0], ["Suisse", 46.8, 8.2],
+  ["Italie", 42.5, 12.5], ["Espagne", 40.2, -3.5], ["Canada", 56.0, -106.0],
+  ["Japon", 36.2, 138.3], ["Norvège", 61.0, 9.0], ["Islande", 64.9, -18.6],
+  ["Maroc", 31.8, -6.5], ["Costa Rica", 9.7, -84.2], ["Australie", -25.3, 133.8],
+  ["Royaume-Uni", 54.0, -2.0],
+];
+
+/** Couleur d'un pays de la page de garde : teinte stable dérivée du nom —
+ *  le monde est COLORÉ mais chaque pays garde toujours sa couleur. */
+function couleurPaysMonde(nom) {
+  let h = 0;
+  for (const c of nom) h = (h * 31 + c.charCodeAt(0)) % 360;
+  return { fill: `hsl(${h} 38% 34%)`, line: `hsl(${h} 30% 46%)` };
+}
+
+/** Nom français d'un pays depuis son code ISO2 (repli : nom Natural Earth). */
+const nomsFr = ("DisplayNames" in Intl) ? new Intl.DisplayNames(["fr"], { type: "region" }) : null;
+function nomPaysFr(iso, nomNe) {
+  try {
+    const n = iso && nomsFr ? nomsFr.of(iso) : null;
+    return n && n !== iso ? n : nomNe;
+  } catch {
+    return nomNe;
+  }
+}
+
 /**
- * Page de garde : liste les pays et résout avec l'id choisi. `annulable`
- * (bouton Réglages) : cliquer le fond referme sans choisir (resolve null).
+ * Page de garde : CARTE DU MONDE cliquable — les pays disponibles sont
+ * surlignés (polygones + épingle drapeau), les boutons sous la carte doublent
+ * le clic (accessibilité, petits écrans). Résout avec l'id du pays choisi.
+ * `annulable` (bouton Réglages) : cliquer le fond referme (resolve null).
  */
 function choisirPays(annulable = false) {
   return new Promise((resolve) => {
     const overlay = document.getElementById("pays-overlay");
     const liste = overlay.querySelector(".pays-liste");
     liste.textContent = "";
+    let mini = null; // la carte Leaflet de la page de garde
+
+    const terminer = (id) => {
+      mini?.remove();
+      mini = null;
+      overlay.hidden = true;
+      resolve(id);
+    };
+
     for (const p of Object.values(PAYS)) {
       const btn = document.createElement("button");
       btn.type = "button";
@@ -1116,22 +1200,103 @@ function choisirPays(annulable = false) {
         `<span class="pays-drapeau" aria-hidden="true">${esc(p.drapeau)}</span>` +
         `<span class="pays-infos"><span class="pays-nom">${esc(p.label)}</span>` +
         `<span class="pays-desc">${esc(p.sousTitre)}</span></span>`;
-      btn.addEventListener("click", () => {
-        overlay.hidden = true;
-        resolve(p.id);
-      });
+      btn.addEventListener("click", () => terminer(p.id));
       liste.appendChild(btn);
     }
     if (annulable) {
       overlay.addEventListener("click", function fermer(e) {
         if (e.target === overlay) {
           overlay.removeEventListener("click", fermer);
-          overlay.hidden = true;
-          resolve(null);
+          terminer(null);
         }
       });
     }
     overlay.hidden = false;
+
+    // Boutons communauté de la page de garde (onclick assigné : choisirPays
+    // peut être rappelée, pas d'écouteurs empilés). Au tout premier boot le
+    // choix du pays reste prioritaire ; depuis les Réglages (annulable), on
+    // referme la page de garde et on ouvre la communauté.
+    for (const [bid, volet] of [["pays-btn-partager", "partager"], ["pays-btn-importer", "explorer"]]) {
+      document.getElementById(bid).onclick = () => {
+        if (!annulable) {
+          toast("Choisissez d'abord votre pays 🙂");
+          return;
+        }
+        terminer(null);
+        ouvrirCommunaute(volet);
+      };
+    }
+
+    // La carte du monde (après l'affichage : Leaflet doit mesurer le conteneur)
+    const parIso = {};
+    for (const p of Object.values(PAYS)) parIso[p.id.toUpperCase()] = p;
+    chargerMonde().then((monde) => {
+      if (!monde || overlay.hidden) return; // déjà choisi, ou fichier indisponible
+      // Une VRAIE carte : tuiles OSM, zoom et déplacement LIBRES. Les pays
+      // disponibles restent surlignés par-dessus ; hors connexion, les tuiles
+      // manquent mais surlignages, points et boutons suffisent.
+      mini = L.map("pays-monde", {
+        zoomControl: true, attributionControl: true,
+        minZoom: 1, maxZoom: 12, zoomSnap: 0.5,
+        worldCopyJump: true,
+      });
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "© OpenStreetMap",
+      }).addTo(mini);
+      const dispo = monde.features.filter((f) => parIso[f.properties.iso]);
+      const autres = monde.features.filter((f) => !parIso[f.properties.iso]);
+      // Les autres pays : invisibles sur la carte (les tuiles font le décor),
+      // mais le SURVOL donne toujours le nom du pays.
+      L.geoJSON({ type: "FeatureCollection", features: autres }, {
+        style: { stroke: false, fillColor: "#000", fillOpacity: 0.001 },
+        onEachFeature: (f, couche) => {
+          couche.bindTooltip(esc(nomPaysFr(f.properties.iso, f.properties.nom)), {
+            sticky: true, direction: "top", className: "pays-tooltip",
+          });
+        },
+      }).addTo(mini);
+      // Pays DISPONIBLES : halo vert SEMI-TRANSPARENT (la vraie carte reste
+      // lisible dessous), nom au survol, clic = choisir
+      L.geoJSON({ type: "FeatureCollection", features: dispo }, {
+        style: { color: "#0a9396", weight: 2.5, fillColor: "#18a883", fillOpacity: 0.3 },
+        onEachFeature: (f, couche) => {
+          const p = parIso[f.properties.iso];
+          couche.bindTooltip(`${esc(p.drapeau)} ${esc(p.label)} — disponible !`, {
+            sticky: true, direction: "top", className: "pays-tooltip pays-tooltip-dispo",
+          });
+          couche.on("click", () => terminer(p.id));
+          couche.on("mouseover", () => couche.setStyle({ fillOpacity: 0.5 }));
+          couche.on("mouseout", () => couche.setStyle({ fillOpacity: 0.3 }));
+        },
+      }).addTo(mini);
+      // POINTS des pays disponibles : gros, pulsants, nom au survol
+      for (const p of Object.values(PAYS)) {
+        const icone = L.divIcon({ className: "", iconSize: null, html: `<span class="pays-point"></span>` });
+        L.marker(p.vue.center, { icon: icone, keyboard: false })
+          .addTo(mini)
+          .bindTooltip(`${esc(p.drapeau)} ${esc(p.label)} — disponible !`, {
+            direction: "top", offset: [0, -10], className: "pays-tooltip pays-tooltip-dispo",
+          })
+          .on("click", () => terminer(p.id));
+      }
+      // Points « BIENTÔT » : petits, ambrés — survol = nom, clic = clin d'œil
+      for (const [nom, lat, lon] of PAYS_BIENTOT) {
+        const icone = L.divIcon({ className: "", iconSize: null, html: `<span class="pays-point-bientot"></span>` });
+        L.marker([lat, lon], { icon: icone, keyboard: false })
+          .addTo(mini)
+          .bindTooltip(`${esc(nom)} — bientôt`, {
+            direction: "top", offset: [0, -8], className: "pays-tooltip",
+          })
+          .on("click", () => toast(`${nom} arrive un jour 🌱 — la France et la Nouvelle-Zélande vous attendent déjà !`));
+      }
+      // Monde sans l'Antarctique (vide et encombrant au zoom monde)
+      setTimeout(() => {
+        if (!mini) return;
+        mini.invalidateSize();
+        mini.fitBounds([[-55, -180], [74, 180]]);
+      }, 60);
+    });
   });
 }
 
@@ -1211,6 +1376,10 @@ async function demarrer() {
       coche ? state.activeThemes.add(id) : state.activeThemes.delete(id);
       if (coche) {
         state.statusFilters.clear(); // exclusif avec le mode suivi
+        // Chaque OUVERTURE de catégorie repart avec des filtres VIERGES :
+        // l'utilisateur choisit lui-même — aucune sélection d'une session
+        // passée ne reste accrochée (demande utilisateur v64).
+        delete state.filterSelections[id];
         if (coucheLourde(id) && !(await coucheLourde(id).charger())) {
           state.activeThemes.delete(id);
         }
@@ -1382,7 +1551,7 @@ async function demarrer() {
   });
   initInstallation();
   initReglages();
-  // « 🌍 Changer de pays » (Réglages) : rouvre la page de garde ; un choix
+  // « 🗺️ Changer de pays » (Réglages) : rouvre la page de garde ; un choix
   // différent recharge la page (ré-init complète : données, vue, catégories).
   document.getElementById("btn-pays").addEventListener("click", async () => {
     document.getElementById("settings-dialog").close();
@@ -1391,6 +1560,34 @@ async function demarrer() {
       definirPays(choix);
       location.reload();
     }
+  });
+
+  // Catégories COMMUNAUTAIRES : partager les siennes / importer celles des
+  // autres (js/communaute.js). L'import écrit les points comme des points
+  // utilisateur (mêmes règles que l'import de fichier) et coche la catégorie.
+  initCommunaute({
+    getMesCategories: async () => {
+      const miens = await storage.getUserPoints().catch(() => []);
+      return (await storage.getCustomThemes()).map((t) => ({
+        ...t,
+        nbPoints: miens.filter((f) => f.properties.theme === t.id).length,
+      }));
+    },
+    getPointsDeTheme: async (id) =>
+      (await storage.getUserPoints().catch(() => [])).filter((f) => f.properties.theme === id),
+    importerCategorie: async (theme, points) => {
+      const customs = await storage.getCustomThemes();
+      if (!customs.some((t) => t.id === theme.id)) customs.push(theme);
+      await storage.saveCustomThemes(customs);
+      registerCustomThemes(customs);
+      await storage.addUserPoints(points); // ids stables comm-… : réimport = mise à jour
+      await apresImportPoints(points);
+    },
+    estImportee: (themeId) => isCustomTheme(themeId),
+  });
+  document.getElementById("btn-communaute").addEventListener("click", () => {
+    document.getElementById("settings-dialog").close();
+    ouvrirCommunaute("explorer");
   });
   initModeNuit(prefs);
   initProtectionDonnees(prefs, premiereVisite);
@@ -1439,6 +1636,9 @@ async function demarrer() {
     }
     if (state.activeThemes.has("grotte")) {
       chargerGrottes().then((ok) => ok && rafraichir());
+    }
+    if (state.activeThemes.has("culture")) {
+      chargerCulture().then((ok) => ok && rafraichir());
     }
   } else {
     // Pays sans couches lourdes : le bouton 🏃🚻 (toilettes autour de moi)

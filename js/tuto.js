@@ -15,7 +15,7 @@ let ouvrirFiltresHook = null; // fourni par app.js : affiche un vrai panneau de 
 
 const ETAPES = [
   {
-    titre: "Bienvenue sur Carte Outdoor ! 🏔️",
+    titre: "Bienvenue sur SpotMap ! 🏔️",
     texte:
       "Une carte de points d'intérêt outdoor : randonnées, via ferrata, escalade, refuges, cascades, lacs, châteaux, villages, GR… " +
       "Ce petit tour vous montre l'essentiel (vous pouvez le revoir à tout moment avec le bouton 🎓).",

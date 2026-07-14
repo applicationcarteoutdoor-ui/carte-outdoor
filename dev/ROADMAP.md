@@ -34,6 +34,20 @@ Tenue par l'agent **chef-de-projet** (`.claude/agents/chef-de-projet.md`). Derni
 - **Reste sur via-ferrata** : recaler à la main les 47 points ambigus (reverse-geocode + choix humain) ; ajouter Le Regardoir/Vouglans et Roc del Gorb (rapprochement de nom incertain).
 - ⚠️ Plafond de dépense mensuel — découper, intégrer au fil de l'eau.
 
+## v62 (2026-07-14) — SpotMap + page de garde carte du monde
+
+- [x] **Renommage : Carte Outdoor → SpotMap** (choix utilisateur, informé de la collision avec l'appli « Spotmap » existante du Play Store — suggestion : fiche store « SpotMap : spots outdoor & rando » pour se différencier). Dépôt/URL/localStorage inchangés.
+- [x] **Page de garde refaite : carte du monde cliquable** (data/monde.geojson, Natural Earth domaine public, Leaflet sans tuiles = hors-ligne ; pays disponibles en teal + épingles drapeaux pulsantes, boutons en doublon pour l'accessibilité). Sélection → centrage auto sur le pays + catégories du pays.
+- [x] **Partage de catégories communautaires — LIVRÉ côté app (v63)** : `js/communaute.js` (dialogue Importer/Partager, page de garde + Réglages), colis ≤ 500 pts/1 Mo SANS photos, import re-identifié `comm-…` (réimport idempotent), publication après **validation manuelle**. Serveur : `supabase/communaute-schema.sql` (table + RLS + modérateurs + compteur) — **action utilisateur : exécuter le SQL + s'ajouter dans `moderateurs`** (guide docs/COMMUNAUTE.md). Tant que le SQL n'est pas passé, l'app affiche « bientôt » proprement.
+- [x] **Page de garde v3 (v63)** : monde EN COULEURS (teinte stable par pays), nom au survol (Intl.DisplayNames fr), pays disponibles = points verts pulsants, **16 pays « bientôt »** en points ambrés (Pérou, Pays-Bas, Népal, Singapour, Laos, Suisse, Japon…), Antarctique retiré. **Nouveau logo** : spot + « ? » (icon.svg + PNG via tools/generer_icones.py).
+
+## v64 (2026-07-14) — vraie carte d'accueil, filtres vierges, randos NZ, catégorie Culture
+
+- [x] **Page de garde = vraie carte** (tuiles OSM, zoom/déplacement libres, océan clair) — pays dispo surlignés + points verts, « bientôt » ambrés, nom au survol conservés.
+- [x] **Filtres VIERGES à chaque activation de catégorie** (aucune sélection d'une session passée ne reste).
+- [x] **Randonnées NZ : 26 itinéraires emblématiques** (Roys Peak, Mueller Hut, Rob Roy, Avalanche Peak, Hollyford…) — liste éditoriale, FlocID DOC exacts, tracés réels (`data/nz/randos.geojson`), distance mesurée + durée estimée, GPX/épinglage comme la France (`pays.fichierRandos`).
+- [x] **Catégorie Culture 🏛️** (musées, galeries, sites archéo, monuments — OSM ODbL : nom, GPS, site web, horaires, description, photos wikimedia rares) : **France 14 919 = couche lourde** `data/culture.geojson` (dialogue + « à moins de 1 km », hors pré-cache) ; **NZ 1 331 = catégorie normale** (dont 704 pā/sites archéo). Filtres Type + Fiche. Les châteaux restent leur propre catégorie.
+
 ## Étape 2 — 📋 Publier sur le Play Store
 
 Guide existant : `docs/PLAYSTORE.md` (TWA/PWABuilder). Reste à faire :
@@ -61,7 +75,8 @@ Guide existant : `docs/PLAYSTORE.md` (TWA/PWABuilder). Reste à faire :
 - [x] Architecture multi-pays : `js/config/pays.js` (registre : fichier de points, surcouche GR/Great Walks, catégories dispo, vue, wikiLang), page de garde `#pays-overlay` + « 🌍 Changer de pays » (Réglages), vue mémorisée PAR pays, **carnet/statuts COMMUNS** (ids préfixés `nz-`, résolution croisée des noms à l'ouverture du carnet — vérifié).
 - [x] **Carte NZ : 3 930 points** (958 huttes DOC avec couchettes/catégorie/lien officiel · 1 184 campings DOC+OSM · 1 190 lacs Gazetteer · 421 cascades · **127 grottes · 22 villages · 18 cathédrales · 7 châteaux/forts · 3 via ferrata** — 2e vague v61) + **11 grands itinéraires cliquables** (9 Great Walks + Hump Ridge + Tongariro Alpine Crossing, distance + GPX + Wikipédia). Sources : DOC CC-BY 4.0, NZ Gazetteer/LINZ CC-BY 4.0, OSM ODbL, Wikipédia EN (photos Commons) — attribution aux Réglages. Nouvelle catégorie **`camping`** ⛺ (masquée en France en attendant ses données). **Couches lourdes conditionnées au pays** (`coucheLourde(id)`) : `grotte` = dialogue+fichier séparé en France, catégorie normale en NZ.
 - [x] Honnêteté : escalade NZ abandonnée (pas de source libre), Whanganui Journey écarté (rivière), pas de label officiel « joli village » en NZ (sélection éditoriale vérifiée Wikipédia), interface reste en français.
-- [ ] Reste (plus tard) : couches lourdes par pays (toilettes NZ ~4 500 dans OSM), camping France, i18n EN si demandé, pays suivants (une entrée dans pays.js + data/<pays>/).
+- [ ] Reste (plus tard) : couches lourdes par pays (toilettes NZ ~4 500 dans OSM), camping France, i18n EN si demandé.
+- **Prochain pays — décision (2026-07-14, session autonome v65) : PAS de nouveau pays avant le Play Store.** Raisons : la qualité de l'existant prime avant la publication (étape 2), et un pays bien fait = une session dédiée. **Candidat n°1 retenu : la Suisse** — public francophone limitrophe, données exemplaires (OSM très riche, open data swisstopo, cabanes du CAS déjà en partie dans refuges.info, Via Alpina comme surcouche d'itinéraires). L'architecture multi-pays est prête : une entrée `PAYS` + `data/ch/`.
 
 ## Backlog (petites améliorations, à grouper dans une future vague)
 

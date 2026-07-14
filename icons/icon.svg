@@ -1,9 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Icône de l'application : montagnes stylisées sur fond bleu nuit -->
-  <rect width="512" height="512" rx="96" fill="#1d3557"/>
-  <circle cx="380" cy="140" r="52" fill="#f4d35e"/>
-  <path d="M60 400 L200 170 L280 300 L330 230 L452 400 Z" fill="#e9ecef"/>
-  <path d="M60 400 L200 170 L245 245 L170 400 Z" fill="#adb5bd"/>
-  <path d="M186 193 L200 170 L214 193 L200 210 Z" fill="#ffffff"/>
-  <circle cx="256" cy="430" r="26" fill="#e63946" stroke="#ffffff" stroke-width="10"/>
+  <!-- SpotMap : un « spot » (épingle de carte) avec un ? au centre — le spot
+       qu'il reste à découvrir. Dégradé vert-teal de la marque. -->
+  <defs>
+    <linearGradient id="fond" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2d6a4f"/>
+      <stop offset="1" stop-color="#0a9396"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#fond)"/>
+  <!-- ombre douce du spot au sol -->
+  <ellipse cx="256" cy="426" rx="74" ry="16" fill="#083b31" opacity="0.45"/>
+  <!-- l'épingle : tête ronde + pointe -->
+  <path d="M256 78c-73 0-124 53-124 121 0 34 15 62 38 91 30 38 66 84 79 122 2 6 12 6 14 0 13-38 49-84 79-122 23-29 38-57 38-91 0-68-51-121-124-121z"
+        fill="#ffffff"/>
+  <!-- le ? au cœur du spot -->
+  <text x="256" y="256" font-family="Arial, Helvetica, sans-serif" font-size="172"
+        font-weight="bold" fill="#0a9396" text-anchor="middle">?</text>
 </svg>

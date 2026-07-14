@@ -178,6 +178,26 @@ async function assurerJeton() {
   return rafraichissement;
 }
 
+/**
+ * Session pour les autres modules (catégories communautaires) : jeton frais +
+ * identifiant du compte, ou null si non connecté. Exporté — la connexion Google
+ * et le rafraîchissement sérialisé restent gérés ICI, une seule fois.
+ */
+export async function sessionCommunaute() {
+  if (!session) return null;
+  try {
+    await assurerJeton();
+  } catch {
+    return null; // session expirée : l'appelant proposera la connexion
+  }
+  return { token: session.access_token, userId: session.user?.id || null };
+}
+
+/** Ouvre la connexion Google (popup, repli pleine page) — pour la communauté. */
+export function demanderConnexion() {
+  connecterFenetre();
+}
+
 /** Récupère l'e-mail/nom du compte (pour l'affichage) — non bloquant. */
 async function chargerProfil() {
   try {

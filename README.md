@@ -1,4 +1,4 @@
-# 🏔️ Carte Outdoor
+# 🏔️ SpotMap (ex-Carte Outdoor)
 
 **➡️ Application en ligne : https://applicationcarteoutdoor-ui.github.io/carte-outdoor/**
 (sur téléphone : ouvrez l'URL puis « Ajouter à l'écran d'accueil » pour l'installer)

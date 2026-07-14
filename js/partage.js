@@ -22,8 +22,8 @@ export function initPartage() {
     btnNatif.addEventListener("click", async () => {
       try {
         await navigator.share({
-          title: "Carte Outdoor",
-          text: "Découvre Carte Outdoor : via ferrata, refuges, cascades, lacs, randonnées…",
+          title: "SpotMap",
+          text: "Découvre SpotMap : via ferrata, refuges, cascades, lacs, randonnées…",
           url: URL_SITE,
         });
       } catch {

@@ -436,6 +436,46 @@ export const THEMES = [
     filters: [],
   },
   {
+    // Culture — musées, galeries d'art, sites archéologiques, monuments et
+    // patrimoine (France ET Nouvelle-Zélande). Source OSM (ODbL, faits :
+    // nom, GPS, site web, horaires, description) — tools/recolter_culture_osm.py
+    // + construire_culture.py. Les valeurs du filtre « Type » doivent
+    // correspondre EXACTEMENT aux details.type posés par le pipeline.
+    id: "culture",
+    label: "Culture",
+    color: "#780000",
+    icon: "🏛️",
+    fields: [
+      { key: "type", label: "Type" },
+      { key: "horaires", label: "Horaires" },
+      { key: "commune", label: "Commune" },
+    ],
+    filters: [
+      {
+        key: "type",
+        label: "Type",
+        type: "value",
+        field: "type",
+        options: [
+          { value: "Musée", label: "Musée", icon: "🖼️" },
+          { value: "Galerie d'art", label: "Galerie d'art", icon: "🎨" },
+          { value: "Site archéologique", label: "Site archéologique", icon: "🏺" },
+          { value: "Monument", label: "Monument", icon: "🗿" },
+        ],
+      },
+      {
+        key: "fiche",
+        label: "Fiche",
+        type: "value",
+        field: "fiche",
+        options: [
+          { value: "Référencé", label: "Site web connu", icon: "✅" },
+          { value: "À vérifier", label: "À vérifier", icon: "🔍" },
+        ],
+      },
+    ],
+  },
+  {
     // Une seule catégorie « Village » : les Cités de caractère du fichier
     // source (211) ET les Plus Beaux Villages de France (récolte enrichisseur)
     // y cohabitent, distingués par le filtre « Label » (details.label, type

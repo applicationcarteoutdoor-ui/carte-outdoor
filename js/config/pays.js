@@ -21,6 +21,8 @@ export const PAYS = {
     // Surcouche de grands itinéraires cliquables (fiche + GPX) ;
     // `fiche` = sous-titre affiché dans la fiche d'un itinéraire cliqué
     gr: { fichier: "data/gr.geojson", label: "Sentiers GR", compte: 190, fiche: "Sentier de grande randonnée" },
+    // Tracés des randonnées (bouton GPX + dessin au clic)
+    fichierRandos: "data/randos.geojson",
     // null = toutes les catégories de themes.js
     categories: null,
     // Catégories de base sans données pour ce pays (masquées en attendant)
@@ -41,8 +43,9 @@ export const PAYS = {
     // `grotte` ici = catégorie NORMALE (~130 points dans points.geojson),
     // pas la couche lourde française (couchesLourdes: false la débranche).
     gr: { fichier: "data/nz/great-walks.geojson", label: "Great Walks", compte: 11, fiche: "Great Walk" },
-    categories: ["via-ferrata", "refuge", "camping", "grotte", "lac", "cascade",
-                 "chateau", "cathedrale", "cite-caractere"],
+    fichierRandos: "data/nz/randos.geojson",
+    categories: ["via-ferrata", "randonnee", "refuge", "camping", "grotte", "lac", "cascade",
+                 "chateau", "cathedrale", "cite-caractere", "culture"],
     couchesLourdes: false,
     vue: { center: [-41.3, 172.6], zoom: 6 },
     wikiLang: "en",

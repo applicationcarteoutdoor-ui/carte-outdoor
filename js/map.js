@@ -377,7 +377,8 @@ async function chargerTraces(fichier) {
  * data/randos.geojson, propriété `rando` = id du point). Sert aussi à l'export GPX.
  */
 export async function getTraceRando(pointId) {
-  return (await chargerTraces("data/randos.geojson")).filter((f) => f.properties?.rando === pointId);
+  const fichier = paysActuel().fichierRandos || "data/randos.geojson";
+  return (await chargerTraces(fichier)).filter((f) => f.properties?.rando === pointId);
 }
 
 /**

@@ -980,7 +980,7 @@ export async function exporterCarnetPDF() {
   const date = new Date().toLocaleDateString("fr-FR", MOIS_JOURS);
   zone.innerHTML =
     `<div class="print-garde"><h1>Carnet de sorties</h1>
-      <p>Carte Outdoor — ${entrees.length} sortie(s), exporté le ${esc(date)}</p></div>` +
+      <p>SpotMap — ${entrees.length} sortie(s), exporté le ${esc(date)}</p></div>` +
     entrees.map((g) => htmlEntree(g, true)).join("");
 
   // La zone est vidée après impression (libère les photos en mémoire)

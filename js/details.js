@@ -93,7 +93,7 @@ function initSignalement() {
       (texte ? `Commentaire : ${texte}\n` : "");
     dlg.close();
     location.href =
-      `mailto:${EMAIL_SIGNALEMENT}?subject=${encodeURIComponent(`[Carte Outdoor] Signalement : ${p.name}`)}` +
+      `mailto:${EMAIL_SIGNALEMENT}?subject=${encodeURIComponent(`[SpotMap] Signalement : ${p.name}`)}` +
       `&body=${encodeURIComponent(corps)}`;
   });
 }

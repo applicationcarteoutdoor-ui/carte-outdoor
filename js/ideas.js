@@ -52,7 +52,7 @@ export function initIdeas() {
       ? idees.map((i) => `- [${i.date.slice(0, 10)}] ${i.text}`).join("\n")
       : "(aucune idée enregistrée)";
     location.href =
-      `mailto:${EMAIL}?subject=${encodeURIComponent("Idées Carte Outdoor")}` +
+      `mailto:${EMAIL}?subject=${encodeURIComponent("Idées SpotMap")}` +
       `&body=${encodeURIComponent(corps)}`;
   });
 }

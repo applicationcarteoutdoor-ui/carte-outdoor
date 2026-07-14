@@ -1,7 +1,7 @@
 {
-  "name": "Carte Outdoor — points d'intérêt rando",
-  "short_name": "Carte Outdoor",
-  "description": "Carte interactive de points d'intérêt outdoor : via ferrata, escalade, refuges, cascades, sentiers…",
+  "name": "SpotMap — carte des spots outdoor",
+  "short_name": "SpotMap",
+  "description": "Carte interactive de spots outdoor : via ferrata, escalade, canyons, refuges, cascades, randonnées… France et Nouvelle-Zélande.",
   "lang": "fr",
   "start_url": "./",
   "scope": "./",
