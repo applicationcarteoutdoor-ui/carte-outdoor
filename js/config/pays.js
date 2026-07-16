@@ -27,8 +27,15 @@ export const PAYS = {
     categories: null,
     // Catégories de base sans données pour ce pays (masquées en attendant)
     categoriesExclues: ["camping"],
-    // Couches volumineuses à la demande (toilettes/eau/grottes) : France seulement
-    couchesLourdes: true,
+    // Couches volumineuses à la demande (id de catégorie → fichier de points,
+    // NON pré-caché). v67 : toilettes + eau existent pour TOUS les pays ;
+    // grottes (Grottocenter) et musées restent des couches France.
+    couchesLourdes: {
+      toilettes: "data/toilettes.geojson",
+      eau: "data/eau.geojson",
+      grotte: "data/grottes.geojson",
+      culture: "data/culture.geojson",
+    },
     vue: { center: [46.5, 2.6], zoom: 6 },
     wikiLang: "fr",
   },
@@ -39,9 +46,10 @@ export const PAYS = {
     sousTitre: "Cabanes et refuges, lacs, cascades, via ferrata, musées et plus beaux villages",
     fichierPoints: "data/ch/points.geojson",
     gr: null, // pas encore de surcouche de grands itinéraires (Via Alpina à venir)
-    categories: ["via-ferrata", "refuge", "camping", "grotte", "lac", "cascade",
-                 "chateau", "cite-caractere", "culture"],
-    couchesLourdes: false,
+    fichierRandos: "data/ch/randos.geojson",
+    categories: ["via-ferrata", "randonnee", "refuge", "camping", "grotte", "lac", "cascade",
+                 "chateau", "cite-caractere", "culture", "toilettes", "eau"],
+    couchesLourdes: { toilettes: "data/ch/toilettes.geojson", eau: "data/ch/eau.geojson" },
     vue: { center: [46.8, 8.2], zoom: 8 },
     wikiLang: "fr",
   },
@@ -52,9 +60,10 @@ export const PAYS = {
     sousTitre: "Refuges des Dolomites, via ferrata, lacs, châteaux, musées et borghi più belli",
     fichierPoints: "data/it/points.geojson",
     gr: null,
-    categories: ["via-ferrata", "refuge", "camping", "grotte", "lac", "cascade",
-                 "chateau", "cite-caractere", "culture"],
-    couchesLourdes: false,
+    fichierRandos: "data/it/randos.geojson",
+    categories: ["via-ferrata", "randonnee", "refuge", "camping", "grotte", "lac", "cascade",
+                 "chateau", "cite-caractere", "culture", "toilettes", "eau"],
+    couchesLourdes: { toilettes: "data/it/toilettes.geojson", eau: "data/it/eau.geojson" },
     vue: { center: [42.6, 12.5], zoom: 6 },
     wikiLang: "it",
   },
@@ -65,9 +74,10 @@ export const PAYS = {
     sousTitre: "Refuges des Pyrénées et Picos, via ferrata, lacs, châteaux et pueblos bonitos",
     fichierPoints: "data/es/points.geojson",
     gr: null,
-    categories: ["via-ferrata", "refuge", "camping", "grotte", "lac", "cascade",
-                 "chateau", "cite-caractere", "culture"],
-    couchesLourdes: false,
+    fichierRandos: "data/es/randos.geojson",
+    categories: ["via-ferrata", "randonnee", "refuge", "camping", "grotte", "lac", "cascade",
+                 "chateau", "cite-caractere", "culture", "toilettes", "eau"],
+    couchesLourdes: { toilettes: "data/es/toilettes.geojson", eau: "data/es/eau.geojson" },
     vue: { center: [40.2, -3.6], zoom: 6 },
     wikiLang: "es",
   },
@@ -80,12 +90,12 @@ export const PAYS = {
     // Escalade : pas de source libre en NZ (106 objets OSM, topos ClimbNZ
     // non ouverts) — catégorie volontairement absente, cf. rapport de revue.
     // `grotte` ici = catégorie NORMALE (~130 points dans points.geojson),
-    // pas la couche lourde française (couchesLourdes: false la débranche).
+    // pas la couche lourde française (absente de couchesLourdes ci-dessous).
     gr: { fichier: "data/nz/great-walks.geojson", label: "Great Walks", compte: 11, fiche: "Great Walk" },
     fichierRandos: "data/nz/randos.geojson",
     categories: ["via-ferrata", "randonnee", "refuge", "camping", "grotte", "lac", "cascade",
-                 "chateau", "cathedrale", "cite-caractere", "culture"],
-    couchesLourdes: false,
+                 "chateau", "cathedrale", "cite-caractere", "culture", "toilettes", "eau"],
+    couchesLourdes: { toilettes: "data/nz/toilettes.geojson", eau: "data/nz/eau.geojson" },
     vue: { center: [-41.3, 172.6], zoom: 6 },
     wikiLang: "en",
   },

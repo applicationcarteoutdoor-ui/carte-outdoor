@@ -4,6 +4,15 @@ Construit data/<iso>/points.geojson pour la Suisse, l'Italie et l'Espagne à
 partir de tools/pays-<iso>-osm.json (OSM, ODbL) et tools/pays-villages.json
 (villages labellisés via Wikipédia/Wikidata).
 
+Enrichissements appliqués AU BUILD (v67) — les caches sont rejoués à chaque
+reconstruction, les ids restent stables :
+  - tools/pays-wiki-<iso>.json   (enrichir_pays_wikipedia.py) : photo 960 px,
+    lien d'article, description — clé « nom|lat4 » ;
+  - tools/vf-liens-<iso>.json    (apparier_vf_sites.py) : lien vers LA fiche
+    du site spécialisé du pays (ferrate365.it / deandar.com / myferrata.ch) ;
+  - tools/randos-pays-resolues.json (recolter_randos_pays.py) : randonnées
+    iconiques — points `<iso>-rand-####` + tracés data/<iso>/randos.geojson.
+
 Ids STABLES `<iso>-<type>-####` posés par ordre alphabétique à la première
 création (statuts/carnet pointent dessus — jamais renumérotés).
 
@@ -89,11 +98,23 @@ def dedoublonner_vf(objets):
     return gardes
 
 
+def _charger_json(chemin, defaut):
+    return json.loads(chemin.read_text(encoding="utf-8")) if chemin.exists() else defaut
+
+
+VF_LABELS = {"ch": "🧗 Fiche myferrata.ch", "it": "🧗 Fiche Ferrate365",
+             "es": "🧗 Fiche deandar.com"}
+
+
 def construire(iso):
     cfg = PAYS[iso]
     osm = json.loads((RACINE / "tools" / f"pays-{iso}-osm.json").read_text(encoding="utf-8"))
     villages = json.loads((RACINE / "tools" / "pays-villages.json").read_text(encoding="utf-8")).get(iso, [])
+    wiki = _charger_json(RACINE / "tools" / f"pays-wiki-{iso}.json", {})
+    vf_liens = _charger_json(RACINE / "tools" / f"vf-liens-{iso}.json", {})
+    randos = _charger_json(RACINE / "tools" / "randos-pays-resolues.json", {}).get(iso, [])
     feats = []
+    traces = []
     stats = {}
     for cat, (theme, abr) in THEMES.items():
         objets = osm.get(cat, [])
@@ -102,11 +123,28 @@ def construire(iso):
         objets = sorted(objets, key=lambda o: (o["nom"], o["lat"]))
         for n, o in enumerate(objets, start=1):
             t = o.get("tags", {})
+            cle = f"{o['nom']}|{round(o['lat'], 4)}"
+            w = wiki.get(cle) or {}
             links = []
+            # Via ferrata : LA fiche du site spécialisé du pays en premier
+            vfl = vf_liens.get(cle) if cat == "via-ferrata" else None
+            if vfl:
+                links.append({"label": VF_LABELS[iso], "url": vfl["url"]})
             if (t.get("website") or "").startswith("http"):
                 links.append({"label": "🌐 Site officiel", "url": t["website"][:300]})
+            if w.get("wiki"):
+                links.append({"label": "🔗 Wikipédia", "url": w["wiki"]})
             links.append({"label": "🔎 Infos", "url": "https://www.google.com/search?q=" +
                           quote(f"{o['nom']} {cfg['recherche']}")})
+            details = details_pour(cat, t)
+            if vfl and vfl.get("k") and not details.get("cotation"):
+                details["cotation"] = vfl["k"]        # cotation K de deandar (fait)
+            if (vfl or w.get("wiki")) and details.get("fiche") == "À vérifier":
+                details["fiche"] = "Référencé"
+            photos = [t["image"]] if t.get("image") else []
+            if not photos and w.get("photo"):
+                photos = [w["photo"]]
+            description = (t.get("description") or "")[:300] or w.get("description", "")
             feats.append({
                 "type": "Feature",
                 "geometry": {"type": "Point", "coordinates": [o["lon"], o["lat"]]},
@@ -114,13 +152,87 @@ def construire(iso):
                     "id": f"{iso}-{abr}-{n:04d}",
                     "name": o["nom"],
                     "theme": theme,
-                    "description": (t.get("description") or "")[:300],
+                    "description": description,
                     "links": links,
-                    "photos": [t["image"]] if t.get("image") else [],
-                    "details": details_pour(cat, t),
+                    "photos": photos,
+                    "details": details,
                 },
             })
         stats[theme] = len(objets)
+
+    # Randonnées iconiques (liste éditoriale tracée sur le réseau OSM par
+    # recolter_randos_pays.py) : point + tracé LineString (rando = id du point).
+    # Ids STABLES via un registre nom -> id (un ajout futur prolonge la
+    # séquence, jamais de renumérotation même si l'ordre alphabétique change).
+    reg_path = RACINE / "tools" / "randos-pays-ids.json"
+    registre = _charger_json(reg_path, {})
+    reg_pays = registre.setdefault(iso, {})
+    maxi = max((int(v.rsplit("-", 1)[1]) for v in reg_pays.values()), default=0)
+    for r in sorted(randos, key=lambda x: x["rando"]["nom"]):
+        e = r["rando"]
+        if r["distance_aller_km"] < 0.9:
+            # tracé dégénéré (ex. boucle du lac de Braies routée A->B sur
+            # 300 m) : le routage départ->objectif ne sait pas faire — honnête.
+            # (Les vraies balades courtes depuis une remontée — Stellisee
+            # 1,0 km — restent, elles.)
+            continue
+        if e["nom"] not in reg_pays:
+            maxi += 1
+            reg_pays[e["nom"]] = f"{iso}-rand-{maxi:04d}"
+        rid = reg_pays[e["nom"]]
+        boucle = r.get("boucle", False)
+        details = {
+            "massif": e.get("region", ""),
+            "depart": r["depart"]["nom"],
+            "distance": f"{r['distance_aller_km']} km ({'boucle' if boucle else 'aller'})",
+            "distance_n": r["distance_aller_km"],
+            "fiche": "Référencé",
+        }
+        if e.get("dureeIndicativeH"):
+            h = e["dureeIndicativeH"]
+            # cohérence durée éditoriale / tracé : vitesse implicite plausible
+            # (boucle = distance totale ; sinon aller-retour), sinon durée tue
+            vitesse = (1 if boucle else 2) * r["distance_aller_km"] / h
+            if 1.2 <= vitesse <= 6.5:
+                details["duree"] = f"≈ {h:g} h{'' if boucle else ' aller-retour'}"
+                details["duree_n"] = h
+        if r.get("denivele_m") is not None:
+            details["denivele"] = f"+{r['denivele_m']} m (estimation)"
+            details["denivele_n"] = r["denivele_m"]
+        liens_rando = [
+            {"label": "🥾 Komoot", "url": "https://www.google.com/search?q=" +
+             quote(f"{e['nom']} {cfg['recherche']} site:komoot.com")},
+            {"label": "🗺️ AllTrails", "url": "https://www.google.com/search?q=" +
+             quote(f"{e['nom']} {cfg['recherche']} site:alltrails.com")},
+            {"label": "⛰️ Outdooractive", "url": "https://www.google.com/search?q=" +
+             quote(f"{e['nom']} {cfg['recherche']} site:outdooractive.com")},
+        ]
+        feats.append({
+            "type": "Feature",
+            "geometry": {"type": "Point",
+                         "coordinates": [r["objectif"]["lon"], r["objectif"]["lat"]]},
+            "properties": {
+                "id": rid,
+                "name": e["nom"],
+                "theme": "randonnee",
+                "description": e.get("description", ""),
+                "links": liens_rando,
+                "photos": [],
+                "details": details,
+            },
+        })
+        # relations OSM = parfois plusieurs tronçons ; le routage = un seul
+        for chaine in (r.get("traces") or [r["trace"]]):
+            traces.append({
+                "type": "Feature",
+                "geometry": {"type": "LineString",
+                             "coordinates": [[lo, la] for la, lo in chaine]},
+                "properties": {"rando": rid, "name": e["nom"]},
+            })
+    stats["randonnee"] = len(randos)
+    if randos:
+        reg_path.write_text(json.dumps(registre, ensure_ascii=False, indent=1),
+                            encoding="utf-8")
 
     # Villages labellisés (label officiel du pays, photo + extrait Wikipédia)
     for n, v in enumerate(sorted(villages, key=lambda x: x["nom"]), start=1):
@@ -143,7 +255,7 @@ def construire(iso):
         }
         feats.append(f)
     stats["cite-caractere"] = len(villages)
-    return feats, stats
+    return feats, traces, stats
 
 
 def main(ecrire):
@@ -152,11 +264,16 @@ def main(ecrire):
         if not src.exists():
             print(f"{iso}: récolte absente — lancer recolter_pays_osm.py {iso.upper()}")
             continue
-        feats, stats = construire(iso)
+        feats, traces, stats = construire(iso)
         photos = sum(1 for f in feats if f["properties"]["photos"])
+        wikis = sum(1 for f in feats
+                    if any("Wikipédia" in l["label"] for l in f["properties"]["links"]))
+        fiches_vf = sum(1 for f in feats
+                        if any("🧗" in l["label"] for l in f["properties"]["links"]))
         print(f"{iso} ({cfg['nom']}) : {len(feats)} points — " +
               ", ".join(f"{k} {v}" for k, v in stats.items() if v))
-        print(f"   photos {photos} | sites web {sum(1 for f in feats if any('Site officiel' in l['label'] for l in f['properties']['links']))}")
+        print(f"   photos {photos} | wikipédia {wikis} | fiches VF {fiches_vf} | sites web "
+              f"{sum(1 for f in feats if any('Site officiel' in l['label'] for l in f['properties']['links']))}")
         if not ecrire:
             continue
         dossier = RACINE / "data" / iso
@@ -166,6 +283,13 @@ def main(ecrire):
             encoding="utf-8")
         taille = (dossier / "points.geojson").stat().st_size // 1024
         print(f"   ÉCRIT data/{iso}/points.geojson ({taille} Ko)")
+        if traces:
+            (dossier / "randos.geojson").write_text(
+                json.dumps({"type": "FeatureCollection", "features": traces},
+                           ensure_ascii=False),
+                encoding="utf-8")
+            ko = (dossier / "randos.geojson").stat().st_size // 1024
+            print(f"   ÉCRIT data/{iso}/randos.geojson ({len(traces)} tracés, {ko} Ko)")
     if not ecrire:
         print("(aperçu — relancer avec --ecrire)")
 

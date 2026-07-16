@@ -54,6 +54,14 @@ Tenue par l'agent **chef-de-projet** (`.claude/agents/chef-de-projet.md`). Derni
 - [x] **Grosses catégories exclusives** : une couche lourde s'affiche seule ; les petites se combinent ; cocher une petite chasse la grosse.
 - [x] **3 nouveaux pays (pipeline générique `recolter_pays_osm.py` + `construire_pays.py`)** : **Suisse 5 080** · **Italie 29 316** · **Espagne 21 949** points (9 catégories : refuges, campings, lacs, cascades, grottes, via ferrata cotées K, châteaux/forts, musées) + **villages labellisés officiels** (389 Borghi più belli d'Italia via Wikidata, 101 Pueblos Más Bonitos, 36 Plus beaux villages de Suisse — photos + descriptions). Page de garde : 5 pays cliquables. Pas encore de surcouche d'itinéraires ni de randos éditoriales pour ces 3 pays (gr: null — Via Alpina/GR espagnols à venir).
 
+## v67 (2026-07-16) — Enrichissement CH/IT/ES + sanitaires PARTOUT (rapport : dev/RAPPORT-ENRICHISSEMENT-2026-07-16-v67.md)
+
+- [x] **Wikipédia (CH/IT/ES)** : 5 259 points appariés (photos 960 px ~4 990, lien 🔗, description) — `enrichir_pays_wikipedia.py`, appliqué au build.
+- [x] **Fiches via ferrata** : lien vers LA page de la VF sur le site du pays — IT ferrate365.it (187/284), ES deandar.com (85/143, +83 cotations K), CH myferrata.ch (26/89). rocjumper interdit aux agents IA (respecté). FR/NZ déjà couverts.
+- [x] **Randonnées iconiques : 72 tracées** (CH 24, IT 23, ES 25) — listes éditoriales web vérifiées, routage OSM (modèle France), boucles par relation OSM, D+ open-meteo, GPX. Écartées honnêtes : lac de Braies, Gelmersee (boucles sans relation).
+- [x] **Toilettes + fontaines pour TOUS les pays** : IT 10 211/79 138 · ES 7 404/60 144 · CH 6 588/18 023 · NZ 4 562/1 957 (`recolter_sanitaires_pays.py`) ; `pays.couchesLourdes` = table id→fichier, `chargerCouche()` générique, FAB 🚻 partout.
+- [ ] Reste : catégorie `randonnee` sans photos pour CH/IT/ES (limite photos libres) ; toilettes FRANCE à re-récolter avec filtre d'aire (points allemands/suisses dans le fichier — tâche proposée).
+
 ## Étape 2 — 📋 Publier sur le Play Store
 
 Guide existant : `docs/PLAYSTORE.md` (TWA/PWABuilder). Reste à faire :

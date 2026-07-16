@@ -10,4 +10,9 @@ tools/__pycache__/
 tools/*.json
 tools/*.html
 tools/*.log
+tools/*.txt
+tools/*.kml
+tools/*.xml
 tools/traces-cache/
+tools/traces-pays-cache/
+tools/f365-cache/

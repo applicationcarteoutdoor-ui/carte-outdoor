@@ -75,23 +75,12 @@ const state = {
 /* Chargement des données                                               */
 /* ------------------------------------------------------------------ */
 
-/** Toilettes (data/toilettes.geojson, volumineux) : fichier séparé non
- *  pré-caché, chargé à la première activation de la catégorie ou du bouton
- *  « toilettes autour de moi ». */
-let pointsToilettes = [];
-
-/** Points d'eau (data/eau.geojson, ~49 500 points) : même modèle que les
- *  toilettes — fichier séparé non pré-caché, chargé à la première activation. */
-let pointsEau = [];
-
-/** Grottes/cavités (data/grottes.geojson, ~50 000 entrées Grottocenter +
- *  grottes Wikipédia) : même modèle de couche lourde à la demande. */
-let pointsGrottes = [];
-
-/** Culture France (data/culture.geojson, ~15 000 musées/galeries/sites
- *  archéologiques/monuments OSM) : couche lourde à la demande. En NZ, la même
- *  catégorie est ordinaire (points dans data/nz/points.geojson). */
-let pointsCulture = [];
+/** Couches lourdes (fichiers séparés NON pré-cachés, chargés à la première
+ *  activation) : points par catégorie. Le FICHIER dépend du pays courant —
+ *  `paysActuel().couchesLourdes` (js/config/pays.js) mappe id → fichier
+ *  (v67 : toilettes/eau existent pour TOUS les pays ; grottes/musées = France,
+ *  ces catégories restent ordinaires ailleurs). */
+const pointsCouches = { toilettes: [], eau: [], grotte: [], culture: [] };
 
 /** Indices du cycle « flèche ➤ » (clics successifs → point suivant). */
 const cycleUserPoint = {};
@@ -119,70 +108,26 @@ async function chargerPoints() {
   const importes = await storage.getUserPoints().catch(() => []);
   state.userPointIds = new Set(importes.map((f) => f.properties.id));
   const parId = new Map();
-  for (const f of [...defauts, ...pointsToilettes, ...pointsEau, ...pointsGrottes, ...pointsCulture, ...importes]) parId.set(f.properties.id, f);
+  for (const f of [...defauts, ...Object.values(pointsCouches).flat(), ...importes]) parId.set(f.properties.id, f);
   state.allPoints = [...parId.values()];
 }
 
-/** Charge les toilettes si nécessaire ; renvoie false en cas d'échec. */
-async function chargerToilettes() {
-  if (pointsToilettes.length) return true;
-  toast("Chargement des toilettes…");
+/** Charge la couche lourde `id` depuis le fichier du PAYS courant si
+ *  nécessaire ; renvoie false en cas d'échec (hors connexion, pays sans
+ *  cette couche…). */
+async function chargerCouche(id) {
+  if (pointsCouches[id].length) return true;
+  const fichier = (paysActuel().couchesLourdes || {})[id];
+  if (!fichier) return false;
+  toast(`Chargement des ${COUCHES_LOURDES[id].pluriel}…`);
   try {
-    const reponse = await fetch("data/toilettes.geojson");
-    pointsToilettes = (await reponse.json()).features || [];
+    const reponse = await fetch(fichier);
+    pointsCouches[id] = (await reponse.json()).features || [];
     await chargerPoints();
     return true;
   } catch (e) {
-    console.error("Impossible de charger data/toilettes.geojson :", e);
-    toast("Toilettes indisponibles pour le moment (hors connexion ?).");
-    return false;
-  }
-}
-
-/** Charge les points d'eau si nécessaire ; renvoie false en cas d'échec. */
-async function chargerEau() {
-  if (pointsEau.length) return true;
-  toast("Chargement des points d'eau…");
-  try {
-    const reponse = await fetch("data/eau.geojson");
-    pointsEau = (await reponse.json()).features || [];
-    await chargerPoints();
-    return true;
-  } catch (e) {
-    console.error("Impossible de charger data/eau.geojson :", e);
-    toast("Points d'eau indisponibles pour le moment (hors connexion ?).");
-    return false;
-  }
-}
-
-/** Charge les grottes si nécessaire ; renvoie false en cas d'échec. */
-async function chargerGrottes() {
-  if (pointsGrottes.length) return true;
-  toast("Chargement des grottes…");
-  try {
-    const reponse = await fetch("data/grottes.geojson");
-    pointsGrottes = (await reponse.json()).features || [];
-    await chargerPoints();
-    return true;
-  } catch (e) {
-    console.error("Impossible de charger data/grottes.geojson :", e);
-    toast("Grottes indisponibles pour le moment (hors connexion ?).");
-    return false;
-  }
-}
-
-/** Charge la couche culture (France) si nécessaire ; false en cas d'échec. */
-async function chargerCulture() {
-  if (pointsCulture.length) return true;
-  toast("Chargement des lieux culturels…");
-  try {
-    const reponse = await fetch("data/culture.geojson");
-    pointsCulture = (await reponse.json()).features || [];
-    await chargerPoints();
-    return true;
-  } catch (e) {
-    console.error("Impossible de charger data/culture.geojson :", e);
-    toast("Lieux culturels indisponibles pour le moment (hors connexion ?).");
+    console.error(`Impossible de charger ${fichier} :`, e);
+    toast(`${COUCHES_LOURDES[id].indisponible} pour le moment (hors connexion ?).`);
     return false;
   }
 }
@@ -197,13 +142,11 @@ function compteursParTheme() {
     const id = getTheme(f.properties.theme).id;
     compteurs.set(id, (compteurs.get(id) || 0) + 1);
   }
-  // Couches lourdes pas encore chargées : « … » plutôt qu'un 0 trompeur.
-  // (France seulement — en NZ, `grotte` vit dans points.geojson : vrai compte.)
-  if (paysActuel().couchesLourdes) {
-    if (!pointsToilettes.length) compteurs.set("toilettes", "…");
-    if (!pointsEau.length) compteurs.set("eau", "…");
-    if (!pointsGrottes.length) compteurs.set("grotte", "…");
-    if (!pointsCulture.length) compteurs.set("culture", "…");
+  // Couches lourdes du pays pas encore chargées : « … » plutôt qu'un 0
+  // trompeur. (Une catégorie hors de cette table — ex. `grotte` en NZ — vit
+  // dans points.geojson : vrai compte.)
+  for (const id of Object.keys(paysActuel().couchesLourdes || {})) {
+    if (!pointsCouches[id].length) compteurs.set(id, "…");
   }
   return compteurs;
 }
@@ -707,39 +650,41 @@ function distanceM(lat1, lon1, lat2, lon2) {
 }
 
 /** Couches volumineuses chargées à la demande : même UX (avertissement à
- *  l'activation + mode « autour de moi » à 1 km). `points` est un getter car
- *  le tableau est réassigné au chargement. */
+ *  l'activation + mode « autour de moi » à 1 km) ; textes seulement, les
+ *  points vivent dans pointsCouches et le fichier dans la config du pays. */
 const COUCHES_LOURDES = {
-  // ⚠️ Mécanisme FRANÇAIS : ces ids ne déclenchent le dialogue + fichier séparé
-  // que si le pays courant a `couchesLourdes: true`. Ailleurs, la même catégorie
-  // (ex. `grotte` en NZ, ~300 points DANS points.geojson) se comporte comme une
-  // catégorie normale — passer par coucheLourde(id), jamais par l'objet direct.
+  // ⚠️ Ces ids ne déclenchent le dialogue + fichier séparé que si le pays
+  // courant les liste dans `couchesLourdes` (js/config/pays.js, id → fichier).
+  // Ailleurs, la même catégorie (ex. `grotte` en NZ ou en Italie, points DANS
+  // points.geojson) se comporte comme une catégorie normale — passer par
+  // coucheLourde(id), jamais par l'objet direct.
   toilettes: {
-    dialog: "wc-dialog", charger: chargerToilettes, points: () => pointsToilettes,
-    pluriel: "toilettes", vide: "Aucunes toilettes à moins de 1 km",
+    dialog: "wc-dialog", pluriel: "toilettes", indisponible: "Toilettes indisponibles",
+    vide: "Aucunes toilettes à moins de 1 km",
     proche: "la plus proche", aucun: "Aucunes toilettes connues.",
   },
   eau: {
-    dialog: "eau-dialog", charger: chargerEau, points: () => pointsEau,
-    pluriel: "points d'eau", vide: "Aucun point d'eau à moins de 1 km",
+    dialog: "eau-dialog", pluriel: "points d'eau", indisponible: "Points d'eau indisponibles",
+    vide: "Aucun point d'eau à moins de 1 km",
     proche: "le plus proche", aucun: "Aucun point d'eau connu.",
   },
   grotte: {
-    dialog: "grottes-dialog", charger: chargerGrottes, points: () => pointsGrottes,
-    pluriel: "grottes", vide: "Aucune grotte à moins de 1 km",
+    dialog: "grottes-dialog", pluriel: "grottes", indisponible: "Grottes indisponibles",
+    vide: "Aucune grotte à moins de 1 km",
     proche: "la plus proche", aucun: "Aucune grotte connue.",
   },
   culture: {
-    dialog: "culture-dialog", charger: chargerCulture, points: () => pointsCulture,
-    pluriel: "musées", vide: "Aucun musée à moins de 1 km",
+    dialog: "culture-dialog", pluriel: "musées", indisponible: "Musées indisponibles",
+    vide: "Aucun musée à moins de 1 km",
     proche: "le plus proche", aucun: "Aucun musée connu.",
   },
 };
 
-/** Config de couche lourde pour `id` — ou undefined si le pays courant n'en a
- *  pas (la catégorie redevient alors ordinaire, ses points sont déjà chargés). */
+/** Config de couche lourde pour `id` — ou undefined si le pays courant n'a
+ *  pas cette couche (la catégorie redevient alors ordinaire, ses points sont
+ *  déjà chargés). */
 function coucheLourde(id) {
-  return paysActuel().couchesLourdes ? COUCHES_LOURDES[id] : undefined;
+  return (paysActuel().couchesLourdes || {})[id] ? COUCHES_LOURDES[id] : undefined;
 }
 
 /** Dialogue d'avertissement à l'activation d'une couche lourde (toilettes, eau).
@@ -773,14 +718,14 @@ async function coucheAutourDeMoi(id) {
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
       );
     });
-    if (!(await conf.charger())) return;
+    if (!(await chargerCouche(id))) return;
     // Le zoom se fait AVANT le rendu : les marqueurs se remplissent en priorité
     // autour de la position (tri par distance dans setPoints).
     montrerRayon(lat, lon, 1000);
     state.activeThemes = new Set([id]);
     state.statusFilters.clear();
     rafraichir();
-    const distances = conf.points().map((f) =>
+    const distances = pointsCouches[id].map((f) =>
       distanceM(lat, lon, f.geometry.coordinates[1], f.geometry.coordinates[0])
     );
     const proches = distances.filter((d) => d <= 1000).length;
@@ -1403,7 +1348,7 @@ async function demarrer() {
         // l'utilisateur choisit lui-même — aucune sélection d'une session
         // passée ne reste accrochée (demande utilisateur v64).
         delete state.filterSelections[id];
-        if (coucheLourde(id) && !(await coucheLourde(id).charger())) {
+        if (coucheLourde(id) && !(await chargerCouche(id))) {
           state.activeThemes.delete(id);
         }
         if (getThemeFilters(id).length) state.filtersCollapsed = false;
@@ -1650,24 +1595,13 @@ async function demarrer() {
   // Toilettes déjà cochées lors d'une session précédente : leur fichier
   // (chargé à la demande) doit l'être aussi au démarrage — en arrière-plan,
   // pour ne pas retarder le premier affichage.
-  if (pays.couchesLourdes) {
-    if (state.activeThemes.has("toilettes")) {
-      chargerToilettes().then((ok) => ok && rafraichir());
+  for (const id of Object.keys(pays.couchesLourdes || {})) {
+    if (state.activeThemes.has(id)) {
+      chargerCouche(id).then((ok) => ok && rafraichir());
     }
-    if (state.activeThemes.has("eau")) {
-      chargerEau().then((ok) => ok && rafraichir());
-    }
-    if (state.activeThemes.has("grotte")) {
-      chargerGrottes().then((ok) => ok && rafraichir());
-    }
-    if (state.activeThemes.has("culture")) {
-      chargerCulture().then((ok) => ok && rafraichir());
-    }
-  } else {
-    // Pays sans couches lourdes : le bouton 🏃🚻 (toilettes autour de moi)
-    // chargerait le fichier FRANÇAIS — on le masque.
-    document.getElementById("btn-wc").hidden = true;
   }
+  // Bouton 🏃🚻 (toilettes autour de moi) : seulement là où la couche existe.
+  document.getElementById("btn-wc").hidden = !(pays.couchesLourdes || {}).toilettes;
 
   // Tuto lancé automatiquement à la toute première connexion (skippable)
   if (premiereVisite) setTimeout(startTuto, 600);
