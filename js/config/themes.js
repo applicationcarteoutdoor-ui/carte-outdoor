@@ -436,33 +436,20 @@ export const THEMES = [
     filters: [],
   },
   {
-    // Culture — musées, galeries d'art, sites archéologiques, monuments et
-    // patrimoine (France ET Nouvelle-Zélande). Source OSM (ODbL, faits :
-    // nom, GPS, site web, horaires, description) — tools/recolter_culture_osm.py
-    // + construire_culture.py. Les valeurs du filtre « Type » doivent
-    // correspondre EXACTEMENT aux details.type posés par le pipeline.
+    // Culture = les MUSÉES (décision v66 : les sites archéo/monuments/galeries
+    // OSM noyaient la catégorie — 15 000 points de qualité inégale → ~5 000
+    // musées propres). Source OSM (ODbL : nom, GPS, site web, horaires) +
+    // enrichissement Wikipédia (photos/descriptions). L'id `culture` est
+    // STABLE (ne jamais renommer) — seul le label a changé.
     id: "culture",
-    label: "Culture",
+    label: "Musée",
     color: "#780000",
     icon: "🏛️",
     fields: [
-      { key: "type", label: "Type" },
       { key: "horaires", label: "Horaires" },
       { key: "commune", label: "Commune" },
     ],
     filters: [
-      {
-        key: "type",
-        label: "Type",
-        type: "value",
-        field: "type",
-        options: [
-          { value: "Musée", label: "Musée", icon: "🖼️" },
-          { value: "Galerie d'art", label: "Galerie d'art", icon: "🎨" },
-          { value: "Site archéologique", label: "Site archéologique", icon: "🏺" },
-          { value: "Monument", label: "Monument", icon: "🗿" },
-        ],
-      },
       {
         key: "fiche",
         label: "Fiche",

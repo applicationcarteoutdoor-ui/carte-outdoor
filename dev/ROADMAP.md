@@ -48,6 +48,12 @@ Tenue par l'agent **chef-de-projet** (`.claude/agents/chef-de-projet.md`). Derni
 - [x] **Randonnées NZ : 26 itinéraires emblématiques** (Roys Peak, Mueller Hut, Rob Roy, Avalanche Peak, Hollyford…) — liste éditoriale, FlocID DOC exacts, tracés réels (`data/nz/randos.geojson`), distance mesurée + durée estimée, GPX/épinglage comme la France (`pays.fichierRandos`).
 - [x] **Catégorie Culture 🏛️** (musées, galeries, sites archéo, monuments — OSM ODbL : nom, GPS, site web, horaires, description, photos wikimedia rares) : **France 14 919 = couche lourde** `data/culture.geojson` (dialogue + « à moins de 1 km », hors pré-cache) ; **NZ 1 331 = catégorie normale** (dont 704 pā/sites archéo). Filtres Type + Fiche. Les châteaux restent leur propre catégorie.
 
+## v66 (2026-07-16) — Musées, catégories exclusives, SUISSE + ITALIE + ESPAGNE
+
+- [x] **Culture → Musée** (15 000 → 5 053 FR, 66 % avec site web ; archéo/monuments/galeries écartés — si patrimoine bâti un jour : base Mérimée officielle, pas OSM). Id `culture` stable, label « Musée ».
+- [x] **Grosses catégories exclusives** : une couche lourde s'affiche seule ; les petites se combinent ; cocher une petite chasse la grosse.
+- [x] **3 nouveaux pays (pipeline générique `recolter_pays_osm.py` + `construire_pays.py`)** : **Suisse 5 080** · **Italie 29 316** · **Espagne 21 949** points (9 catégories : refuges, campings, lacs, cascades, grottes, via ferrata cotées K, châteaux/forts, musées) + **villages labellisés officiels** (389 Borghi più belli d'Italia via Wikidata, 101 Pueblos Más Bonitos, 36 Plus beaux villages de Suisse — photos + descriptions). Page de garde : 5 pays cliquables. Pas encore de surcouche d'itinéraires ni de randos éditoriales pour ces 3 pays (gr: null — Via Alpina/GR espagnols à venir).
+
 ## Étape 2 — 📋 Publier sur le Play Store
 
 Guide existant : `docs/PLAYSTORE.md` (TWA/PWABuilder). Reste à faire :

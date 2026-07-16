@@ -731,8 +731,8 @@ const COUCHES_LOURDES = {
   },
   culture: {
     dialog: "culture-dialog", charger: chargerCulture, points: () => pointsCulture,
-    pluriel: "lieux culturels", vide: "Aucun lieu culturel à moins de 1 km",
-    proche: "le plus proche", aucun: "Aucun lieu culturel connu.",
+    pluriel: "musées", vide: "Aucun musée à moins de 1 km",
+    proche: "le plus proche", aucun: "Aucun musée connu.",
   },
 };
 
@@ -1108,6 +1108,17 @@ function restaurerPrefs(prefs) {
   if (!state.activeThemes.size && pays.categories?.length) {
     state.activeThemes.add(pays.categories[0]);
   }
+  // Règle v66 (grosses catégories exclusives) appliquée aussi aux prefs
+  // héritées : une grosse ne cohabite avec rien. S'il y a des petites, elles
+  // gagnent (les grosses sautent) ; s'il n'y a que des grosses, on garde la 1re.
+  const grosses = [...state.activeThemes].filter((id) => coucheLourde(id));
+  if (grosses.length && state.activeThemes.size > 1) {
+    if (grosses.length < state.activeThemes.size) {
+      for (const id of grosses) state.activeThemes.delete(id); // petites présentes
+    } else {
+      state.activeThemes = new Set([grosses[0]]); // que des grosses
+    }
+  }
   state.statusFilters = new Set(
     (Array.isArray(prefs.statusFilters) ? prefs.statusFilters : []).filter((s) =>
       ["a-faire", "fait", "favori"].includes(s)
@@ -1146,8 +1157,7 @@ function chargerMonde() {
 // de nos envies — en ajouter un = une ligne.
 const PAYS_BIENTOT = [
   ["Pérou", -9.2, -75.0], ["Pays-Bas", 52.2, 5.3], ["Népal", 28.2, 84.0],
-  ["Singapour", 1.35, 103.82], ["Laos", 19.0, 103.0], ["Suisse", 46.8, 8.2],
-  ["Italie", 42.5, 12.5], ["Espagne", 40.2, -3.5], ["Canada", 56.0, -106.0],
+  ["Singapour", 1.35, 103.82], ["Laos", 19.0, 103.0], ["Canada", 56.0, -106.0],
   ["Japon", 36.2, 138.3], ["Norvège", 61.0, 9.0], ["Islande", 64.9, -18.6],
   ["Maroc", 31.8, -6.5], ["Costa Rica", 9.7, -84.2], ["Australie", -25.3, 133.8],
   ["Royaume-Uni", 54.0, -2.0],
@@ -1372,6 +1382,19 @@ async function demarrer() {
           return;
         }
         // « Valider » : affichage complet, comme une catégorie normale
+      }
+      if (coche) {
+        // GROSSES catégories (couches lourdes : toilettes/eau/grottes/musées)
+        // EXCLUSIVES (demande utilisateur v66) : une grosse s'affiche SEULE
+        // (activer une grosse décoche tout), et cocher une petite décoche la
+        // grosse. Seules les petites catégories se combinent entre elles.
+        if (coucheLourde(id)) {
+          state.activeThemes.clear();
+        } else {
+          for (const autre of [...state.activeThemes]) {
+            if (coucheLourde(autre)) state.activeThemes.delete(autre);
+          }
+        }
       }
       coche ? state.activeThemes.add(id) : state.activeThemes.delete(id);
       if (coche) {

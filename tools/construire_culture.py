@@ -20,11 +20,12 @@ from pathlib import Path
 from urllib.parse import quote
 
 RACINE = Path(__file__).resolve().parent.parent
+# Décision utilisateur (v66) : la catégorie se limite aux MUSÉES — les sites
+# archéologiques (6 273, souvent des dolmens anonymes), monuments (1 513,
+# plaques et obélisques) et galeries (2 080, surtout des boutiques d'art)
+# noyaient la catégorie sans apporter de qualité.
 TYPES = {
     "musee": "Musée",
-    "galerie": "Galerie d'art",
-    "archeo": "Site archéologique",
-    "monument": "Monument",
 }
 CIBLES = {
     # France : fichier SÉPARÉ (couche lourde, remplacé entièrement)
@@ -41,6 +42,7 @@ CIBLES = {
 def construire(pays):
     cfg = CIBLES[pays]
     lieux = json.loads(cfg["source"].read_text(encoding="utf-8"))
+    lieux = [o for o in lieux if o["type"] in TYPES]  # musées uniquement (v66)
     lieux.sort(key=lambda o: (o["nom"], o["lat"]))
     # Enrichissement Wikipédia (photo/description/lien) — facultatif :
     # tools/culture-wiki-<pays>.json, clé « nom|lat4 » (enrichir_culture_wikipedia.py)
