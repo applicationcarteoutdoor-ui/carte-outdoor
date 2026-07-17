@@ -1152,21 +1152,31 @@ body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit)
 }
 
 @media print {
+  /* Pleine page A4 sans marges : chaque .print-page = exactement une feuille.
+     ⚠️ position:fixed + overflow:auto NE S'IMPRIMENT PAS au-delà de la 1re
+     page (cause du bug « seulement la garde, coupée en deux ») : en
+     impression, tout redevient statique et débordant-visible. */
+  @page { size: A4 portrait; margin: 0; }
+
+  html, body { height: auto !important; overflow: visible !important; }
   body > *:not(#carnet-print) { display: none !important; }
 
   #carnet-print, #carnet-print.ouvert {
     display: block !important;
-    position: static;
-    background: none;
-    padding: 0;
+    position: static !important;
+    inset: auto !important;
+    overflow: visible !important;
+    height: auto !important;
+    background: none !important;
+    padding: 0 !important;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
   .print-outils { display: none !important; }
   .print-page {
-    width: 100%;
+    width: 210mm;
     aspect-ratio: auto;
-    height: 270mm;
+    height: 296mm; /* 1 mm de marge de sécurité contre les arrondis */
     margin: 0;
     border-radius: 0;
     box-shadow: none;

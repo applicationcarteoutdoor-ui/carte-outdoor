@@ -33,7 +33,6 @@ import {
   deselectionnerGr,
   getFonds,
   setFond,
-  getMap,
 } from "./map.js";
 import { initFilters, renderFilters } from "./filters.js";
 import {
@@ -1581,25 +1580,8 @@ async function demarrer() {
   });
   document.getElementById("btn-home").addEventListener("click", ouvrirMonde);
 
-  // ✅ « Mes lieux faits » : la carte ne montre plus que les lieux ✓ Fait
-  // (mécanisme des filtres de suivi) et se cadre dessus. Re-cocher un statut
-  // ou une catégorie dans le panneau rend la vue normale.
-  document.getElementById("btn-vue-faits").addEventListener("click", () => {
-    const faits = state.allPoints.filter((f) => state.statuses[f.properties.id] === "fait");
-    if (!faits.length) {
-      toast("Aucun lieu marqué ✓ Fait pour l'instant — ouvrez une fiche et touchez ✓ !");
-      return;
-    }
-    state.statusFilters = new Set(["fait"]);
-    rafraichir();
-    const lats = faits.map((f) => f.geometry.coordinates[1]);
-    const lons = faits.map((f) => f.geometry.coordinates[0]);
-    getMap().fitBounds(
-      [[Math.min(...lats), Math.min(...lons)], [Math.max(...lats), Math.max(...lons)]],
-      { padding: [46, 46], maxZoom: 13 }
-    );
-    toast(`Vos ${faits.length} lieu(x) faits ✓`);
-  });
+  // (La vue « lieux faits » vit dans le panneau des catégories : ligne
+  // « ✓ Fait » — la tuile Réglages redondante a été retirée en v70.)
 
   // Catégories COMMUNAUTAIRES : partager les siennes / importer celles des
   // autres (js/communaute.js). L'import écrit les points comme des points
@@ -1607,10 +1589,14 @@ async function demarrer() {
   initCommunaute({
     getMesCategories: async () => {
       const miens = await storage.getUserPoints().catch(() => []);
-      return (await storage.getCustomThemes()).map((t) => ({
-        ...t,
-        nbPoints: miens.filter((f) => f.properties.theme === t.id).length,
-      }));
+      // Les catégories IMPORTÉES de la communauté (comm-…) ne sont pas « les
+      // miennes » : on ne repartage pas le contenu des autres (droits + doublons).
+      return (await storage.getCustomThemes())
+        .filter((t) => !String(t.id).startsWith("comm-"))
+        .map((t) => ({
+          ...t,
+          nbPoints: miens.filter((f) => f.properties.theme === t.id).length,
+        }));
     },
     getPointsDeTheme: async (id) =>
       (await storage.getUserPoints().catch(() => [])).filter((f) => f.properties.theme === id),

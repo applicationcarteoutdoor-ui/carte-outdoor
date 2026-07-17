@@ -82,6 +82,13 @@ Tenue par l'agent **chef-de-projet** (`.claude/agents/chef-de-projet.md`). Derni
 - [x] **Communauté depuis la vue monde** (sans choisir de pays) + **⭐ Sélection SpotMap** embarquée : ♨️ Sources chaudes naturelles (289 pts, 9 pays).
 - [ ] Backlog nouveaux pays : randonnées éditoriales PT/DE/NL/LU/BE, fiches VF DE (klettersteig.de à évaluer), labels villages DE/NL si un jour officiels.
 
+## v70 (2026-07-17) — Retours utilisateur sur la v69
+
+- [x] **Impression du carnet réparée pour de vrai** (v69 : seule la garde sortait, coupée) : en impression, `position:fixed`/`overflow:auto` ne rendent QUE la 1re page → tout repasse en statique/visible + `@page A4 margin:0` + pages 296 mm. **Prouvé par un vrai PDF CDP : 4 pages A4, fonds embarqués.**
+- [x] **Partager ≠ catégories importées** : les `comm-…` (dont ♨️ Sources chaudes) sont exclues de l'onglet Partager (droits + doublons). Le « je ne peux pas partager » venait du Supabase en pause (NXDOMAIN) — il répond de nouveau (table communauté 200 ✔).
+- [x] Titre du dialogue communauté : 🌍 → **🧩** ; tuile « Changer de pays » : 🗺️ → **🌍** ; tuile « ✅ Mes lieux faits » retirée (doublon de la ligne « ✓ Fait » du panneau).
+- [ ] ⚠️ Action utilisateur : **schéma fréquentation toujours absent** (RPC 404) — exécuter supabase/frequentation-schema.sql (SQL redonné dans la conversation).
+
 ## Étape 2 — 📋 Publier sur le Play Store
 
 Guide existant : `docs/PLAYSTORE.md` (TWA/PWABuilder). Reste à faire :

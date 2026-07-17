@@ -30,7 +30,10 @@ Google**.
 2. *Package for stores* → **Android** → options :
    - **Package ID** : `io.github.applicationcarteoutdoor_ui.carteoutdoor`
      (exactement celui de `assetlinks.json`, sinon le remplacer dans le fichier).
-   - App name : `Carte Outdoor` ; le reste par défaut.
+   - App name : `SpotMap` (fiche Store suggérée : « SpotMap : spots outdoor &
+     rando » pour se distinguer de l'appli « Spotmap » existante) ; le reste
+     par défaut. ⚠️ Un paquet généré AVANT le renommage v62 (ancien nom/icônes)
+     est périmé : toujours regénérer sur le site à jour.
 3. Télécharger le zip : il contient le **`.aab`** (à téléverser sur Play) et
    un **fichier de signature (`signing.keystore` + mots de passe)**.
    **⚠️ CONSERVER précieusement le keystore et ses mots de passe** (hors du
