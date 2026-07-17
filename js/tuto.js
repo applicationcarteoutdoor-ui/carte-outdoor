@@ -15,35 +15,29 @@ let ouvrirFiltresHook = null; // fourni par app.js : affiche un vrai panneau de 
 
 const ETAPES = [
   {
-    titre: "Bienvenue sur SpotMap ! 🏔️",
+    emoji: "🏔️",
+    titre: "Bienvenue sur SpotMap !",
     texte:
-      "Une carte de points d'intérêt outdoor : randonnées, via ferrata, escalade, refuges, cascades, lacs, châteaux, villages, GR… " +
-      "Ce petit tour vous montre l'essentiel (vous pouvez le revoir à tout moment avec le bouton 🎓).",
+      "Votre carte de l'outdoor : randonnées, via ferrata, escalade, refuges, cascades, lacs, " +
+      "châteaux, villages… dans 5 pays (France, Suisse, Italie, Espagne, Nouvelle-Zélande). " +
+      "Deux minutes de visite — revoyez-la quand vous voulez avec le bouton 🎓.",
   },
   {
     cible: "#search-input",
     avant: () => document.getElementById("sidebar").classList.add("open"),
+    emoji: "🔎",
     titre: "La recherche",
-    texte: "Retrouvez n'importe quel point par son nom, directement au-dessus des catégories.",
+    texte: "Tapez un nom (lac, sommet, village, code postal…) : la carte y file directement.",
   },
   {
     cible: "#sidebar .cat-list",
     placement: "cote", // la carte ne doit pas recouvrir la liste des catégories
+    emoji: "🗂️",
     titre: "Les catégories",
     texte:
-      "Cochez les catégories à afficher — plusieurs à la fois si vous voulez. " +
-      "Vos statuts (★ à faire, ✓ fait, ♥ favoris), les sentiers GR et vos traces GPX se cochent " +
-      "au même endroit, et ✎ personnalise le nom, les couleurs et l'icône de chaque catégorie.",
-  },
-  {
-    cible: "#btn-settings",
-    titre: "Les réglages ⚙️",
-    texte:
-      "La roue en bas du panneau regroupe : l'import de vos propres points (GeoJSON, CSV, KML, KMZ), " +
-      "l'export de vos données (points, suivi, carnet, catégories), l'installation de l'application " +
-      "sur l'écran d'accueil, la synchronisation multi-appareils avec votre compte Google " +
-      "et la vérification des mises à jour. " +
-      "Les traces GPX, elles, s'importent depuis la ligne « Mes traces GPX ».",
+      "Cochez ce que vous voulez voir — plusieurs à la fois. Seules les très grosses couches " +
+      "(toilettes, fontaines, grottes, musées) s'affichent seules, pour rester fluide. " +
+      "✎ personnalise nom, couleurs et icône ; vos statuts et traces GPX vivent au même endroit.",
   },
   {
     cible: "#filter-panel",
@@ -52,68 +46,78 @@ const ETAPES = [
       // Ouvre un panneau de filtres réel (coche une catégorie à filtres si besoin)
       ouvrirFiltresHook?.();
     },
+    emoji: "🎚️",
     titre: "Les filtres",
     texte:
-      "Dès qu'une catégorie cochée propose des filtres (cotation des via ferrata, chauffage et altitude " +
-      "des refuges…), ils apparaissent ici en pastilles. « Tout » = aucun filtrage. " +
-      "Survolez une cotation (PD, AD, D…) pour voir sa signification.",
+      "Chaque catégorie a ses filtres en pastilles : cotation des via ferrata, effort des randos, " +
+      "altitude des refuges… Ils repartent à zéro à chaque activation — « Tout » = aucun filtrage. " +
+      "Survolez une cotation (PD, AD, K3…) pour sa signification.",
   },
   {
     cible: "#map",
-    titre: "La carte",
+    emoji: "🗺️",
+    titre: "La carte et les fiches",
     texte:
-      "Cliquez un point pour ouvrir sa fiche : itinéraire Google Maps/Waze, liens et photos, " +
-      "statuts, carnet personnel. Cliquez un tracé de GR pour voir son nom, sa distance, son D+ " +
-      "et ses liens — il se met en surbrillance orange.",
+      "Touchez un point : photo, description, itinéraire Google Maps/Waze, liens spécialisés. " +
+      "Touchez une randonnée ou un GR : son tracé s'épingle en couleur et le bouton 📥 GPX " +
+      "l'emporte dans votre GPS.",
   },
   {
     cible: "#btn-add-point",
-    titre: "Ajouter un point",
+    emoji: "📍",
+    titre: "Vos propres points",
     texte:
-      "Le gros bouton vert : cliquez-le, puis cliquez sur la carte à l'endroit voulu. " +
-      "Choisissez une catégorie existante ou créez-en une à la volée (nom, icône, couleur).",
+      "Le gros bouton vert : un clic, puis un clic sur la carte. Catégorie existante ou " +
+      "créée à la volée (nom, icône, couleur) — et l'import de fichiers GPX/KML/CSV fait le reste.",
   },
   {
     cible: "#btn-carnet",
     avant: () => document.getElementById("sidebar").classList.remove("open"),
-    titre: "Votre carnet de sorties 📖",
+    emoji: "📖",
+    titre: "Le carnet de sorties",
     texte:
-      "Un vrai grimoire à feuilleter ! Chaque activité marquée « ✓ Fait », chaque note et chaque " +
-      "photo s'y enregistre automatiquement, une sortie par page. Recherche, tri par date ou " +
-      "catégorie, filtre favoris — et pour chaque lieu, l'historique de toutes vos venues.",
+      "Un grimoire à feuilleter : chaque lieu marqué « ✓ Fait » y écrit sa page, avec vos notes " +
+      "et vos photos. Il vous suit dans TOUS les pays, et se synchronise entre vos appareils.",
   },
   {
     cible: "#btn-oracle",
     avant: () => document.getElementById("sidebar").classList.remove("open"),
-    titre: "L'Oracle 🔮",
+    emoji: "🔮",
+    titre: "L'Oracle",
     texte:
-      "Entrez un code postal (ou touchez 📍) : l'Oracle révèle tout ce qu'il y a à faire " +
-      "autour — randonnées, lacs, patrimoine, événements. Le mode ✨ Gratuit ne demande " +
-      "aucune clé ; avec une clé API (bouton 🔑), le mode 🧠 IA déniche en plus les concerts, " +
-      "spectacles et brocantes du moment, avec leurs dates.",
+      "Un code postal, un village ou votre position 📍 : l'Oracle révèle quoi faire autour. " +
+      "Gratuit sans clé ; avec une clé API (🔑), il déniche aussi concerts, fêtes et brocantes datées.",
   },
   {
     cible: "#btn-wc",
     avant: () => document.getElementById("sidebar").classList.remove("open"),
-    titre: "Les toilettes publiques",
+    emoji: "🚻",
+    titre: "Toilettes & fontaines",
     texte:
-      "Plus de 66 000 toilettes publiques (source OpenStreetMap) ! Ce bouton vous géolocalise et " +
-      "n'affiche que celles à moins de 1 km de vous. Vous pouvez aussi cocher la catégorie " +
-      "Toilettes dans le panneau : un message vous proposera d'abord le mode le plus adapté " +
-      "(tout afficher peut ralentir la carte).",
+      "Dans chaque pays : les toilettes publiques et les points d'eau (fontaines, sources) " +
+      "d'OpenStreetMap. Ce bouton n'affiche que celles à moins de 1 km de vous — pratique en ville " +
+      "comme en rando.",
+  },
+  {
+    cible: "#btn-home",
+    avant: () => document.getElementById("sidebar").classList.add("open"),
+    placement: "cote",
+    emoji: "🌍",
+    titre: "Changer de pays",
+    texte:
+      "Touchez SpotMap (ou le globe) : la carte du monde revient, choisissez un autre terrain " +
+      "de jeu. Carnet, statuts et catégories personnelles vous suivent partout.",
   },
   {
     cible: ".foot-outils",
-    // Les outils vivent dans le pied du panneau : on l'ouvre (mobile)
     avant: () => document.getElementById("sidebar").classList.add("open"),
     placement: "cote",
-    titre: "Les outils",
+    emoji: "⚙️",
+    titre: "Réglages & outils",
     texte:
-      "À côté des réglages ⚙️ : 💡 pour noter vos idées, 🎓 pour revoir ce tuto " +
-      "et 🗺️ pour changer le fond de carte (plan, relief, IGN, satellite). " +
-      "Votre position ◎, elle, s'affiche depuis le bouton rond sous les toilettes. " +
-      "L'application fonctionne aussi hors connexion : les zones déjà consultées restent visibles. " +
-      "Astuce : ajoutez cette carte à votre écran d'accueil pour l'utiliser comme une vraie application. " +
+      "La grille ⚙️ rassemble tout : export/sauvegarde, installation sur l'écran d'accueil, mode " +
+      "nuit, communauté 🧩 (importer ou partager des catégories), fréquentation 📊 et mises à jour. " +
+      "À côté : 💡 idées, 🎓 ce tuto, 🗺️ fond de carte. Ça marche aussi hors connexion. " +
       "Bonne exploration !",
   },
 ];
@@ -167,17 +171,23 @@ async function montrerEtape() {
     ? `top:${rect.top - marge}px;left:${rect.left - marge}px;width:${rect.width + 2 * marge}px;height:${rect.height + 2 * marge}px;`
     : "top:50%;left:50%;width:0;height:0;";
 
+  const dots = ETAPES.map((_, i) =>
+    `<span class="tuto-dot${i === indice ? " actif" : i < indice ? " fait" : ""}"></span>`
+  ).join("");
   overlay.innerHTML = `
     <div class="tuto-spot" style="${spot}"></div>
     <div class="tuto-card" role="dialog" aria-labelledby="tuto-titre">
-      <h2 id="tuto-titre">${etape.titre}</h2>
+      <div class="tuto-entete">
+        <span class="tuto-emoji" aria-hidden="true">${etape.emoji || "✨"}</span>
+        <h2 id="tuto-titre">${etape.titre}</h2>
+      </div>
       <p>${etape.texte}</p>
-      <div class="tuto-progress">${indice + 1} / ${ETAPES.length}</div>
+      <div class="tuto-dots" aria-label="Étape ${indice + 1} sur ${ETAPES.length}">${dots}</div>
       <div class="tuto-actions">
-        <button type="button" class="btn btn-secondary tuto-skip">Passer</button>
+        <button type="button" class="tuto-skip">Passer</button>
         <span class="tuto-nav">
-          ${indice > 0 ? '<button type="button" class="btn btn-secondary tuto-prev">Précédent</button>' : ""}
-          <button type="button" class="btn tuto-next">${indice === ETAPES.length - 1 ? "Terminer" : "Suivant"}</button>
+          ${indice > 0 ? '<button type="button" class="btn btn-secondary tuto-prev" aria-label="Précédent">←</button>' : ""}
+          <button type="button" class="btn tuto-next">${indice === ETAPES.length - 1 ? "C'est parti ! 🚀" : "Suivant"}</button>
         </span>
       </div>
     </div>`;

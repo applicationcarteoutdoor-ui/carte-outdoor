@@ -48,8 +48,9 @@
     <div class="pays-pied">
       <div class="pays-liste"><!-- rempli par app.js depuis js/config/pays.js --></div>
       <div class="pays-communaute">
-        <button type="button" id="pays-btn-partager" class="btn-communaute">🌍 Partager une catégorie</button>
-        <button type="button" id="pays-btn-importer" class="btn-communaute">📥 Catégories de la communauté</button>
+        <button type="button" id="pays-btn-communaute" class="btn-communaute">
+          <span class="communaute-ico" aria-hidden="true">🧩</span> Catégories de la communauté
+        </button>
       </div>
       <p class="pays-note">D'autres pays arriveront — le carnet et vos statuts vous suivent partout.</p>
     </div>
@@ -62,12 +63,14 @@
       <h2 id="communaute-titre">🌍 Catégories de la communauté</h2>
       <button type="button" class="panel-close communaute-close" title="Fermer" aria-label="Fermer">✕</button>
     </div>
-    <div class="comm-onglets">
-      <button type="button" class="comm-onglet actif" data-volet="explorer">📥 Importer</button>
-      <button type="button" class="comm-onglet" data-volet="partager">🌍 Partager</button>
+    <div class="comm-onglets" role="tablist">
+      <button type="button" class="comm-onglet actif" data-volet="explorer">🧩 Explorer</button>
+      <button type="button" class="comm-onglet" data-volet="partager">📤 Partager</button>
+      <button type="button" class="comm-onglet" data-volet="suivi">📦 Mes partages</button>
     </div>
     <div id="comm-explorer"></div>
     <div id="comm-partager" hidden></div>
+    <div id="comm-suivi" hidden></div>
     <p class="menu-note">Chaque catégorie partagée est relue avant publication
       (contenu, données, droits). Les photos ne voyagent pas.</p>
   </dialog>
@@ -75,8 +78,12 @@
   <!-- Panneau gauche : recherche + catégories cochables -->
   <aside id="sidebar" aria-label="Recherche et catégories">
     <div class="sidebar-head">
-      <img src="icons/icon.svg" alt="" class="sidebar-logo">
-      <span class="sidebar-title">SpotMap</span>
+      <!-- Cliquer le logo/titre (ou le globe) rouvre la carte du monde -->
+      <button type="button" id="btn-home" class="sidebar-home" title="Carte du monde — changer de pays" aria-label="Carte du monde — changer de pays">
+        <img src="icons/icon.svg" alt="" class="sidebar-logo">
+        <span class="sidebar-title">SpotMap</span>
+        <span class="sidebar-globe" aria-hidden="true">🌍</span>
+      </button>
       <button type="button" class="panel-close" title="Fermer" aria-label="Fermer le panneau">✕</button>
     </div>
 
@@ -353,16 +360,27 @@
       <h2 id="settings-title">⚙️ Réglages</h2>
       <button type="button" class="panel-close settings-close" title="Fermer" aria-label="Fermer les réglages">✕</button>
     </div>
-    <div class="settings-list">
-      <button type="button" id="btn-import-category" class="btn btn-secondary">＋ Importer une catégorie</button>
-      <button type="button" id="btn-export" class="btn btn-secondary">⬇ Exporter mes données</button>
-      <button type="button" id="btn-export-pdf" class="btn btn-secondary">📄 Exporter le carnet en PDF</button>
+    <!-- Écran façon téléphone : des tuiles d'icônes, 3 par ligne -->
+    <div class="settings-list settings-grille">
+      <button type="button" id="btn-import-category" class="tuile">
+        <span class="tuile-ico" aria-hidden="true">📥</span><span class="tuile-lbl">Importer</span></button>
+      <button type="button" id="btn-export" class="tuile">
+        <span class="tuile-ico" aria-hidden="true">💾</span><span class="tuile-lbl">Exporter</span></button>
+      <button type="button" id="btn-export-pdf" class="tuile">
+        <span class="tuile-ico" aria-hidden="true">📄</span><span class="tuile-lbl">Carnet PDF</span></button>
+      <button type="button" id="btn-mode-nuit" class="tuile">
+        <span class="tuile-ico" aria-hidden="true">🌙</span><span class="tuile-lbl">Mode nuit</span></button>
+      <button type="button" id="btn-pays" class="tuile">
+        <span class="tuile-ico" aria-hidden="true">🗺️</span><span class="tuile-lbl">Changer de pays</span></button>
+      <button type="button" id="btn-communaute" class="tuile">
+        <span class="tuile-ico" aria-hidden="true">🧩</span><span class="tuile-lbl">Communauté</span></button>
+      <button type="button" id="btn-frequentation" class="tuile">
+        <span class="tuile-ico" aria-hidden="true">📊</span><span class="tuile-lbl">Fréquentation</span></button>
+      <button type="button" id="btn-update" class="tuile">
+        <span class="tuile-ico" aria-hidden="true">🔄</span><span class="tuile-lbl">Mise à jour</span></button>
       <!-- Masqué quand l'app est déjà lancée depuis l'écran d'accueil -->
-      <button type="button" id="btn-install" class="btn btn-secondary" hidden>📲 Installer l'application</button>
-      <button type="button" id="btn-mode-nuit" class="btn btn-secondary">🌙 Mode nuit</button>
-      <button type="button" id="btn-pays" class="btn btn-secondary">🗺️ Changer de pays</button>
-      <button type="button" id="btn-communaute" class="btn btn-secondary">🌍 Catégories de la communauté</button>
-      <button type="button" id="btn-update" class="btn btn-secondary">🔄 Vérifier la mise à jour</button>
+      <button type="button" id="btn-install" class="tuile" hidden>
+        <span class="tuile-ico" aria-hidden="true">📲</span><span class="tuile-lbl">Installer</span></button>
     </div>
     <p id="storage-status" class="menu-note"></p>
 
@@ -390,6 +408,18 @@
         Les cotations, positions et données factuelles sont réutilisées ;
         les descriptions et photos restent propres à l'application ou proviennent de Wikimedia Commons.</p>
     </section>
+  </dialog>
+
+  <!-- Fréquentation anonyme : combien de personnes utilisent la carte
+       (js/frequentation.js + supabase/frequentation-schema.sql) -->
+  <dialog id="frequentation-dialog" aria-labelledby="freq-title">
+    <h2 id="freq-title">📊 Fréquentation</h2>
+    <div class="freq-stats"></div>
+    <p class="menu-note">Compteur anonyme : un identifiant aléatoire par navigateur,
+      aucun nom, aucune position, aucune IP (voir docs/FREQUENTATION.md).</p>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-secondary freq-close">Fermer</button>
+    </div>
   </dialog>
 
   <!-- Choix du fond de carte (remplace le sélecteur Leaflet posé sur la carte) -->

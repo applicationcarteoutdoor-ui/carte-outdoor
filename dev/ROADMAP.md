@@ -62,6 +62,17 @@ Tenue par l'agent **chef-de-projet** (`.claude/agents/chef-de-projet.md`). Derni
 - [x] **Toilettes + fontaines pour TOUS les pays** : IT 10 211/79 138 · ES 7 404/60 144 · CH 6 588/18 023 · NZ 4 562/1 957 (`recolter_sanitaires_pays.py`) ; `pays.couchesLourdes` = table id→fichier, `chargerCouche()` générique, FAB 🚻 partout.
 - [ ] Reste : catégorie `randonnee` sans photos pour CH/IT/ES (limite photos libres) ; toilettes FRANCE à re-récolter avec filtre d'aire (points allemands/suisses dans le fichier — tâche proposée).
 
+## v68 (2026-07-17) — Habillage « app », fréquentation, QC, perf
+
+- [x] **📊 Fréquentation anonyme** (« combien utilisent ma carte ? ») : ping Supabase UUID aléatoire + totaux en ce moment/aujourd'hui/7 j dans ⚙️ Réglages. **SQL à exécuter par l'utilisateur** : supabase/frequentation-schema.sql (guide docs/FREQUENTATION.md).
+- [x] **Page de garde refondue** : cartes pays façon téléphone + UN bouton communauté 🧩 ; **bouton maison** (SpotMap 🌍 → carte du monde) ; **⚙️ Réglages en grille de tuiles 3/ligne** ; **tuto refondu** (11 étapes, émoji, points de progression).
+- [x] **Communauté 3 volets** : Explorer (vignettes calques colorées) / Partager / **Mes partages avec suivi** (envoyée → relecture → publiée/refusée, retrait possible).
+- [x] **QC données 5 pays** (agent, rapport dev/RAPPORT-QC-DONNEES-2026-07-17.md : verdict BON, 431 536 points contrôlés) + corrections : 68 vignettes Wikimedia cassées réparées (tools/normaliser_vignettes.py + garde-fou au build), 6 cotations VF normalisées K, liens morts es-mus-3451/nz-cult-0198/cult-2195, retraits nz-cath-0016 (Îles Cook) et 2 « musées » Kerguelen.
+- [x] **Perf** : mesures (boot FR 117 ms local, 0 longtask en interaction à 79 k points, pire gel 237 ms au parse) + tranches adaptatives setPoints (grosse couche complète ~2× plus vite).
+- [x] Test de bout en bout par l'agent testeur (rapport dev/RAPPORT-TEST-2026-07-17.md) : **0 bug d'UI**, 3 trouvailles corrigées dans la foulée (noms « en phrase » à point final — nettoyés au build avec garde anti-abréviation ; descriptions boucles Tre Cime/Odle recadrées sur le tracé réel ; message Fréquentation grand public) + recherche par mots-clés (« Tour du Lac Blanc » trouve « Lac Blanc »).
+- [ ] ⚠️ **URGENT (action utilisateur)** : le domaine Supabase `xwrqqhvqyccgtkslexbu.supabase.co` ne résout plus (NXDOMAIN vérifié 2 fois) → sync, communauté et fréquentation MORTS aussi en production. Vérifier le tableau de bord Supabase (projet en pause ? supprimé ?) — un projet gratuit inactif est mis en pause et se réveille en un clic ; s'il a été supprimé, en recréer un et mettre à jour `js/config/supabase.js` + rejouer les 2 SQL (communaute + frequentation).
+- [ ] Ergonomie (retours testeur, à trancher) : le 🗑 du carnet laisse le ✓ Fait (la page « revient » en Date inconnue — proposer de retirer aussi le statut ?) ; l'auto-cochage de catégorie à l'ouverture d'une fiche s'accumule sans bruit (décocher au retour ou toast) ; compteur de couverture du carnet à confirmer (sorties vs notes orphelines).
+
 ## Étape 2 — 📋 Publier sur le Play Store
 
 Guide existant : `docs/PLAYSTORE.md` (TWA/PWABuilder). Reste à faire :

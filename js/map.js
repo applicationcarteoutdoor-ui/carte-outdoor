@@ -237,15 +237,19 @@ export function setPoints(features, statuses) {
   const triees = [...features].sort((a, b) => d2(a) - d2(b));
 
   const generation = generationSetPoints;
-  const TRANCHE = 1500;
+  // Tranche adaptative : la zone regardée arrive vite (petites tranches au
+  // début = premier rendu ~instantané), le reste s'épaissit (grandes tranches
+  // = une couche de 79 000 points est complète en ~1,5 s sans à-coups).
+  const tranchePour = (fait) => (fait < 6000 ? 1500 : 4000);
   let i = 0;
   const ajouterTranche = () => {
     if (generation !== generationSetPoints) return; // remplacé entre-temps
+    const tranche = tranchePour(i);
     clusterGroup.addLayers(
-      triees.slice(i, i + TRANCHE).map((f) => obtenirMarqueur(f, statuses[f.properties.id]))
+      triees.slice(i, i + tranche).map((f) => obtenirMarqueur(f, statuses[f.properties.id]))
     );
-    i += TRANCHE;
-    if (i < triees.length) setTimeout(ajouterTranche, 60);
+    i += tranche;
+    if (i < triees.length) setTimeout(ajouterTranche, 45);
   };
   ajouterTranche();
 }

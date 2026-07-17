@@ -96,7 +96,28 @@ h2, h3, h4 { font-weight: 650; }
 }
 
 .sidebar-logo { width: 34px; height: 34px; border-radius: 9px; }
-.sidebar-title { flex: 1; font-size: 1.08rem; font-weight: 700; }
+.sidebar-title { font-size: 1.08rem; font-weight: 700; }
+
+/* Le logo/titre est un BOUTON : il rouvre la carte du monde (changer de pays) */
+.sidebar-home {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background .15s;
+}
+.sidebar-home:hover, .sidebar-home:focus-visible { background: var(--hover, rgba(45, 106, 79, .08)); }
+.sidebar-globe { margin-left: auto; font-size: 1.05rem; opacity: .8; }
+.sidebar-home:hover .sidebar-globe { opacity: 1; }
 
 .cat-list {
   flex: 1;
@@ -150,9 +171,53 @@ h2, h3, h4 { font-weight: 650; }
 .btn-settings { font-size: 1.2rem; }
 .app-version { flex: 1; margin: 0; text-align: right; font-size: 0.74rem; color: var(--text-2); }
 
-/* Menu ⚙️ Réglages : import/export, installation, mise à jour */
-.settings-list { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; min-width: min(320px, 74vw); }
-.settings-list .btn { min-height: 44px; }
+/* Menu ⚙️ Réglages : écran façon téléphone — tuiles d'icônes, 3 par ligne */
+.settings-list { margin-top: 6px; min-width: min(320px, 74vw); }
+.settings-grille {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.tuile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 82px;
+  padding: 10px 6px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg-2, rgba(45, 106, 79, .05));
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: transform .12s, box-shadow .12s, border-color .12s;
+}
+.tuile:hover, .tuile:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .12);
+}
+.tuile:active { transform: scale(.96); }
+.tuile-ico { font-size: 1.65rem; line-height: 1; }
+.tuile-lbl { font-size: .74rem; font-weight: 600; text-align: center; line-height: 1.15; }
+body.mode-nuit .tuile { background: rgba(255, 255, 255, .05); }
+body.mode-nuit .tuile:hover { box-shadow: 0 6px 16px rgba(0, 0, 0, .4); }
+
+/* 📊 Fréquentation : trois grands compteurs */
+.freq-tuiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 8px 0 4px; }
+.freq-tuile {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 12px 6px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-2, rgba(45, 106, 79, .05));
+}
+.freq-tuile strong { font-size: 1.5rem; line-height: 1; color: var(--accent); }
+.freq-tuile span { font-size: .72rem; color: var(--text-2); text-align: center; }
 
 /* Section « Compte & synchronisation » (js/sync.js) */
 .sync-section { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
@@ -1080,20 +1145,65 @@ dialog .panel-header { padding: 0 0 4px; }
 
 .tuto-card {
   position: fixed;
-  width: min(360px, calc(100vw - 24px));
+  width: min(370px, calc(100vw - 24px));
   background: var(--surface);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 16px 18px;
+  border-radius: 18px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .3);
+  border: 1px solid var(--border);
+  padding: 14px 18px 12px;
+  overflow: hidden;
+}
+/* liseré d'accent en haut de la carte */
+.tuto-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent), #0a9396);
 }
 
 .tuto-card-centre { top: 50%; left: 50% !important; transform: translate(-50%, -50%); }
-.tuto-card h2 { margin: 0 0 8px; font-size: 1.05rem; }
+.tuto-entete { display: flex; align-items: center; gap: 10px; margin: 4px 0 8px; }
+.tuto-emoji {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  font-size: 1.35rem;
+  border-radius: 13px;
+  background: rgba(45, 106, 79, .12);
+}
+body.mode-nuit .tuto-emoji { background: rgba(10, 147, 150, .2); }
+.tuto-card h2 { margin: 0; font-size: 1.05rem; }
 .tuto-card p { margin: 0 0 10px; line-height: 1.5; font-size: 0.92rem; }
-.tuto-progress { font-size: 0.78rem; color: var(--text-2); margin-bottom: 8px; }
-.tuto-actions { display: flex; justify-content: space-between; gap: 8px; }
+
+/* points de progression (remplacent le « 3 / 11 ») */
+.tuto-dots { display: flex; gap: 5px; margin-bottom: 10px; }
+.tuto-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background .2s, transform .2s;
+}
+.tuto-dot.fait { background: rgba(45, 106, 79, .45); }
+.tuto-dot.actif { background: var(--accent); transform: scale(1.35); }
+
+.tuto-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .tuto-nav { display: flex; gap: 8px; }
 .tuto-actions .btn { min-height: 40px; padding: 6px 14px; }
+.tuto-skip {
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: .85rem;
+  color: var(--text-2);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 6px 4px;
+}
+.tuto-skip:hover { color: var(--text); }
 
 /* --------------------------------------------------------------------------
    Petit écran : tiroir des catégories plus compact, filtres par-dessus
@@ -1341,40 +1451,61 @@ body.mode-nuit .import-errors { background: #3a2326; border-color: #5c3438; colo
 #pays-monde .leaflet-container { background: transparent; font: inherit; }
 
 .pays-pied { padding: 10px 14px calc(12px + env(safe-area-inset-bottom)); text-align: center; }
+
+/* Rangée d'« applis » : une carte par pays, défilement horizontal fluide sur
+   mobile (façon écran d'accueil de téléphone), centrée sur grand écran. */
 .pays-liste {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  justify-content: safe center;
   gap: 10px;
+  overflow-x: auto;
+  padding: 6px 2px 8px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
 }
 .pays-choix {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 16px;
-  border: 2px solid rgba(53, 196, 160, .5);
-  border-radius: 999px;
-  background: rgba(9, 34, 28, .55);
+  flex: none;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  width: 118px;
+  padding: 12px 8px 10px;
+  border: 1px solid rgba(53, 196, 160, .35);
+  border-radius: 20px;
+  background: linear-gradient(170deg, rgba(23, 58, 48, .85), rgba(9, 34, 28, .85));
   cursor: pointer;
   font: inherit;
   color: #eef4f0;
+  scroll-snap-align: center;
   transition: border-color .15s, transform .15s, box-shadow .15s;
 }
 .pays-choix:hover, .pays-choix:focus-visible {
   border-color: #35c4a0;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(53, 196, 160, .3);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(53, 196, 160, .25);
 }
-.pays-drapeau { font-size: 1.4rem; line-height: 1; }
-.pays-infos { display: grid; text-align: left; }
-.pays-nom { font-weight: 700; }
-.pays-desc { font-size: .72rem; color: #b9cdc2; max-width: 300px; }
+.pays-choix:active { transform: scale(.96); }
+.pays-drapeau {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  font-size: 1.75rem;
+  line-height: 1;
+  border-radius: 16px;
+  background: rgba(53, 240, 190, .12);
+  border: 1px solid rgba(53, 240, 190, .3);
+}
+.pays-infos { display: grid; justify-items: center; gap: 2px; }
+.pays-nom { font-weight: 700; font-size: .86rem; }
+.pays-desc { display: none; } /* les cartes restent compactes : le détail vit dans la carte du monde */
 
 .pays-note { margin: 10px 0 0; font-size: .74rem; color: #93a8a0; }
 
 @media (max-width: 640px) {
-  .pays-desc { display: none; } /* boutons compacts : drapeau + nom */
   .pays-entete h1 { font-size: 1.35rem; }
+  .pays-liste { justify-content: safe start; }
+  .pays-choix { width: 104px; }
 }
 /* Points des pays sur la carte du monde : disponibles (verts, pulsants) et
    « bientôt » (ambrés, discrets). Le nom apparaît au survol (tooltip Leaflet). */
@@ -1419,20 +1550,29 @@ body.mode-nuit .import-errors { background: #3a2326; border-color: #5c3438; colo
 .pays-tooltip::before { display: none; } /* pas de flèche : plus net sur fond sombre */
 .pays-tooltip-dispo { border-color: #35f0be; color: #b8ffe9; }
 
-/* Boutons communauté de la page de garde */
-.pays-communaute { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 10px; }
+/* Bouton communauté UNIQUE de la page de garde */
+.pays-communaute { display: flex; justify-content: center; margin-top: 10px; }
 .btn-communaute {
-  padding: 7px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
   border-radius: 999px;
   border: 1px solid rgba(240, 179, 92, .5);
   background: rgba(46, 34, 12, .5);
   color: #f4dcb6;
   font: inherit;
-  font-size: .8rem;
+  font-size: .84rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: border-color .15s, transform .15s;
+  transition: border-color .15s, transform .15s, box-shadow .15s;
 }
-.btn-communaute:hover { border-color: #f0b35c; transform: translateY(-1px); }
+.btn-communaute:hover, .btn-communaute:focus-visible {
+  border-color: #f0b35c;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(240, 179, 92, .22);
+}
+.communaute-ico { font-size: 1.1rem; line-height: 1; }
 
 /* ------------------------------------------------------------------ */
 /* Dialogue des catégories communautaires                              */
@@ -1455,16 +1595,67 @@ body.mode-nuit .import-errors { background: #3a2326; border-color: #5c3438; colo
 .comm-carte {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 9px 10px;
+  gap: 12px;
+  padding: 10px 12px;
   border: 1px solid var(--border, #d7dbe0);
-  border-radius: 10px;
+  border-radius: 14px;
+  margin-bottom: 8px;
+  background: var(--bg-2, rgba(45, 106, 79, .04));
 }
-.comm-infos { display: grid; gap: 1px; min-width: 0; }
+.comm-infos { display: grid; gap: 2px; min-width: 0; flex: 1; }
 .comm-meta { font-size: .75rem; color: var(--muted, #667); }
 .comm-desc { font-size: .8rem; color: var(--muted, #667); }
 .comm-carte .btn { flex: none; }
+
+/* Vignette « calque » : pastille du thème posée sur deux feuilles décalées,
+   comme une pile de calques de carte */
+.comm-calque {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  background: var(--calque, #6c757d);
+  box-shadow:
+    3px 3px 0 -1px color-mix(in srgb, var(--calque, #6c757d) 55%, transparent),
+    6px 6px 0 -2px color-mix(in srgb, var(--calque, #6c757d) 30%, transparent);
+}
+.comm-calque-ico { font-size: 1.3rem; line-height: 1; filter: drop-shadow(0 1px 1px rgba(0,0,0,.3)); }
+
+/* Suivi d'avancement d'un partage : ① envoyée — ② relecture — ③ publiée */
+.suivi-etapes { display: flex; align-items: center; gap: 4px; margin: 5px 0 2px; }
+.suivi-etape { display: grid; justify-items: center; gap: 2px; }
+.suivi-point {
+  display: grid;
+  place-items: center;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  font-size: .68rem;
+  font-weight: 700;
+  background: var(--border, #d7dbe0);
+  color: var(--text-2, #667);
+}
+.suivi-lbl { font-size: .62rem; color: var(--text-2, #667); }
+.suivi-etape.fait .suivi-point,
+.suivi-etape.ok .suivi-point { background: #2d6a4f; color: #fff; }
+.suivi-etape.encours .suivi-point {
+  background: #f0b35c; color: #4a3413;
+  animation: suivi-pulse 1.6s ease-in-out infinite;
+}
+.suivi-etape.refus .suivi-point { background: #c1443c; color: #fff; }
+.suivi-trait { flex: none; width: 22px; height: 2px; border-radius: 2px; background: var(--border, #d7dbe0); margin-bottom: 12px; }
+.suivi-trait.fait { background: #2d6a4f; }
+.suivi-ok { color: #2d6a4f; font-weight: 600; }
+.suivi-encours { color: #a3701d; }
+.suivi-refus { color: #c1443c; }
+@keyframes suivi-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(240, 179, 92, .5); }
+  50% { box-shadow: 0 0 0 6px rgba(240, 179, 92, 0); }
+}
+@media (prefers-reduced-motion: reduce) { .suivi-etape.encours .suivi-point { animation: none; } }
+.comm-retirer { flex: none; font-size: 1rem; }
 #comm-partager textarea {
   width: 100%;
   font: inherit;

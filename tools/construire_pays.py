@@ -58,6 +58,46 @@ def entier(v):
     return int(m.group()) if m else None
 
 
+# Échelle autrichienne (Schall) parfois trouvée dans via_ferrata_scale à la
+# place de l'échelle K — équivalence usuelle. « 0 » = valeur vide déguisée.
+SCHALL_VERS_K = {"A": "K1", "B": "K2", "C": "K3", "D": "K4", "E": "K5", "F": "K6"}
+
+
+def normaliser_cotation(c):
+    """→ cotation K propre, ou None si inexploitable (« 0 »…)."""
+    c = (c or "").strip()
+    if not c or c == "0":
+        return None
+    morceaux = [SCHALL_VERS_K.get(x.strip().upper(), x.strip()) for x in c.split("/")]
+    return "/".join(morceaux)
+
+
+def nettoyer_nom(nom):
+    """Retire le point final des noms « en forme de phrase » (« Yvoire en
+    Haute-Savoie. ») en ÉPARGNANT les abréviations (« C.A.S. », « inf. »,
+    « 1260 m. » : dernier mot court ou à points internes)."""
+    n = nom.strip()
+    if n.endswith(".") and not n.endswith(".."):
+        dernier = n[:-1].split()[-1] if n[:-1].split() else ""
+        if "." not in dernier and len(dernier) > 3:
+            return n[:-1].rstrip()
+    return n
+
+
+RX_VIGNETTE = re.compile(r"^(https://upload\.wikimedia\.org/wikipedia/[^/]+)/thumb/(.+)/(\d+)px-[^/?#]+$")
+
+
+def vignette_sure(url):
+    """Wikimedia (2025+) n'accepte que des tailles de vignettes normalisées
+    (500/960/1280 vérifiées). Les tags OSM `image` charrient des /NNNpx-
+    arbitraires → HTTP 400 silencieux : on retombe sur l'ORIGINAL (toujours
+    valide). tools/normaliser_vignettes.py fait mieux (API) après coup."""
+    m = RX_VIGNETTE.match(url)
+    if m and int(m.group(3)) not in (500, 960, 1280):
+        return f"{m.group(1)}/{m.group(2)}"
+    return url
+
+
 def details_pour(cat, t):
     """FAITS des tags OSM -> details de fiche (mêmes clés que la France)."""
     d = {}
@@ -131,12 +171,17 @@ def construire(iso):
             if vfl:
                 links.append({"label": VF_LABELS[iso], "url": vfl["url"]})
             if (t.get("website") or "").startswith("http"):
-                links.append({"label": "🌐 Site officiel", "url": t["website"][:300]})
+                # les tags OSM charrient parfois des espaces parasites
+                links.append({"label": "🌐 Site officiel", "url": t["website"].replace(" ", "")[:300]})
             if w.get("wiki"):
                 links.append({"label": "🔗 Wikipédia", "url": w["wiki"]})
             links.append({"label": "🔎 Infos", "url": "https://www.google.com/search?q=" +
                           quote(f"{o['nom']} {cfg['recherche']}")})
             details = details_pour(cat, t)
+            if "cotation" in details:
+                c = normaliser_cotation(details["cotation"])
+                if c: details["cotation"] = c
+                else: details.pop("cotation")
             if vfl and vfl.get("k") and not details.get("cotation"):
                 details["cotation"] = vfl["k"]        # cotation K de deandar (fait)
             if (vfl or w.get("wiki")) and details.get("fiche") == "À vérifier":
@@ -144,13 +189,14 @@ def construire(iso):
             photos = [t["image"]] if t.get("image") else []
             if not photos and w.get("photo"):
                 photos = [w["photo"]]
+            photos = [vignette_sure(u) for u in photos]
             description = (t.get("description") or "")[:300] or w.get("description", "")
             feats.append({
                 "type": "Feature",
                 "geometry": {"type": "Point", "coordinates": [o["lon"], o["lat"]]},
                 "properties": {
                     "id": f"{iso}-{abr}-{n:04d}",
-                    "name": o["nom"],
+                    "name": nettoyer_nom(o["nom"]),
                     "theme": theme,
                     "description": description,
                     "links": links,

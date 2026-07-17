@@ -54,6 +54,7 @@ import { initOracle } from "./oracle.js";
 import { initSync, finaliserPopupAuth } from "./sync.js";
 import { initCarnet, exporterCarnetPDF, ouvrirCarnetPourPoint } from "./carnet.js";
 import { initPartage } from "./partage.js";
+import { initFrequentation, statsFrequentation } from "./frequentation.js";
 import { SUR_ANDROID, SUR_IOS } from "./config/platform.js";
 import { esc } from "./util.js";
 import { passeFiltre } from "./filtrage.js";
@@ -531,8 +532,16 @@ function initRecherche() {
 
     const requete = normaliser(brut);
     if (requete.length < 2) return;
+    // Recherche par MOTS-CLÉS : tous les mots présents, peu importe l'ordre
+    // (« Tour du Lac Blanc » trouve « Lac Blanc » et réciproquement).
+    // Les mots-outils d'une lettre ou deux (du, le, de…) ne filtrent pas.
+    const mots = requete.split(/\s+/).filter((m) => m.length > 2);
+    const cherche = mots.length ? mots : [requete];
     const trouves = state.allPoints
-      .filter((f) => normaliser(f.properties.name).includes(requete))
+      .filter((f) => {
+        const nom = normaliser(f.properties.name);
+        return cherche.every((m) => nom.includes(m));
+      })
       .slice(0, 12);
     for (const f of trouves) {
       const theme = getTheme(f.properties.theme);
@@ -837,11 +846,31 @@ function initReglages() {
   dlg.querySelector(".settings-close").addEventListener("click", () => dlg.close());
   // Chaque action referme le menu (l'import ouvre un sélecteur de fichier,
   // l'installation son propre dialogue, la vérification un toast…)
-  for (const bouton of dlg.querySelectorAll(".settings-list .btn")) {
+  for (const bouton of dlg.querySelectorAll(".settings-list button")) {
     bouton.addEventListener("click", () => dlg.close());
   }
   document.getElementById("btn-update").addEventListener("click", verifierMiseAJour);
   document.getElementById("btn-export-pdf").addEventListener("click", exporterCarnetPDF);
+
+  // 📊 Fréquentation : totaux anonymes (voir js/frequentation.js)
+  const freqDlg = document.getElementById("frequentation-dialog");
+  freqDlg.querySelector(".freq-close").addEventListener("click", () => freqDlg.close());
+  document.getElementById("btn-frequentation").addEventListener("click", async () => {
+    const zone = freqDlg.querySelector(".freq-stats");
+    zone.innerHTML = `<p class="menu-note">Chargement…</p>`;
+    freqDlg.showModal();
+    const s = await statsFrequentation();
+    zone.innerHTML = s
+      ? `<div class="freq-tuiles">
+           <div class="freq-tuile"><strong>${Number(s.maintenant) || 0}</strong><span>en ce moment</span></div>
+           <div class="freq-tuile"><strong>${Number(s.aujourdhui) || 0}</strong><span>aujourd'hui</span></div>
+           <div class="freq-tuile"><strong>${Number(s.semaine) || 0}</strong><span>sur 7 jours</span></div>
+         </div>`
+      : `<p class="menu-note">Le compteur arrive bientôt 🙂</p>`;
+    // Détail pour le propriétaire (sans jargon à l'écran) : activer = exécuter
+    // supabase/frequentation-schema.sql — guide docs/FREQUENTATION.md.
+    if (!s) console.info("Fréquentation : exécuter supabase/frequentation-schema.sql (docs/FREQUENTATION.md).");
+  });
 }
 
 /** Mode nuit de l'application : couleurs sombres + tuiles de carte
@@ -851,7 +880,9 @@ function initModeNuit(prefs) {
   let actif = prefs.modeNuit === true;
   const appliquer = () => {
     document.body.classList.toggle("mode-nuit", actif);
-    bouton.textContent = actif ? "☀️ Mode jour" : "🌙 Mode nuit";
+    // Tuile des Réglages : icône + libellé séparés
+    bouton.querySelector(".tuile-ico").textContent = actif ? "☀️" : "🌙";
+    bouton.querySelector(".tuile-lbl").textContent = actif ? "Mode jour" : "Mode nuit";
   };
   appliquer();
   bouton.addEventListener("click", () => {
@@ -1153,8 +1184,8 @@ function choisirPays(annulable = false) {
       btn.className = "pays-choix";
       btn.innerHTML =
         `<span class="pays-drapeau" aria-hidden="true">${esc(p.drapeau)}</span>` +
-        `<span class="pays-infos"><span class="pays-nom">${esc(p.label)}</span>` +
-        `<span class="pays-desc">${esc(p.sousTitre)}</span></span>`;
+        `<span class="pays-infos"><span class="pays-nom">${esc(p.label)}</span></span>`;
+      btn.title = p.sousTitre; // le détail vit en infobulle (cartes compactes)
       btn.addEventListener("click", () => terminer(p.id));
       liste.appendChild(btn);
     }
@@ -1168,20 +1199,18 @@ function choisirPays(annulable = false) {
     }
     overlay.hidden = false;
 
-    // Boutons communauté de la page de garde (onclick assigné : choisirPays
+    // Bouton communauté de la page de garde (onclick assigné : choisirPays
     // peut être rappelée, pas d'écouteurs empilés). Au tout premier boot le
-    // choix du pays reste prioritaire ; depuis les Réglages (annulable), on
-    // referme la page de garde et on ouvre la communauté.
-    for (const [bid, volet] of [["pays-btn-partager", "partager"], ["pays-btn-importer", "explorer"]]) {
-      document.getElementById(bid).onclick = () => {
-        if (!annulable) {
-          toast("Choisissez d'abord votre pays 🙂");
-          return;
-        }
-        terminer(null);
-        ouvrirCommunaute(volet);
-      };
-    }
+    // choix du pays reste prioritaire ; ensuite (annulable), on referme la
+    // page de garde et on ouvre la communauté.
+    document.getElementById("pays-btn-communaute").onclick = () => {
+      if (!annulable) {
+        toast("Choisissez d'abord votre pays 🙂");
+        return;
+      }
+      terminer(null);
+      ouvrirCommunaute("explorer");
+    };
 
     // La carte du monde (après l'affichage : Leaflet doit mesurer le conteneur)
     const parIso = {};
@@ -1519,16 +1548,21 @@ async function demarrer() {
   });
   initInstallation();
   initReglages();
-  // « 🗺️ Changer de pays » (Réglages) : rouvre la page de garde ; un choix
+  // « 🗺️ Changer de pays » (Réglages) et logo/titre SpotMap (bouton 🌍 du
+  // panneau) : rouvrent la page de garde — la carte du monde ; un choix
   // différent recharge la page (ré-init complète : données, vue, catégories).
-  document.getElementById("btn-pays").addEventListener("click", async () => {
-    document.getElementById("settings-dialog").close();
+  const ouvrirMonde = async () => {
     const choix = await choisirPays(true);
     if (choix && choix !== pays.id) {
       definirPays(choix);
       location.reload();
     }
+  };
+  document.getElementById("btn-pays").addEventListener("click", () => {
+    document.getElementById("settings-dialog").close();
+    ouvrirMonde();
   });
+  document.getElementById("btn-home").addEventListener("click", ouvrirMonde);
 
   // Catégories COMMUNAUTAIRES : partager les siennes / importer celles des
   // autres (js/communaute.js). L'import écrit les points comme des points
@@ -1559,6 +1593,7 @@ async function demarrer() {
   });
   initModeNuit(prefs);
   initProtectionDonnees(prefs, premiereVisite);
+  initFrequentation(); // ping de présence anonyme (silencieux)
   afficherVersion();
   initCarnet({
     // Carnet COMMUN : points du pays courant + ceux des autres pays (chargés

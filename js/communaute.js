@@ -56,7 +56,7 @@ async function requeter(url, options) {
 
 async function listerValidees() {
   const res = await requeter(
-    `${REST}?select=id,nom,description,pays,nb_points,telechargements,cree` +
+    `${REST}?select=id,nom,description,pays,nb_points,telechargements,cree,theme:donnees->theme` +
       `&statut=eq.validee&order=telechargements.desc,cree.desc&limit=100`,
     { headers: entetes() }
   );
@@ -65,6 +65,29 @@ async function listerValidees() {
     throw new Error(`serveur (${res.status})`);
   }
   return res.json();
+}
+
+/** Mes soumissions (RLS : l'auteur voit les siennes, quel que soit le statut). */
+async function listerMesSoumissions(session) {
+  const res = await requeter(
+    `${REST}?select=id,nom,statut,nb_points,telechargements,cree,theme:donnees->theme` +
+      `&auteur=eq.${encodeURIComponent(session.userId)}&order=cree.desc&limit=50`,
+    { headers: entetes(session.token) }
+  );
+  if (!res.ok) {
+    if (serveurAbsent(res)) throw new Error("indisponible");
+    throw new Error(`serveur (${res.status})`);
+  }
+  return res.json();
+}
+
+/** Retire une de MES soumissions (policy `retirer_sa_soumission`). */
+async function retirerSoumission(id, session) {
+  const res = await requeter(`${REST}?id=eq.${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: entetes(session.token),
+  });
+  if (!res.ok) throw new Error(`serveur (${res.status})`);
 }
 
 async function telechargerColis(id) {
@@ -198,6 +221,15 @@ function drapeauPays(id) {
   return PAYS[id]?.drapeau || "🌍";
 }
 
+/** Vignette « calque » d'une catégorie : pastille colorée + icône du thème
+ *  (le thème vient du serveur → couleurs contrôlées avant usage). */
+function vignetteCalque(theme) {
+  const couleur = /^#[0-9a-fA-F]{3,8}$/.test(theme?.color || "") ? theme.color : "#6c757d";
+  const icone = String(theme?.icon || "📍").slice(0, 8);
+  return `<span class="comm-calque" style="--calque:${couleur}" aria-hidden="true">
+    <span class="comm-calque-ico">${esc(icone)}</span></span>`;
+}
+
 async function rendreExplorer() {
   const zone = dialog.querySelector("#comm-explorer");
   zone.innerHTML = `<p class="menu-note">Chargement…</p>`;
@@ -222,6 +254,7 @@ async function rendreExplorer() {
       const deja = cb.estImportee?.(`comm-${c.id.slice(0, 8)}`);
       return `
       <div class="comm-carte">
+        ${vignetteCalque(c.theme)}
         <div class="comm-infos">
           <strong>${drapeauPays(c.pays)} ${esc(c.nom)}</strong>
           <span class="comm-meta">${c.nb_points} point(s) · ${c.telechargements} import(s)</span>
@@ -300,6 +333,7 @@ async function rendrePartager() {
         await soumettre(colis, session);
         btn.textContent = "✓ Envoyée";
         toast("Merci ! Votre catégorie est en file de relecture — publiée après validation.");
+        basculerVolet("suivi"); // montre tout de suite l'avancement
       } catch (e) {
         btn.disabled = false;
         btn.textContent = "🌍 Partager";
@@ -313,14 +347,92 @@ async function rendrePartager() {
   );
 }
 
+/** Volet « Mes partages » : chaque soumission avec son AVANCEMENT
+ *  (① envoyée → ② en relecture → ③ publiée / refusée) et un bouton de retrait. */
+async function rendreSuivi() {
+  const zone = dialog.querySelector("#comm-suivi");
+  const session = await sessionCommunaute();
+  if (!session) {
+    zone.innerHTML = `
+      <p class="menu-note">Connectez-vous pour suivre vos catégories partagées
+        (envoi → relecture → publication).</p>
+      <button type="button" class="btn btn-primary" id="comm-connexion-suivi">Se connecter avec Google</button>`;
+    zone.querySelector("#comm-connexion-suivi").addEventListener("click", () => demanderConnexion());
+    return;
+  }
+  zone.innerHTML = `<p class="menu-note">Chargement…</p>`;
+  let liste;
+  try {
+    liste = await listerMesSoumissions(session);
+  } catch (e) {
+    zone.innerHTML =
+      e.message === "indisponible"
+        ? `<p class="menu-note">La bibliothèque communautaire n'est pas encore ouverte — bientôt !</p>`
+        : `<p class="menu-note">Suivi injoignable (${esc(e.message)}). Réessayez plus tard.</p>`;
+    return;
+  }
+  if (!liste.length) {
+    zone.innerHTML = `<p class="menu-note">Vous n'avez encore rien partagé.
+      Depuis l'onglet 📤 Partager, offrez une de vos catégories à la communauté !</p>`;
+    return;
+  }
+  const ETAPES_SUIVI = {
+    en_attente: { pas: 2, texte: "En relecture — publiée après validation", classe: "encours" },
+    validee: { pas: 3, texte: "Publiée ! Visible par toute la communauté 🎉", classe: "ok" },
+    refusee: { pas: 3, texte: "Refusée après relecture (contenu, données ou droits)", classe: "refus" },
+  };
+  zone.innerHTML = liste
+    .map((c) => {
+      const s = ETAPES_SUIVI[c.statut] || ETAPES_SUIVI.en_attente;
+      const etape = (n, label) => `
+        <span class="suivi-etape ${n < s.pas ? "fait" : n === s.pas ? s.classe : ""}">
+          <span class="suivi-point">${n < s.pas ? "✓" : n === s.pas && s.classe === "ok" ? "✓" : n === s.pas && s.classe === "refus" ? "✕" : n}</span>
+          <span class="suivi-lbl">${label}</span>
+        </span>`;
+      return `
+      <div class="comm-carte comm-carte-suivi">
+        ${vignetteCalque(c.theme)}
+        <div class="comm-infos">
+          <strong>${esc(c.nom)}</strong>
+          <span class="comm-meta">${c.nb_points} point(s)${c.statut === "validee" ? ` · ${c.telechargements} import(s)` : ""}</span>
+          <span class="suivi-etapes">
+            ${etape(1, "Envoyée")}<span class="suivi-trait ${s.pas > 1 ? "fait" : ""}"></span>
+            ${etape(2, "Relecture")}<span class="suivi-trait ${s.pas > 2 ? "fait" : ""}"></span>
+            ${etape(3, c.statut === "refusee" ? "Refusée" : "Publiée")}
+          </span>
+          <span class="comm-desc suivi-${s.classe}">${s.texte}</span>
+        </div>
+        <button type="button" class="btn-icon comm-retirer" data-id="${esc(c.id)}"
+          title="Retirer ce partage" aria-label="Retirer ce partage">🗑️</button>
+      </div>`;
+    })
+    .join("");
+  zone.querySelectorAll(".comm-retirer").forEach((btn) =>
+    btn.addEventListener("click", async () => {
+      if (!(await confirmer("Retirer ce partage ? Il disparaîtra de la bibliothèque (les imports déjà faits restent chez les autres)."))) return;
+      btn.disabled = true;
+      try {
+        await retirerSoumission(btn.dataset.id, session);
+        toast("Partage retiré.");
+        rendreSuivi();
+      } catch (e) {
+        btn.disabled = false;
+        toast(`Retrait impossible : ${e.message}`);
+      }
+    })
+  );
+}
+
 function basculerVolet(volet) {
   dialog.querySelectorAll(".comm-onglet").forEach((o) =>
     o.classList.toggle("actif", o.dataset.volet === volet)
   );
   dialog.querySelector("#comm-explorer").hidden = volet !== "explorer";
   dialog.querySelector("#comm-partager").hidden = volet !== "partager";
+  dialog.querySelector("#comm-suivi").hidden = volet !== "suivi";
   if (volet === "explorer") rendreExplorer();
-  else rendrePartager();
+  else if (volet === "partager") rendrePartager();
+  else rendreSuivi();
 }
 
 /** Ouvre le dialogue communauté sur le volet demandé. */
