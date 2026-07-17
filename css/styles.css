@@ -139,41 +139,74 @@ h2, h3, h4 { font-weight: 650; }
 }
 .pack-tuile {
   position: relative;
-  display: grid;
-  justify-items: start;
-  gap: 3px;
-  padding: 10px 10px 8px;
   border: 1px solid var(--border);
   border-left: 4px solid var(--pack-color, var(--accent));
   border-radius: 14px;
   background: var(--bg-2, rgba(45, 106, 79, .05));
-  font: inherit;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
   transition: transform .12s, box-shadow .12s, border-color .12s;
 }
-.pack-tuile:hover, .pack-tuile:focus-visible {
+.pack-tuile:hover, .pack-tuile:focus-within {
   transform: translateY(-2px);
   border-color: var(--pack-color, var(--accent));
   box-shadow: 0 6px 14px rgba(0, 0, 0, .12);
 }
-.pack-tuile:active { transform: scale(.97); }
+/* tuile ACTIVE (au moins une catégorie du pack affichée) */
+.pack-tuile.pack-actif {
+  background: color-mix(in srgb, var(--pack-color, #2d6a4f) 12%, transparent);
+  border-color: var(--pack-color, var(--accent));
+}
+.pack-corps {
+  display: grid;
+  justify-items: start;
+  gap: 3px;
+  width: 100%;
+  padding: 10px 10px 8px;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 14px;
+}
+.pack-corps:active { transform: scale(.97); }
 .pack-ico { font-size: 1.45rem; line-height: 1; }
 .pack-nom { font-weight: 700; font-size: .85rem; line-height: 1.15; }
 .pack-compte { font-size: .72rem; color: var(--text-2); }
 .pack-cochees {
   position: absolute;
   top: 6px;
-  right: 8px;
+  right: 28px;
   font-size: .68rem;
   font-weight: 700;
   padding: 1px 7px;
   border-radius: 999px;
   background: var(--pack-color, var(--accent));
   color: #fff;
+  pointer-events: none;
 }
+/* ▸ entrer dans le pack / ▲▼ mode ↕ Organiser */
+.pack-ouvrir {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: .95rem;
+  color: var(--text-2);
+}
+.pack-ouvrir:hover { color: var(--text); }
+.pack-ordre {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: grid;
+  gap: 0;
+}
+.pack-ordre .btn-icon { padding: 0 4px; font-size: .8rem; line-height: 1.15; }
+.pack-action.actif { border-style: solid; border-color: var(--accent); color: var(--accent); font-weight: 700; }
 body.mode-nuit .pack-tuile { background: rgba(255, 255, 255, .05); }
+body.mode-nuit .pack-tuile.pack-actif {
+  background: color-mix(in srgb, var(--pack-color, #0a9396) 22%, transparent);
+}
 
 .pack-actions { display: flex; gap: 6px; padding: 2px; }
 .pack-action {

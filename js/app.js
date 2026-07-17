@@ -53,7 +53,7 @@ import {
   ouvrirPack,
   retourAccueilPacks,
 } from "./sidebar.js";
-import { registerCustomPacks, setPackOverrides, packExists } from "./config/packs.js";
+import { registerCustomPacks, setPackOverrides, setOrdrePacks, packExists } from "./config/packs.js";
 import { initImportExport, toast, confirmer } from "./import-export.js";
 import { initGpx, setAllTracesVisible } from "./gpx.js";
 import { initAddPoint } from "./addpoint.js";
@@ -76,7 +76,7 @@ const state = {
   activeThemes: new Set(), // catégories cochées
   statusFilters: new Set(), // statuts cochés (vide = pas de filtre de suivi)
   filterSelections: {}, // { themeId: { filterKey: Set(valeurs) } }
-  filtersCollapsed: false,
+  filtersCollapsed: true, // v73 : les filtres ne s'imposent plus, bouton en haut-droit
   tracesVisible: true,
   grVisible: false,
 };
@@ -1138,9 +1138,12 @@ function restaurerPrefs(prefs) {
       state.filterSelections[theme][cle] = new Set(Array.isArray(valeurs) ? valeurs : []);
     }
   }
-  state.filtersCollapsed = prefs.filtersCollapsed === true;
+  // v73 : replié par défaut — le panneau des filtres ne s'ouvre que sur
+  // demande (bouton en haut à droite), jamais tout seul.
+  state.filtersCollapsed = prefs.filtersCollapsed !== false;
   state.tracesVisible = prefs.tracesVisible !== false;
   state.grVisible = prefs.grVisible === true;
+  setOrdrePacks(prefs.ordrePacks || []);
   // Navigation de la sidebar (v72) : accueil packs par défaut ; le pack
   // ouvert mémorisé est validé par packExists dans setSidebarVue.
   setSidebarVue(prefs.sidebarVue);
@@ -1429,10 +1432,40 @@ async function demarrer() {
         if (coucheLourde(id) && !(await chargerCouche(id))) {
           state.activeThemes.delete(id);
         }
-        if (getThemeFilters(id).length) state.filtersCollapsed = false;
+        // (v73 : le panneau des filtres ne s'ouvre plus tout seul — le
+        // bouton en haut à droite signale qu'ils existent.)
       }
       rafraichir();
     },
+    // Clic sur une TUILE de pack : afficher/masquer toutes ses catégories.
+    // Les couches volumineuses (toilettes, eau, musées…) gardent leur
+    // dialogue : elles ne se cochent jamais en masse.
+    onTogglePack: (ids, coche) => {
+      const lourdesIgnorees = [];
+      if (coche) {
+        for (const autre of [...state.activeThemes]) {
+          if (coucheLourde(autre)) state.activeThemes.delete(autre);
+        }
+        for (const id of ids) {
+          if (coucheLourde(id)) {
+            lourdesIgnorees.push(getTheme(id).label);
+            continue;
+          }
+          if (!state.activeThemes.has(id)) {
+            state.activeThemes.add(id);
+            delete state.filterSelections[id]; // filtres vierges, comme un cochage manuel
+          }
+        }
+        state.statusFilters.clear();
+        if (lourdesIgnorees.length) {
+          toast(`${lourdesIgnorees.join(" et ")} : à cocher individuellement (couche volumineuse).`);
+        }
+      } else {
+        for (const id of ids) state.activeThemes.delete(id);
+      }
+      rafraichir();
+    },
+    onOrdrePacks: (ids) => storage.savePrefs({ ordrePacks: ids }),
     onToggleStatus: (statut, coche) => {
       coche ? state.statusFilters.add(statut) : state.statusFilters.delete(statut);
       // Mode suivi : n'afficher QUE les points suivis → décoche les catégories

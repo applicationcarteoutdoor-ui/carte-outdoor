@@ -23,21 +23,23 @@
  *    arbre-remarquable (cf. feuille de route V2-V5).
  */
 
+// Contenus VALIDÉS par l'utilisateur (v73) — les ids de packs restent stables
+// même quand le label change (nature → « Eau », road-trip → « Services »).
 export const PACKS = [
   {
     id: "montagne",
     label: "Montagne",
     icon: "🏔️",
     color: "#2d6a4f",
-    categories: ["randonnee", "via-ferrata", "escalade", "canyon", "grotte",
-                 "refuge", "sommet-croix", "col-mythique"],
+    categories: ["randonnee", "via-ferrata", "escalade", "grotte", "refuge",
+                 "sommet-croix", "col-mythique"],
   },
   {
     id: "nature",
-    label: "Nature & eau",
-    icon: "🌿",
+    label: "Eau",
+    icon: "💧",
     color: "#0096c7",
-    categories: ["cascade", "lac", "eau", "ciel-etoile"],
+    categories: ["cascade", "canyon", "lac", "eau"],
   },
   {
     id: "culture",
@@ -48,7 +50,7 @@ export const PACKS = [
   },
   {
     id: "road-trip",
-    label: "Road trip & services",
+    label: "Services",
     icon: "🚐",
     color: "#606c38",
     categories: ["camping", "toilettes", "eau", "refuge", "cite-caractere"],
@@ -67,15 +69,30 @@ export const PACK_MES_CATEGORIES = {
 
 let customPacks = [];
 let packOverrides = {};
+let ordrePacks = []; // ordre d'affichage des TUILES choisi par l'utilisateur (pref)
 
 /** Enregistre les packs créés par l'utilisateur (au boot, après lecture). */
 export function registerCustomPacks(liste) {
   customPacks = (liste || []).map((p) => ({ categories: [], ...p }));
 }
 
-/** Tous les packs affichables, par défaut d'abord (ordre de déclaration). */
+/** Mémorise l'ordre d'affichage des packs (l'utilisateur place ses tuiles). */
+export function setOrdrePacks(liste) {
+  ordrePacks = Array.isArray(liste) ? liste : [];
+}
+
+export function getOrdrePacks() {
+  return [...ordrePacks];
+}
+
+/** Tous les packs affichables, dans l'ORDRE choisi par l'utilisateur
+ *  (les packs absents de sa liste s'ajoutent à la suite, ordre d'usine). */
 export function allPacks() {
-  return [...PACKS, ...customPacks];
+  const tous = [...PACKS, ...customPacks];
+  if (!ordrePacks.length) return tous;
+  const rang = new Map(ordrePacks.map((id, i) => [id, i]));
+  return tous.slice().sort((a, b) =>
+    (rang.has(a.id) ? rang.get(a.id) : 999) - (rang.has(b.id) ? rang.get(b.id) : 999));
 }
 
 function baseDe(id) {

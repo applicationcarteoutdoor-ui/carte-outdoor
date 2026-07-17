@@ -102,6 +102,14 @@ Tenue par l'agent **chef-de-projet** (`.claude/agents/chef-de-projet.md`). Derni
 - Feuille de route V2→V5 actée : profils Supabase (serveur direct) → communauté → IA road-trip/intégrations → expansion+i18n (plan détaillé : .claude/plans, décisions transverses posées).
 - Test v72 : l'agent testeur est mort sur le plafond de dépense mensuel → **test repris en direct par la session principale** (accueil/drill-down/liste complète, pack perso + ▲▼, ✎ pack par défaut + Réinitialiser, exclusivité toilettes, persistance + #pack=/#cat=, tuto 12 étapes, boots FR/NZ/LU, 35/35, 0 erreur console).
 
+## v73 (2026-07-17) — Retours utilisateur sur les packs
+
+- [x] Contenus actés : 🏔️ Montagne = randonnée/VF/escalade/grotte/refuge (+ sommets à croix et cols mythiques en fin — à re-ranger si souhaité), 💧 **Eau** = cascade/canyon/lac/fontaines, 🏛️ Culture inchangée (ciel-etoile SORTI des packs, vit dans ☰ en attendant un choix), 🚐 **Services** (ex-Road trip).
+- [x] **Clic sur une tuile = tout afficher/masquer** (les couches volumineuses restent individuelles, toast) ; **▸ = entrer dans le pack** ; pastille « n ✓ » + tuile teintée quand actif.
+- [x] **Ordre DES PACKS** (bouton ↕ Organiser, ▲▼ sur les tuiles, pref ordrePacks) ; l'ordre des catégories DANS un pack suit désormais l'ordre standard (▲▼ retirés de l'éditeur).
+- [x] **Filtres discrets** : le panneau ne s'ouvre plus tout seul (replié par défaut, bouton en haut à droite).
+- [x] GR : inchangé, sous « Tracés » en bas de l'accueil des packs (jamais dans Montagne) — le tuto le dit désormais.
+
 ## Étape 2 — 📋 Publier sur le Play Store
 
 Guide existant : `docs/PLAYSTORE.md` (TWA/PWABuilder). Reste à faire :

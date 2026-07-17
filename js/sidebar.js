@@ -25,6 +25,7 @@ import {
   getPack,
   getDefaultPack,
   setPackOverrides,
+  setOrdrePacks,
   isCustomPack,
   packExists,
   PACK_MES_CATEGORIES,
@@ -271,12 +272,16 @@ function categoriesDuPack(packId, etat) {
   return ids.filter((id) => visibles.has(id));
 }
 
-/** Vue « accueil » : la grille des tuiles de packs. */
+let modeOrganiser = false; // ↕ : réordonner les TUILES de packs
+
+/** Vue « accueil » : la grille des tuiles de packs.
+ *  CLIC sur la tuile = afficher/masquer TOUT le pack (les couches volumineuses
+ *  restent à cocher individuellement — dialogue oblige) ; ▸ = entrer dedans. */
 function renderAccueilPacks(liste, etat) {
   const grille = document.createElement("div");
   grille.className = "pack-grid";
-  const packs = [...allPacks().map((p) => p.id), PACK_MES_CATEGORIES.id];
-  for (const packId of packs) {
+  const idsAffiches = [...allPacks().map((p) => p.id), PACK_MES_CATEGORIES.id];
+  for (const packId of idsAffiches) {
     const cats = categoriesDuPack(packId, etat);
     if (!cats.length) continue; // pack vide dans ce pays : masqué
     const pack = packId === PACK_MES_CATEGORIES.id ? PACK_MES_CATEGORIES : getPack(packId);
@@ -288,26 +293,39 @@ function renderAccueilPacks(liste, etat) {
       else total += c;
     }
     const nbCochees = cats.filter((id) => etat.activeThemes.has(id)).length;
-    const tuile = document.createElement("button");
-    tuile.type = "button";
-    tuile.className = "pack-tuile";
+    const tuile = document.createElement("div");
+    tuile.className = "pack-tuile" + (nbCochees ? " pack-actif" : "");
     tuile.style.setProperty("--pack-color", pack.color);
     tuile.innerHTML = `
-      <span class="pack-ico" aria-hidden="true">${esc(pack.icon)}</span>
-      <span class="pack-nom">${esc(pack.label)}</span>
-      <span class="pack-compte">${charge ? total.toLocaleString("fr-FR") : total.toLocaleString("fr-FR") + "+"} lieux</span>
-      ${nbCochees ? `<span class="pack-cochees" title="${nbCochees} catégorie(s) affichée(s)">${nbCochees} ✓</span>` : ""}`;
-    tuile.addEventListener("click", () => ouvrirPack(packId));
+      <button type="button" class="pack-corps" title="${nbCochees ? "Masquer" : "Afficher"} tout le pack">
+        <span class="pack-ico" aria-hidden="true">${esc(pack.icon)}</span>
+        <span class="pack-nom">${esc(pack.label)}</span>
+        <span class="pack-compte">${charge ? total.toLocaleString("fr-FR") : total.toLocaleString("fr-FR") + "+"} lieux</span>
+      </button>
+      ${nbCochees ? `<span class="pack-cochees" title="${nbCochees} catégorie(s) affichée(s)">${nbCochees} ✓</span>` : ""}
+      ${modeOrganiser
+        ? `<span class="pack-ordre">
+             <button type="button" class="btn-icon pack-monter" title="Monter">▲</button>
+             <button type="button" class="btn-icon pack-descendre" title="Descendre">▼</button>
+           </span>`
+        : `<button type="button" class="btn-icon pack-ouvrir" title="Voir les catégories du pack" aria-label="Voir les catégories de ${esc(pack.label)}">▸</button>`}`;
+    // clic = tout afficher / tout masquer (bascule)
+    tuile.querySelector(".pack-corps").addEventListener("click", () =>
+      cb.onTogglePack?.(cats, nbCochees === 0));
+    tuile.querySelector(".pack-ouvrir")?.addEventListener("click", () => ouvrirPack(packId));
+    tuile.querySelector(".pack-monter")?.addEventListener("click", () => bougerPack(packId, -1));
+    tuile.querySelector(".pack-descendre")?.addEventListener("click", () => bougerPack(packId, 1));
     grille.appendChild(tuile);
   }
   liste.appendChild(grille);
 
-  // Actions sous la grille : liste complète + création de pack
+  // Actions sous la grille : liste complète, création, organisation
   const actions = document.createElement("div");
   actions.className = "pack-actions";
   actions.innerHTML = `
     <button type="button" class="pack-action pack-tout">☰ Toutes les catégories</button>
-    <button type="button" class="pack-action pack-creer">＋ Créer un pack</button>`;
+    <button type="button" class="pack-action pack-creer">＋ Créer un pack</button>
+    <button type="button" class="pack-action pack-organiser${modeOrganiser ? " actif" : ""}">${modeOrganiser ? "✓ Terminé" : "↕ Organiser"}</button>`;
   actions.querySelector(".pack-tout").addEventListener("click", () => {
     vueSidebar = { mode: "liste", packOuvert: null };
     renderSidebar(etatCourant);
@@ -315,6 +333,10 @@ function renderAccueilPacks(liste, etat) {
   });
   actions.querySelector(".pack-creer").addEventListener("click", () => {
     editionPack = "nouveau";
+    renderSidebar(etatCourant);
+  });
+  actions.querySelector(".pack-organiser").addEventListener("click", () => {
+    modeOrganiser = !modeOrganiser;
     renderSidebar(etatCourant);
   });
   liste.appendChild(actions);
@@ -325,6 +347,18 @@ function renderAccueilPacks(liste, etat) {
     liste.appendChild(zone);
     renderEditeurPack(zone, null, etat);
   }
+}
+
+/** Déplace une tuile dans l'ordre des packs (mode ↕ Organiser). */
+function bougerPack(packId, sens) {
+  const ids = allPacks().map((p) => p.id);
+  const i = ids.indexOf(packId);
+  const j = i + sens;
+  if (i < 0 || j < 0 || j >= ids.length) return;
+  [ids[i], ids[j]] = [ids[j], ids[i]];
+  setOrdrePacks(ids);
+  renderSidebar(etatCourant);
+  cb.onOrdrePacks?.(ids);
 }
 
 /** Vue « pack ouvert » : en-tête ← + les catégories du pack. */
@@ -369,23 +403,19 @@ function renderEditeurPack(zone, packId, etat) {
   const pack = creation
     ? { label: "", icon: "🧭", color: "#2d6a4f", categories: [] }
     : getPack(packId);
-  // ordre de travail : catégories du pack d'abord, puis le reste (décoché)
+  // Les catégories s'affichent dans l'ordre STANDARD de l'application —
+  // l'utilisateur choisit LESQUELLES, pas leur ordre (retour v73 : l'ordre,
+  // c'est pour les tuiles de packs, bouton ↕ Organiser de l'accueil).
   const visibles = categoriesVisibles(etat).map((d) => d.id);
-  const dansPack = (pack.categories || []).filter((id) => visibles.includes(id));
-  let ordre = [...dansPack, ...visibles.filter((id) => !dansPack.includes(id))];
-  const cochees = new Set(dansPack);
+  const cochees = new Set((pack.categories || []).filter((id) => visibles.includes(id)));
 
-  const lignesHtml = () => ordre.map((id) => {
+  const lignesHtml = () => visibles.map((id) => {
     const t = getTheme(id);
     return `
       <div class="pack-cat-ligne" data-id="${esc(id)}">
         <label><input type="checkbox" ${cochees.has(id) ? "checked" : ""}>
           <span class="group-icon" style="--pin-color:${t.color};--pin-text:${t.textColor}" aria-hidden="true">${t.icon}</span>
           ${esc(t.label)}</label>
-        <span class="pack-cat-ordre">
-          <button type="button" class="btn-icon cat-monter" title="Monter">▲</button>
-          <button type="button" class="btn-icon cat-descendre" title="Descendre">▼</button>
-        </span>
       </div>`;
   }).join("");
 
@@ -393,7 +423,7 @@ function renderEditeurPack(zone, packId, etat) {
     <label>Nom du pack <input type="text" class="edit-label" value="${esc(pack.label)}" maxlength="30" placeholder="Mon pack"></label>
     <label>Icône (emoji) <input type="text" class="edit-icon" value="${esc(pack.icon)}" maxlength="4"></label>
     <label>Couleur <input type="color" class="edit-color" value="${pack.color}"></label>
-    <p class="editor-note">Cochez les catégories du pack, ▲▼ règle leur ordre.</p>
+    <p class="editor-note">Cochez les catégories à inclure dans ce pack.</p>
     <div class="pack-cats">${lignesHtml()}</div>
     <div class="editor-actions">
       ${!creation && isCustomPack(packId)
@@ -404,26 +434,12 @@ function renderEditeurPack(zone, packId, etat) {
       <button type="button" class="btn edit-save">Enregistrer</button>
     </div>`;
 
-  const zoneCats = zone.querySelector(".pack-cats");
-  const recabler = () => {
-    zoneCats.querySelectorAll(".pack-cat-ligne").forEach((ligne) => {
-      const id = ligne.dataset.id;
-      ligne.querySelector("input").addEventListener("change", (e) => {
-        e.target.checked ? cochees.add(id) : cochees.delete(id);
-      });
-      ligne.querySelector(".cat-monter").addEventListener("click", () => bouger(id, -1));
-      ligne.querySelector(".cat-descendre").addEventListener("click", () => bouger(id, 1));
+  zone.querySelectorAll(".pack-cat-ligne input").forEach((input) => {
+    const id = input.closest(".pack-cat-ligne").dataset.id;
+    input.addEventListener("change", (e) => {
+      e.target.checked ? cochees.add(id) : cochees.delete(id);
     });
-  };
-  const bouger = (id, sens) => {
-    const i = ordre.indexOf(id);
-    const j = i + sens;
-    if (j < 0 || j >= ordre.length) return;
-    [ordre[i], ordre[j]] = [ordre[j], ordre[i]];
-    zoneCats.innerHTML = lignesHtml();
-    recabler();
-  };
-  recabler();
+  });
 
   zone.querySelector(".edit-annuler").addEventListener("click", () => {
     editionPack = null;
@@ -434,7 +450,7 @@ function renderEditeurPack(zone, packId, etat) {
     const label = zone.querySelector(".edit-label").value.trim() || "Mon pack";
     const icon = zone.querySelector(".edit-icon").value.trim() || "🧭";
     const color = zone.querySelector(".edit-color").value;
-    const categories = ordre.filter((id) => cochees.has(id));
+    const categories = visibles.filter((id) => cochees.has(id));
     if (!categories.length) return; // un pack vide n'a pas de sens
     if (creation || isCustomPack(packId)) {
       const packs = await storage.getCustomPacks();
