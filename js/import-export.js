@@ -464,9 +464,14 @@ async function exporter() {
  * booléen. Remplace le confirm() natif, silencieusement ignoré dans certains
  * contextes (PWA installée, dialogues bloqués par le navigateur, iframe).
  */
-export function confirmer(message) {
+export function confirmer(message, { ok = "Supprimer", danger = true } = {}) {
   const dlg = document.getElementById("confirm-dialog");
   dlg.querySelector(".confirm-message").textContent = message;
+  // Bouton d'action au LIBELLÉ de l'action (« Partager », « Retirer »…) :
+  // un « Supprimer » en dur pour valider un partage était incompréhensible.
+  const btnOk = dlg.querySelector(".confirm-ok");
+  btnOk.textContent = ok;
+  btnOk.classList.toggle("btn-danger", danger);
   dlg.showModal();
   return new Promise((resolve) => {
     const repondre = (ok) => {

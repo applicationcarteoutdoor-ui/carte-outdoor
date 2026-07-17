@@ -89,6 +89,11 @@ Tenue par l'agent **chef-de-projet** (`.claude/agents/chef-de-projet.md`). Derni
 - [x] Titre du dialogue communauté : 🌍 → **🧩** ; tuile « Changer de pays » : 🗺️ → **🌍** ; tuile « ✅ Mes lieux faits » retirée (doublon de la ligne « ✓ Fait » du panneau).
 - [ ] ⚠️ Action utilisateur : **schéma fréquentation toujours absent** (RPC 404) — exécuter supabase/frequentation-schema.sql (SQL redonné dans la conversation).
 
+## v71 (2026-07-17) — Boîte à idées + confirmation de partage
+
+- [x] **Boîte à idées** : le texte en cours de frappe part maintenant avec le ✉️ (il était perdu si on n'appuyait pas d'abord sur « Ajouter ») + copie presse-papiers de secours (des messageries Android ignorent le corps du mailto) + retours ligne \r\n.
+- [x] **Partage communauté** : le dialogue de confirmation affichait « Supprimer » comme seul bouton de validation (libellé en dur) → `confirmer(message, {ok, danger})`, boutons « 🌍 Partager » / « Retirer » explicites.
+
 ## Étape 2 — 📋 Publier sur le Play Store
 
 Guide existant : `docs/PLAYSTORE.md` (TWA/PWABuilder). Reste à faire :

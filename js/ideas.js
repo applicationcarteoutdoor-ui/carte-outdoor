@@ -8,6 +8,7 @@
  */
 
 import { esc } from "./util.js";
+import { toast } from "./import-export.js";
 
 const KEY = "carte-outdoor:idees";
 const EMAIL = "Applicationcarteoutdoor@gmail.com";
@@ -46,11 +47,28 @@ export function initIdeas() {
     render();
   });
 
-  dialog.querySelector(".ideas-mail").addEventListener("click", () => {
+  dialog.querySelector(".ideas-mail").addEventListener("click", async () => {
+    // Le texte EN COURS DE FRAPPE part aussi : l'utilisateur écrit puis touche
+    // directement ✉️ sans passer par « Ajouter » — il était perdu (vécu).
+    const champ = dialog.querySelector(".ideas-form textarea");
+    const enCours = champ.value.trim();
+    if (enCours) {
+      const idees = lireIdees();
+      idees.push({ date: new Date().toISOString(), text: enCours });
+      ecrireIdees(idees);
+      champ.value = "";
+      render();
+    }
     const idees = lireIdees();
     const corps = idees.length
-      ? idees.map((i) => `- [${i.date.slice(0, 10)}] ${i.text}`).join("\n")
+      ? idees.map((i) => `- [${i.date.slice(0, 10)}] ${i.text}`).join("\r\n")
       : "(aucune idée enregistrée)";
+    // Filet : certaines messageries (Android surtout) ouvrent le brouillon en
+    // ignorant le corps du mailto — le texte est donc AUSSI copié, prêt à coller.
+    try {
+      await navigator.clipboard.writeText(corps);
+      toast("Vos idées sont aussi copiées — collez-les si le mail arrive vide.");
+    } catch { /* presse-papiers refusé : le mailto reste tenté tel quel */ }
     location.href =
       `mailto:${EMAIL}?subject=${encodeURIComponent("Idées SpotMap")}` +
       `&body=${encodeURIComponent(corps)}`;

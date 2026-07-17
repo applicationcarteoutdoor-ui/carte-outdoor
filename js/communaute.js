@@ -353,7 +353,8 @@ async function rendrePartager() {
       const cat = cats.find((c) => c.id === btn.dataset.id);
       const description = zone.querySelector("#comm-description").value.trim();
       if (!(await confirmer(
-        `Partager « ${cat.label} » (${cat.nbPoints} points) ? Elle sera relue avant publication.`
+        `Partager « ${cat.label} » (${cat.nbPoints} points) ? Elle sera relue avant publication.`,
+        { ok: "🌍 Partager", danger: false }
       ))) return;
       btn.disabled = true;
       btn.textContent = "…";
@@ -440,7 +441,10 @@ async function rendreSuivi() {
     .join("");
   zone.querySelectorAll(".comm-retirer").forEach((btn) =>
     btn.addEventListener("click", async () => {
-      if (!(await confirmer("Retirer ce partage ? Il disparaîtra de la bibliothèque (les imports déjà faits restent chez les autres)."))) return;
+      if (!(await confirmer(
+        "Retirer ce partage ? Il disparaîtra de la bibliothèque (les imports déjà faits restent chez les autres).",
+        { ok: "Retirer" }
+      ))) return;
       btn.disabled = true;
       try {
         await retirerSoumission(btn.dataset.id, session);
