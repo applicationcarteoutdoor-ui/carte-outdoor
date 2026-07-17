@@ -233,6 +233,8 @@ async function collecterLocal() {
     tracks: await storage.getTracks(),
     customThemes: await storage.getCustomThemes(),
     themeOverrides: await storage.getThemeOverrides(),
+    customPacks: await storage.getCustomPacks(),
+    packOverrides: await storage.getPackOverrides(),
     carnetTheme: carnetTheme || undefined,
   };
 }
@@ -252,6 +254,14 @@ async function appliquerDistant(d) {
   }
   if (d.themeOverrides) {
     await storage.saveThemeOverrides({ ...(await storage.getThemeOverrides()), ...d.themeOverrides });
+  }
+  if (Array.isArray(d.customPacks)) {
+    const local = await storage.getCustomPacks();
+    const ids = new Set(local.map((p) => p.id));
+    await storage.saveCustomPacks([...local, ...d.customPacks.filter((p) => !ids.has(p.id))]);
+  }
+  if (d.packOverrides) {
+    await storage.savePackOverrides({ ...(await storage.getPackOverrides()), ...d.packOverrides });
   }
   if (d.carnetTheme) await storage.saveCarnetTheme(d.carnetTheme);
 }

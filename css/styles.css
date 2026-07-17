@@ -127,6 +127,115 @@ h2, h3, h4 { font-weight: 650; }
   gap: 4px;
 }
 
+/* ------------------------------------------------------------------ */
+/* Packs de catégories (v72) : grille de tuiles + drill-down            */
+/* ------------------------------------------------------------------ */
+
+.pack-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 4px 2px 6px;
+}
+.pack-tuile {
+  position: relative;
+  display: grid;
+  justify-items: start;
+  gap: 3px;
+  padding: 10px 10px 8px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--pack-color, var(--accent));
+  border-radius: 14px;
+  background: var(--bg-2, rgba(45, 106, 79, .05));
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform .12s, box-shadow .12s, border-color .12s;
+}
+.pack-tuile:hover, .pack-tuile:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--pack-color, var(--accent));
+  box-shadow: 0 6px 14px rgba(0, 0, 0, .12);
+}
+.pack-tuile:active { transform: scale(.97); }
+.pack-ico { font-size: 1.45rem; line-height: 1; }
+.pack-nom { font-weight: 700; font-size: .85rem; line-height: 1.15; }
+.pack-compte { font-size: .72rem; color: var(--text-2); }
+.pack-cochees {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: .68rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--pack-color, var(--accent));
+  color: #fff;
+}
+body.mode-nuit .pack-tuile { background: rgba(255, 255, 255, .05); }
+
+.pack-actions { display: flex; gap: 6px; padding: 2px; }
+.pack-action {
+  flex: 1;
+  padding: 8px 6px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: none;
+  font: inherit;
+  font-size: .78rem;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.pack-action:hover { color: var(--text); border-color: var(--accent); }
+
+.pack-retour {
+  display: block;
+  width: 100%;
+  padding: 7px 8px;
+  margin-bottom: 4px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  font: inherit;
+  font-size: .82rem;
+  color: var(--text-2);
+  text-align: left;
+  cursor: pointer;
+}
+.pack-retour:hover { background: var(--hover, rgba(45, 106, 79, .08)); color: var(--text); }
+
+.pack-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 2px 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.pack-header .pack-ico { font-size: 1.2rem; }
+.pack-titre { flex: 1; font-weight: 700; }
+.pack-back { font-size: 1.05rem; }
+
+.pack-editor .pack-cats {
+  max-height: 44vh;
+  overflow-y: auto;
+  display: grid;
+  gap: 2px;
+  margin: 6px 0;
+}
+.pack-cat-ligne {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 3px 4px;
+  border-radius: 8px;
+}
+.pack-cat-ligne:hover { background: var(--hover, rgba(45, 106, 79, .06)); }
+.pack-cat-ligne label { display: flex; align-items: center; gap: 7px; font-size: .84rem; cursor: pointer; min-width: 0; }
+.pack-cat-ordre { display: flex; gap: 2px; flex: none; }
+
 .cat-separator {
   margin: 10px 4px 2px;
   font-size: 0.74rem;

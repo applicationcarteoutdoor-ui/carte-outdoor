@@ -20,16 +20,29 @@ import {
   isCustomTheme,
   FALLBACK_THEME,
 } from "./config/themes.js";
+import {
+  allPacks,
+  getPack,
+  getDefaultPack,
+  setPackOverrides,
+  isCustomPack,
+  packExists,
+  PACK_MES_CATEGORIES,
+} from "./config/packs.js";
 import { paysActuel } from "./config/pays.js";
 import * as storage from "./storage.js";
 import { renderTracksInto, tracksCount } from "./gpx.js";
 import { esc } from "./util.js";
 
 let panel = null;
-let cb = {}; // {onToggleTheme, onToggleGr, onToggleTraces, onThemesChanged}
+let cb = {}; // {onToggleTheme, onToggleGr, onToggleTraces, onThemesChanged, onPacksChanged, onSidebarViewChange}
 let etatCourant = null; // dernier état reçu de app.js (pour re-rendre)
 let editionEnCours = null;
 let tracesDepliees = false;
+// Navigation de la sidebar (v72) : accueil des packs, pack ouvert, ou liste
+// complète (l'ancien affichage). Restaurée depuis les prefs par app.js.
+let vueSidebar = { mode: "packs", packOuvert: null };
+let editionPack = null; // id du pack en édition, "nouveau" pour la création
 
 export function initSidebar(callbacks) {
   cb = callbacks;
@@ -54,6 +67,57 @@ const STATUTS = [
   { id: "favori", label: "Favoris", icone: "♥", couleur: "#d6336c" },
 ];
 
+/** Catégories visibles dans le pays courant : la liste `categories` du pays
+ *  filtre les catégories de base (null = toutes) ; les catégories PERSONNELLES
+ *  et celles qui contiennent des points de l'utilisateur restent visibles. */
+function categoriesVisibles(etat) {
+  const pays = paysActuel();
+  const catPays = pays.categories;
+  const exclues = pays.categoriesExclues || [];
+  return allThemes().filter((def) => {
+    if (isCustomTheme(def.id) || (etat.userPointCounts?.get(def.id) || 0) > 0) return true;
+    if (exclues.includes(def.id)) return false;
+    return !catPays || catPays.includes(def.id);
+  });
+}
+
+/** Contenu du pack VIRTUEL « Mes catégories » : perso/importées + celles où
+ *  l'utilisateur a des points + « autre » (ids, dans l'ordre d'allThemes). */
+function categoriesMiennes(etat) {
+  const ids = allThemes()
+    .filter((def) => isCustomTheme(def.id) || (etat.userPointCounts?.get(def.id) || 0) > 0)
+    .map((def) => def.id);
+  if (etat.counts.get(FALLBACK_THEME.id) > 0) ids.push(FALLBACK_THEME.id);
+  return ids;
+}
+
+/** Ouvre un pack (aussi utilisé par le tuto et les liens #pack=). */
+export function ouvrirPack(packId) {
+  if (!packExists(packId)) return;
+  vueSidebar = { mode: "packs", packOuvert: packId };
+  editionPack = null;
+  if (etatCourant) renderSidebar(etatCourant);
+  cb.onSidebarViewChange?.(vueSidebar);
+}
+
+/** Revient à l'accueil des packs (tuto, fin d'édition). */
+export function retourAccueilPacks() {
+  vueSidebar = { mode: "packs", packOuvert: null };
+  editionPack = null;
+  if (etatCourant) renderSidebar(etatCourant);
+  cb.onSidebarViewChange?.(vueSidebar);
+}
+
+/** Restaure la navigation depuis les prefs (appelée par app.js au boot). */
+export function setSidebarVue(vue) {
+  if (vue && (vue.mode === "packs" || vue.mode === "liste")) {
+    vueSidebar = {
+      mode: vue.mode,
+      packOuvert: vue.packOuvert && packExists(vue.packOuvert) ? vue.packOuvert : null,
+    };
+  }
+}
+
 /**
  * (Re)dessine la liste des catégories.
  * @param {object} etat {counts: Map, activeThemes: Set, statusFilters: Set,
@@ -64,60 +128,15 @@ export function renderSidebar(etat) {
   const liste = panel.querySelector(".cat-list");
   liste.textContent = "";
 
-  // Catégories du PAYS courant : la liste `categories` du pays filtre les
-  // catégories de base (null = toutes) ; les catégories PERSONNELLES et celles
-  // qui contiennent des points de l'utilisateur restent toujours visibles.
-  const pays = paysActuel();
-  const catPays = pays.categories;
-  const exclues = pays.categoriesExclues || [];
-  const visibles = allThemes().filter((def) => {
-    // Toujours visibles : catégories perso, et celles où l'utilisateur a des points
-    if (isCustomTheme(def.id) || (etat.userPointCounts?.get(def.id) || 0) > 0) return true;
-    if (exclues.includes(def.id)) return false;
-    return !catPays || catPays.includes(def.id);
-  });
-  for (const def of visibles) {
-    const theme = getTheme(def.id);
-    const count = etat.counts.get(def.id) || 0;
-    const nbMiens = etat.userPointCounts?.get(def.id) || 0;
-    liste.appendChild(
-      ligneCategorie({
-        icone: theme.icon,
-        couleur: theme.color,
-        texte: theme.textColor,
-        label: theme.label,
-        count,
-        coche: etat.activeThemes.has(def.id),
-        onCheck: (on) => cb.onToggleTheme(def.id, on),
-        // Flèche ➤ visible seulement si la catégorie contient des points
-        // ajoutés par l'utilisateur (comme le zoom des traces GPX)
-        locate: nbMiens,
-        onLocate: nbMiens ? () => cb.onLocateUserPoint?.(def.id) : null,
-        onEdit: () => {
-          editionEnCours = editionEnCours === def.id ? null : def.id;
-          renderSidebar(etatCourant);
-        },
-        editeur: editionEnCours === def.id ? def.id : null,
-      })
-    );
+  // --- Aiguillage des 3 vues (v72) ---------------------------------------
+  if (vueSidebar.mode === "packs" && vueSidebar.packOuvert) {
+    renderPackOuvert(liste, etat, vueSidebar.packOuvert);
+    return; // Suivi/Tracés vivent sur l'accueil — le retour est à 1 tap
   }
-
-  // --- « Autre » : points dont la catégorie n'existe plus (imports, suppressions) ---
-  if (etat.counts.get(FALLBACK_THEME.id) > 0) {
-    const nbMiens = etat.userPointCounts?.get(FALLBACK_THEME.id) || 0;
-    liste.appendChild(
-      ligneCategorie({
-        icone: FALLBACK_THEME.icon,
-        couleur: FALLBACK_THEME.color,
-        texte: "#fff",
-        label: FALLBACK_THEME.label,
-        count: etat.counts.get(FALLBACK_THEME.id),
-        coche: etat.activeThemes.has(FALLBACK_THEME.id),
-        onCheck: (on) => cb.onToggleTheme(FALLBACK_THEME.id, on),
-        locate: nbMiens,
-        onLocate: nbMiens ? () => cb.onLocateUserPoint?.(FALLBACK_THEME.id) : null,
-      })
-    );
+  if (vueSidebar.mode === "packs") {
+    renderAccueilPacks(liste, etat);
+  } else {
+    renderListeComplete(liste, etat);
   }
 
   // --- Suivi : Fait / Favoris / À faire, cochables comme des catégories ---
@@ -197,6 +216,268 @@ export function renderSidebar(etat) {
 /** Rafraîchit uniquement le volet des traces (après import/suppression). */
 export function refreshTraces() {
   if (etatCourant) renderSidebar(etatCourant);
+}
+
+/* ------------------------------------------------------------------ */
+/* Vues packs (v72)                                                     */
+/* ------------------------------------------------------------------ */
+
+/** Ligne cochable d'une catégorie par son id (partagée par les 3 vues). */
+function ligneDeTheme(liste, etat, id) {
+  const estAutre = id === FALLBACK_THEME.id;
+  const theme = estAutre ? FALLBACK_THEME : getTheme(id);
+  const nbMiens = etat.userPointCounts?.get(id) || 0;
+  liste.appendChild(
+    ligneCategorie({
+      icone: theme.icon,
+      couleur: theme.color,
+      texte: theme.textColor || "#fff",
+      label: theme.label,
+      count: etat.counts.get(id) || 0,
+      coche: etat.activeThemes.has(id),
+      onCheck: (on) => cb.onToggleTheme(id, on),
+      locate: nbMiens,
+      onLocate: nbMiens ? () => cb.onLocateUserPoint?.(id) : null,
+      ...(estAutre ? {} : {
+        onEdit: () => {
+          editionEnCours = editionEnCours === id ? null : id;
+          renderSidebar(etatCourant);
+        },
+        editeur: editionEnCours === id ? id : null,
+      }),
+    })
+  );
+}
+
+/** Vue « liste complète » : l'affichage historique, filet de migration. */
+function renderListeComplete(liste, etat) {
+  const retour = document.createElement("button");
+  retour.type = "button";
+  retour.className = "pack-retour";
+  retour.innerHTML = "← Retour aux packs";
+  retour.addEventListener("click", retourAccueilPacks);
+  liste.appendChild(retour);
+  for (const def of categoriesVisibles(etat)) ligneDeTheme(liste, etat, def.id);
+  if (etat.counts.get(FALLBACK_THEME.id) > 0) ligneDeTheme(liste, etat, FALLBACK_THEME.id);
+}
+
+/** Catégories d'un pack RÉELLEMENT affichables dans le pays courant. */
+function categoriesDuPack(packId, etat) {
+  const ids = packId === PACK_MES_CATEGORIES.id
+    ? categoriesMiennes(etat)
+    : (getPack(packId)?.categories || []);
+  const visibles = new Set(categoriesVisibles(etat).map((d) => d.id));
+  if (etat.counts.get(FALLBACK_THEME.id) > 0) visibles.add(FALLBACK_THEME.id);
+  return ids.filter((id) => visibles.has(id));
+}
+
+/** Vue « accueil » : la grille des tuiles de packs. */
+function renderAccueilPacks(liste, etat) {
+  const grille = document.createElement("div");
+  grille.className = "pack-grid";
+  const packs = [...allPacks().map((p) => p.id), PACK_MES_CATEGORIES.id];
+  for (const packId of packs) {
+    const cats = categoriesDuPack(packId, etat);
+    if (!cats.length) continue; // pack vide dans ce pays : masqué
+    const pack = packId === PACK_MES_CATEGORIES.id ? PACK_MES_CATEGORIES : getPack(packId);
+    let total = 0;
+    let charge = true;
+    for (const id of cats) {
+      const c = etat.counts.get(id) || 0;
+      if (c === "…") charge = false;
+      else total += c;
+    }
+    const nbCochees = cats.filter((id) => etat.activeThemes.has(id)).length;
+    const tuile = document.createElement("button");
+    tuile.type = "button";
+    tuile.className = "pack-tuile";
+    tuile.style.setProperty("--pack-color", pack.color);
+    tuile.innerHTML = `
+      <span class="pack-ico" aria-hidden="true">${esc(pack.icon)}</span>
+      <span class="pack-nom">${esc(pack.label)}</span>
+      <span class="pack-compte">${charge ? total.toLocaleString("fr-FR") : total.toLocaleString("fr-FR") + "+"} lieux</span>
+      ${nbCochees ? `<span class="pack-cochees" title="${nbCochees} catégorie(s) affichée(s)">${nbCochees} ✓</span>` : ""}`;
+    tuile.addEventListener("click", () => ouvrirPack(packId));
+    grille.appendChild(tuile);
+  }
+  liste.appendChild(grille);
+
+  // Actions sous la grille : liste complète + création de pack
+  const actions = document.createElement("div");
+  actions.className = "pack-actions";
+  actions.innerHTML = `
+    <button type="button" class="pack-action pack-tout">☰ Toutes les catégories</button>
+    <button type="button" class="pack-action pack-creer">＋ Créer un pack</button>`;
+  actions.querySelector(".pack-tout").addEventListener("click", () => {
+    vueSidebar = { mode: "liste", packOuvert: null };
+    renderSidebar(etatCourant);
+    cb.onSidebarViewChange?.(vueSidebar);
+  });
+  actions.querySelector(".pack-creer").addEventListener("click", () => {
+    editionPack = "nouveau";
+    renderSidebar(etatCourant);
+  });
+  liste.appendChild(actions);
+
+  if (editionPack === "nouveau") {
+    const zone = document.createElement("div");
+    zone.className = "group-editor pack-editor";
+    liste.appendChild(zone);
+    renderEditeurPack(zone, null, etat);
+  }
+}
+
+/** Vue « pack ouvert » : en-tête ← + les catégories du pack. */
+function renderPackOuvert(liste, etat, packId) {
+  const cats = categoriesDuPack(packId, etat);
+  const pack = packId === PACK_MES_CATEGORIES.id ? PACK_MES_CATEGORIES : getPack(packId);
+  if (!pack || (!cats.length && packId !== PACK_MES_CATEGORIES.id)) {
+    retourAccueilPacks(); // pack supprimé/vidé entre-temps
+    return;
+  }
+  const entete = document.createElement("div");
+  entete.className = "pack-header";
+  entete.innerHTML = `
+    <button type="button" class="btn-icon pack-back" title="Retour aux packs" aria-label="Retour aux packs">←</button>
+    <span class="pack-ico" aria-hidden="true">${esc(pack.icon)}</span>
+    <span class="pack-titre">${esc(pack.label)}</span>
+    ${packId !== PACK_MES_CATEGORIES.id
+      ? `<button type="button" class="btn-icon pack-edit" title="Personnaliser ce pack">✎</button>` : ""}`;
+  entete.querySelector(".pack-back").addEventListener("click", retourAccueilPacks);
+  entete.querySelector(".pack-edit")?.addEventListener("click", () => {
+    editionPack = editionPack === packId ? null : packId;
+    renderSidebar(etatCourant);
+  });
+  liste.appendChild(entete);
+
+  if (editionPack === packId) {
+    const zone = document.createElement("div");
+    zone.className = "group-editor pack-editor";
+    liste.appendChild(zone);
+    renderEditeurPack(zone, packId, etat);
+    return; // l'éditeur remplace la liste (place aux cases + ▲▼)
+  }
+  for (const id of cats) ligneDeTheme(liste, etat, id);
+}
+
+/* ------------------------------------------------------------------ */
+/* Éditeur de pack (nom, icône, couleur, catégories + ordre)            */
+/* ------------------------------------------------------------------ */
+
+function renderEditeurPack(zone, packId, etat) {
+  const creation = packId === null;
+  const pack = creation
+    ? { label: "", icon: "🧭", color: "#2d6a4f", categories: [] }
+    : getPack(packId);
+  // ordre de travail : catégories du pack d'abord, puis le reste (décoché)
+  const visibles = categoriesVisibles(etat).map((d) => d.id);
+  const dansPack = (pack.categories || []).filter((id) => visibles.includes(id));
+  let ordre = [...dansPack, ...visibles.filter((id) => !dansPack.includes(id))];
+  const cochees = new Set(dansPack);
+
+  const lignesHtml = () => ordre.map((id) => {
+    const t = getTheme(id);
+    return `
+      <div class="pack-cat-ligne" data-id="${esc(id)}">
+        <label><input type="checkbox" ${cochees.has(id) ? "checked" : ""}>
+          <span class="group-icon" style="--pin-color:${t.color};--pin-text:${t.textColor}" aria-hidden="true">${t.icon}</span>
+          ${esc(t.label)}</label>
+        <span class="pack-cat-ordre">
+          <button type="button" class="btn-icon cat-monter" title="Monter">▲</button>
+          <button type="button" class="btn-icon cat-descendre" title="Descendre">▼</button>
+        </span>
+      </div>`;
+  }).join("");
+
+  zone.innerHTML = `
+    <label>Nom du pack <input type="text" class="edit-label" value="${esc(pack.label)}" maxlength="30" placeholder="Mon pack"></label>
+    <label>Icône (emoji) <input type="text" class="edit-icon" value="${esc(pack.icon)}" maxlength="4"></label>
+    <label>Couleur <input type="color" class="edit-color" value="${pack.color}"></label>
+    <p class="editor-note">Cochez les catégories du pack, ▲▼ règle leur ordre.</p>
+    <div class="pack-cats">${lignesHtml()}</div>
+    <div class="editor-actions">
+      ${!creation && isCustomPack(packId)
+        ? '<button type="button" class="btn btn-danger edit-delete">🗑 Supprimer</button>' : ""}
+      ${!creation && !isCustomPack(packId)
+        ? '<button type="button" class="btn btn-secondary edit-reset">Réinitialiser</button>' : ""}
+      <button type="button" class="btn btn-secondary edit-annuler">Annuler</button>
+      <button type="button" class="btn edit-save">Enregistrer</button>
+    </div>`;
+
+  const zoneCats = zone.querySelector(".pack-cats");
+  const recabler = () => {
+    zoneCats.querySelectorAll(".pack-cat-ligne").forEach((ligne) => {
+      const id = ligne.dataset.id;
+      ligne.querySelector("input").addEventListener("change", (e) => {
+        e.target.checked ? cochees.add(id) : cochees.delete(id);
+      });
+      ligne.querySelector(".cat-monter").addEventListener("click", () => bouger(id, -1));
+      ligne.querySelector(".cat-descendre").addEventListener("click", () => bouger(id, 1));
+    });
+  };
+  const bouger = (id, sens) => {
+    const i = ordre.indexOf(id);
+    const j = i + sens;
+    if (j < 0 || j >= ordre.length) return;
+    [ordre[i], ordre[j]] = [ordre[j], ordre[i]];
+    zoneCats.innerHTML = lignesHtml();
+    recabler();
+  };
+  recabler();
+
+  zone.querySelector(".edit-annuler").addEventListener("click", () => {
+    editionPack = null;
+    renderSidebar(etatCourant);
+  });
+
+  zone.querySelector(".edit-save").addEventListener("click", async () => {
+    const label = zone.querySelector(".edit-label").value.trim() || "Mon pack";
+    const icon = zone.querySelector(".edit-icon").value.trim() || "🧭";
+    const color = zone.querySelector(".edit-color").value;
+    const categories = ordre.filter((id) => cochees.has(id));
+    if (!categories.length) return; // un pack vide n'a pas de sens
+    if (creation || isCustomPack(packId)) {
+      const packs = await storage.getCustomPacks();
+      if (creation) {
+        packs.push({ id: `pack-perso-${Date.now().toString(36)}`, label, icon, color, categories });
+      } else {
+        const p = packs.find((x) => x.id === packId);
+        if (p) Object.assign(p, { label, icon, color, categories });
+      }
+      await storage.saveCustomPacks(packs);
+    } else {
+      // pack par défaut : la personnalisation (contenu inclus) vit en override
+      const overrides = await storage.getPackOverrides();
+      const defaut = getDefaultPack(packId);
+      const o = {};
+      if (label !== defaut.label) o.label = label;
+      if (icon !== defaut.icon) o.icon = icon;
+      if (color !== defaut.color) o.color = color;
+      if (JSON.stringify(categories) !== JSON.stringify(defaut.categories)) o.categories = categories;
+      if (Object.keys(o).length) overrides[packId] = o;
+      else delete overrides[packId];
+      await storage.savePackOverrides(overrides);
+    }
+    editionPack = null;
+    cb.onPacksChanged?.();
+  });
+
+  zone.querySelector(".edit-reset")?.addEventListener("click", async () => {
+    const overrides = await storage.getPackOverrides();
+    delete overrides[packId];
+    await storage.savePackOverrides(overrides);
+    editionPack = null;
+    cb.onPacksChanged?.();
+  });
+
+  zone.querySelector(".edit-delete")?.addEventListener("click", async () => {
+    const packs = (await storage.getCustomPacks()).filter((p) => p.id !== packId);
+    await storage.saveCustomPacks(packs);
+    editionPack = null;
+    vueSidebar = { mode: "packs", packOuvert: null };
+    cb.onPacksChanged?.();
+    cb.onSidebarViewChange?.(vueSidebar);
+  });
 }
 
 /* ------------------------------------------------------------------ */

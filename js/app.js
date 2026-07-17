@@ -44,7 +44,16 @@ import {
   getOpenPointId,
   getOpenGrId,
 } from "./details.js";
-import { initSidebar, renderSidebar, refreshTraces, closeSidebar } from "./sidebar.js";
+import {
+  initSidebar,
+  renderSidebar,
+  refreshTraces,
+  closeSidebar,
+  setSidebarVue,
+  ouvrirPack,
+  retourAccueilPacks,
+} from "./sidebar.js";
+import { registerCustomPacks, setPackOverrides, packExists } from "./config/packs.js";
 import { initImportExport, toast, confirmer } from "./import-export.js";
 import { initGpx, setAllTracesVisible } from "./gpx.js";
 import { initAddPoint } from "./addpoint.js";
@@ -1132,6 +1141,27 @@ function restaurerPrefs(prefs) {
   state.filtersCollapsed = prefs.filtersCollapsed === true;
   state.tracesVisible = prefs.tracesVisible !== false;
   state.grVisible = prefs.grVisible === true;
+  // Navigation de la sidebar (v72) : accueil packs par défaut ; le pack
+  // ouvert mémorisé est validé par packExists dans setSidebarVue.
+  setSidebarVue(prefs.sidebarVue);
+}
+
+/** Liens partageables — le HASH d'URL est RÉSERVÉ à cet usage (décision
+ *  v72) : #pack=<id> ouvre un pack, #cat=<id> coche une catégorie (jamais
+ *  une couche lourde : son dialogue d'avertissement doit rester le passage
+ *  obligé). #pt=<id> viendra en V2. */
+function routerHash() {
+  let m = /^#pack=([\w-]+)$/.exec(location.hash);
+  if (m && packExists(m[1])) {
+    ouvrirPack(m[1]);
+    document.getElementById("sidebar").classList.add("open");
+    return;
+  }
+  m = /^#cat=([\w-]+)$/.exec(location.hash);
+  if (m && getTheme(m[1]).id === m[1] && !coucheLourde(m[1]) && !state.activeThemes.has(m[1])) {
+    state.activeThemes.add(m[1]);
+    rafraichir();
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -1333,6 +1363,9 @@ async function demarrer() {
   // Catégories personnalisées et personnalisations AVANT tout rendu
   registerCustomThemes(await storage.getCustomThemes());
   setThemeOverrides(await storage.getThemeOverrides());
+  // Packs de catégories (v72) : mêmes couches que les thèmes
+  registerCustomPacks(await storage.getCustomPacks());
+  setPackOverrides(await storage.getPackOverrides());
 
   const prefs = await storage.getPrefs();
   const premiereVisite = prefs.activeThemes === undefined && prefs.tutoVu !== true;
@@ -1463,6 +1496,13 @@ async function demarrer() {
       rafraichir();
       toast(`Catégorie « ${theme.label} » supprimée.`);
     },
+    // Navigation packs (v72) : mémorisée dans les prefs (débouncé existant)
+    onSidebarViewChange: (vue) => storage.savePrefs({ sidebarVue: vue }),
+    onPacksChanged: async () => {
+      registerCustomPacks(await storage.getCustomPacks());
+      setPackOverrides(await storage.getPackOverrides());
+      rafraichir();
+    },
   });
 
   initFilters({
@@ -1557,6 +1597,8 @@ async function demarrer() {
     onSynced: async () => {
       registerCustomThemes(await storage.getCustomThemes());
       setThemeOverrides(await storage.getThemeOverrides());
+      registerCustomPacks(await storage.getCustomPacks());
+      setPackOverrides(await storage.getPackOverrides());
       state.statuses = await storage.getStatuses();
       await chargerPoints();
       rafraichir();
@@ -1634,6 +1676,7 @@ async function demarrer() {
   initTuto({
     onTermine: () => {
       storage.savePrefs({ tutoVu: true });
+      retourAccueilPacks(); // le tuto a pu laisser un pack ouvert
       if (themesAvantTuto) {
         state.activeThemes = themesAvantTuto;
         themesAvantTuto = null;
@@ -1649,6 +1692,14 @@ async function demarrer() {
   });
 
   rafraichir();
+  routerHash();
+
+  // Bulle d'introduction UNIQUE des packs pour les habitués (les nouveaux
+  // venus les découvrent par le tuto)
+  if (!premiereVisite && prefs.packIntroVue !== true) {
+    toast("Nouveau : vos catégories sont rangées en packs 🏔️🌿🏛️ — l'ancienne liste vit dans « ☰ Toutes les catégories ».");
+    storage.savePrefs({ packIntroVue: true });
+  }
 
   // Toilettes déjà cochées lors d'une session précédente : leur fichier
   // (chargé à la demande) doit l'être aussi au démarrage — en arrière-plan,

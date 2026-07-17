@@ -683,6 +683,74 @@ export const THEMES = [
       },
     ],
   },
+  /* --- Nouvelles catégories v72 (packs Montagne / Nature / Culture) ------ */
+  {
+    id: "sommet-croix",
+    label: "Sommet à croix",
+    color: "#5c677d",
+    icon: "✝️",
+    fields: [{ key: "altitude", label: "Altitude" }],
+    filters: [
+      {
+        key: "altitude",
+        label: "Altitude",
+        type: "bucket",
+        field: "altitude_n",
+        options: [
+          { value: "alt1", label: "< 1 000 m", max: 1000 },
+          { value: "alt2", label: "1 000 à 2 000 m", min: 1000, max: 2000 },
+          { value: "alt3", label: "> 2 000 m", icon: "🏔️", min: 2000 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "col-mythique",
+    label: "Col mythique",
+    color: "#8a5a44",
+    icon: "🚵",
+    fields: [{ key: "altitude", label: "Altitude" }],
+    filters: [
+      {
+        key: "altitude",
+        label: "Altitude",
+        type: "bucket",
+        field: "altitude_n",
+        options: [
+          { value: "alt1", label: "< 1 000 m", max: 1000 },
+          { value: "alt2", label: "1 000 à 1 800 m", min: 1000, max: 1800 },
+          { value: "alt3", label: "Géants (> 1 800 m)", icon: "🏔️", min: 1800 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "village-abandonne",
+    label: "Village abandonné",
+    color: "#6d597a",
+    icon: "🏚️",
+    fields: [],
+    filters: [
+      {
+        key: "fiche",
+        label: "Fiche",
+        type: "value",
+        field: "fiche",
+        options: [
+          { value: "Référencé", icon: "✅" },
+          { value: "À vérifier", icon: "🔍" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "ciel-etoile",
+    label: "Ciel étoilé",
+    color: "#1d3557",
+    icon: "🌌",
+    fields: [{ key: "label", label: "Certification" }],
+    filters: [],
+  },
 ];
 
 /** Catégorie de repli pour les points dont la catégorie est inconnue

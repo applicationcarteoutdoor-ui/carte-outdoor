@@ -14,6 +14,15 @@ import {
   setThemeOverrides,
   FALLBACK_THEME,
 } from "../js/config/themes.js";
+import {
+  getPack,
+  getDefaultPack,
+  registerCustomPacks,
+  setPackOverrides,
+  isCustomPack,
+  packExists,
+  packsDeCategorie,
+} from "../js/config/packs.js";
 
 const liste = document.getElementById("liste");
 let pass = 0;
@@ -63,6 +72,23 @@ check("surcharge conserve l'id stable", getTheme("refuge").id === "refuge");
 // Nettoyage de l'état de module (cette page est isolée, mais restons propres)
 setThemeOverrides({});
 registerCustomThemes([]);
+
+/* --- packs : résolution, surcharges, packs perso (v72) ------------------- */
+check("pack de base résolu", getPack("montagne").label === "Montagne");
+check("pack inconnu → null", getPack("inexistant") === null);
+check("packExists sur le pack virtuel", packExists("mes-categories"));
+setPackOverrides({ montagne: { label: "Cimes", categories: ["refuge"] } });
+check("surcharge de pack change le label", getPack("montagne").label === "Cimes");
+check("surcharge de pack change le CONTENU", getPack("montagne").categories.join() === "refuge");
+check("surcharge conserve l'id stable", getPack("montagne").id === "montagne");
+check("getDefaultPack ignore la surcharge", getDefaultPack("montagne").label === "Montagne");
+setPackOverrides({});
+registerCustomPacks([{ id: "pack-perso-x", label: "Mon pack", icon: "⭐", color: "#111111", categories: ["lac", "cascade"] }]);
+check("pack perso résolu", getPack("pack-perso-x").label === "Mon pack");
+check("pack perso est supprimable", isCustomPack("pack-perso-x"));
+check("pack de base n'est pas supprimable", !isCustomPack("montagne"));
+check("packsDeCategorie trouve les packs", packsDeCategorie("cascade").includes("nature") && packsDeCategorie("cascade").includes("pack-perso-x"));
+registerCustomPacks([]);
 
 /* --- Résumé -------------------------------------------------------------- */
 const resume = document.getElementById("resume");

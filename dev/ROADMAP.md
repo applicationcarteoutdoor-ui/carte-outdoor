@@ -94,6 +94,14 @@ Tenue par l'agent **chef-de-projet** (`.claude/agents/chef-de-projet.md`). Derni
 - [x] **Boîte à idées** : le texte en cours de frappe part maintenant avec le ✉️ (il était perdu si on n'appuyait pas d'abord sur « Ajouter ») + copie presse-papiers de secours (des messageries Android ignorent le corps du mailto) + retours ligne \r\n.
 - [x] **Partage communauté** : le dialogue de confirmation affichait « Supprimer » comme seul bouton de validation (libellé en dur) → `confirmer(message, {ok, danger})`, boutons « 🌍 Partager » / « Retirer » explicites.
 
+## v72 (2026-07-17) — PACKS DE CATÉGORIES (refonte feuille de route V1) + 4 catégories
+
+- [x] **Système de packs** (priorité n°1 de la feuille de route) : sidebar en drill-down 3 vues (accueil tuiles / pack ouvert / ☰ liste complète), packs par défaut Montagne·Nature·Culture·Road-trip + pack virtuel 📌 Mes catégories, **packs PERSO** (création/édition nom-icône-couleur-contenu-ordre ▲▼), ✎ des packs par défaut via overrides (contenu inclus, Réinitialiser), pastilles « n ✓ », packs vides masqués par pays, prefs sidebarVue mémorisées, sync customPacks/packOverrides, **hash réservé** `#pack=`/`#cat=` (liens partageables V1), bulle d'intro unique, tuto 12 étapes (étape Packs ajoutée). Exclusivité couches lourdes INTACTE. Tests 35/35.
+- [x] **4 nouvelles catégories France** : 🚵 Col mythique **579** (cols OSM × article Wikipédia exact ≤ 10 km, photos/descriptions), ✝️ Sommet à croix **143** (summit:cross=yes), 🏚️ Village abandonné **30** (Wikidata), 🌌 Ciel étoilé **7** (les 7 RICE certifiées DarkSky). Ids stables croix-/col-/vaba-/ciel-####, relance = mise à jour EN PLACE.
+- [ ] Backlog V1bis : ciel-etoile international (13 lieux résolus dont Aoraki NZ, Eifel DE — attendent l'intégration construire_pays), sommets à croix CH/DE/AT/IT (le tag est surtout alpin germanique), « Afficher le pack » (cochage batch des petites catégories).
+- Feuille de route V2→V5 actée : profils Supabase (serveur direct) → communauté → IA road-trip/intégrations → expansion+i18n (plan détaillé : .claude/plans, décisions transverses posées).
+- Test v72 : l'agent testeur est mort sur le plafond de dépense mensuel → **test repris en direct par la session principale** (accueil/drill-down/liste complète, pack perso + ▲▼, ✎ pack par défaut + Réinitialiser, exclusivité toilettes, persistance + #pack=/#cat=, tuto 12 étapes, boots FR/NZ/LU, 35/35, 0 erreur console).
+
 ## Étape 2 — 📋 Publier sur le Play Store
 
 Guide existant : `docs/PLAYSTORE.md` (TWA/PWABuilder). Reste à faire :

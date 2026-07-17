@@ -8,6 +8,8 @@
  * ajouter une = ajouter une entrée.
  */
 
+import { ouvrirPack, retourAccueilPacks } from "./sidebar.js";
+
 let overlay = null;
 let indice = 0;
 let onFin = null;
@@ -30,14 +32,32 @@ const ETAPES = [
     texte: "Tapez un nom (lac, sommet, village, code postal…) : la carte y file directement.",
   },
   {
+    cible: "#sidebar .pack-grid, #sidebar .cat-list",
+    placement: "cote", // la carte ne doit pas recouvrir la liste
+    avant: () => {
+      document.getElementById("sidebar").classList.add("open");
+      retourAccueilPacks(); // montre la grille des packs
+    },
+    emoji: "🧭",
+    titre: "Les packs",
+    texte:
+      "Vos catégories sont rangées en packs : 🏔️ Montagne, 🌿 Nature, 🏛️ Culture, 🚐 Road trip… " +
+      "Touchez un pack pour voir ses catégories, créez le vôtre avec ＋, ou repassez à la liste " +
+      "complète avec ☰.",
+  },
+  {
     cible: "#sidebar .cat-list",
-    placement: "cote", // la carte ne doit pas recouvrir la liste des catégories
+    placement: "cote",
+    avant: () => {
+      document.getElementById("sidebar").classList.add("open");
+      ouvrirPack("montagne"); // un pack ouvert = des catégories cochables
+    },
     emoji: "🗂️",
     titre: "Les catégories",
     texte:
-      "Cochez ce que vous voulez voir — plusieurs à la fois. Seules les très grosses couches " +
-      "(toilettes, fontaines, grottes, musées) s'affichent seules, pour rester fluide. " +
-      "✎ personnalise nom, couleurs et icône ; vos statuts et traces GPX vivent au même endroit.",
+      "Dans un pack, cochez ce que vous voulez voir — plusieurs à la fois. Seules les très " +
+      "grosses couches (toilettes, fontaines…) s'affichent seules, pour rester fluide. " +
+      "✎ personnalise nom, couleurs et icône.",
   },
   {
     cible: "#filter-panel",

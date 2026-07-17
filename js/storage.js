@@ -178,6 +178,28 @@ export async function saveCustomThemes(liste) {
   ecrireJSON(KEY_CUSTOM_THEMES, liste);
 }
 
+/* Packs de catégories (v72) — mêmes patterns que les catégories perso. */
+const KEY_CUSTOM_PACKS = PREFIX + "customPacks";
+const KEY_PACK_OVERRIDES = PREFIX + "packOverrides";
+
+/** Packs créés par l'utilisateur : [{id, label, icon, color, categories[]}] */
+export async function getCustomPacks() {
+  return lireJSON(KEY_CUSTOM_PACKS, []);
+}
+
+export async function saveCustomPacks(liste) {
+  ecrireJSON(KEY_CUSTOM_PACKS, liste);
+}
+
+/** Personnalisation des packs PAR DÉFAUT : { packId: {label?, icon?, color?, categories?} } */
+export async function getPackOverrides() {
+  return lireJSON(KEY_PACK_OVERRIDES, {});
+}
+
+export async function savePackOverrides(overrides) {
+  ecrireJSON(KEY_PACK_OVERRIDES, overrides);
+}
+
 /* ------------------------------------------------------------------ */
 /* IndexedDB : mini-wrapper maison (aucune dépendance)                  */
 /* ------------------------------------------------------------------ */
