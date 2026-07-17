@@ -300,7 +300,8 @@ function renderAccueilPacks(liste, etat) {
       <button type="button" class="pack-corps" title="${nbCochees ? "Masquer" : "Afficher"} tout le pack">
         <span class="pack-ico" aria-hidden="true">${esc(pack.icon)}</span>
         <span class="pack-nom">${esc(pack.label)}</span>
-        <span class="pack-compte">${charge ? total.toLocaleString("fr-FR") : total.toLocaleString("fr-FR") + "+"} lieux</span>
+        <span class="pack-compte">${charge ? total.toLocaleString("fr-FR") + " lieux"
+          : total ? total.toLocaleString("fr-FR") + "+ lieux" : "… lieux"}</span>
       </button>
       ${nbCochees ? `<span class="pack-cochees" title="${nbCochees} catégorie(s) affichée(s)">${nbCochees} ✓</span>` : ""}
       ${modeOrganiser
@@ -456,6 +457,8 @@ function renderEditeurPack(zone, packId, etat) {
       const packs = await storage.getCustomPacks();
       if (creation) {
         packs.push({ id: `pack-perso-${Date.now().toString(36)}`, label, icon, color, categories });
+        // la tuile naît en fin de grille : ↕ Organiser la place où on veut
+        cb.onToast?.(`Pack « ${label} » créé — placez sa tuile avec ↕ Organiser.`);
       } else {
         const p = packs.find((x) => x.id === packId);
         if (p) Object.assign(p, { label, icon, color, categories });

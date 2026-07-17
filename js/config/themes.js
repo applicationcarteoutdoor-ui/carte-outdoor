@@ -751,6 +751,78 @@ export const THEMES = [
     fields: [{ key: "label", label: "Certification" }],
     filters: [],
   },
+  /* --- Catégories v74 (pack Paysages + plongée dans Eau) ----------------- */
+  {
+    id: "panorama",
+    label: "Panorama",
+    color: "#b76935",
+    icon: "🌄",
+    fields: [
+      { key: "altitude", label: "Altitude" },
+      { key: "equipement", label: "Équipement" },
+    ],
+    filters: [
+      {
+        key: "fiche",
+        label: "Fiche",
+        type: "value",
+        field: "fiche",
+        options: [
+          { value: "Référencé", icon: "✅" },
+          { value: "À vérifier", icon: "🔍" },
+        ],
+      },
+      {
+        key: "altitude",
+        label: "Altitude",
+        type: "bucket",
+        field: "altitude_n",
+        options: [
+          { value: "alt1", label: "< 800 m", max: 800 },
+          { value: "alt2", label: "800 à 1 800 m", min: 800, max: 1800 },
+          { value: "alt3", label: "> 1 800 m", icon: "🏔️", min: 1800 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "plongee",
+    label: "Plongée & snorkeling",
+    color: "#023e8a",
+    icon: "🤿",
+    fields: [],
+    filters: [],
+  },
+  {
+    id: "phare",
+    label: "Phare",
+    color: "#c1121f",
+    icon: "🗼",
+    fields: [{ key: "hauteur", label: "Hauteur" }],
+    filters: [
+      {
+        key: "fiche",
+        label: "Fiche",
+        type: "value",
+        field: "fiche",
+        options: [
+          { value: "Référencé", icon: "✅" },
+          { value: "À vérifier", icon: "🔍" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "arbre-remarquable",
+    label: "Arbre remarquable",
+    color: "#386641",
+    icon: "🌳",
+    fields: [
+      { key: "espece", label: "Espèce" },
+      { key: "circonference", label: "Circonférence" },
+    ],
+    filters: [],
+  },
 ];
 
 /** Catégorie de repli pour les points dont la catégorie est inconnue

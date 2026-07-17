@@ -41,9 +41,8 @@ const ETAPES = [
     emoji: "🧭",
     titre: "Les packs",
     texte:
-      "Vos catégories sont rangées en packs : 🏔️ Montagne, 💧 Eau, 🏛️ Culture, 🚐 Services… " +
-      "Touchez un pack pour TOUT afficher d'un coup, ▸ pour choisir dedans, ↕ pour ranger " +
-      "les tuiles, ＋ pour créer le vôtre. Les sentiers GR restent dans « Tracés », juste en dessous.",
+      "Vos catégories sont rangées en packs. Touchez une tuile pour tout afficher, " +
+      "▸ pour choisir dedans, ＋ pour créer le vôtre.",
   },
   {
     cible: "#sidebar .cat-list",

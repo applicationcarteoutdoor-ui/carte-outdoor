@@ -1466,6 +1466,7 @@ async function demarrer() {
       rafraichir();
     },
     onOrdrePacks: (ids) => storage.savePrefs({ ordrePacks: ids }),
+    onToast: toast,
     onToggleStatus: (statut, coche) => {
       coche ? state.statusFilters.add(statut) : state.statusFilters.delete(statut);
       // Mode suivi : n'afficher QUE les points suivis → décoche les catégories

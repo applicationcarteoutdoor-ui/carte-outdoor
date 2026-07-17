@@ -110,6 +110,12 @@ Tenue par l'agent **chef-de-projet** (`.claude/agents/chef-de-projet.md`). Derni
 - [x] **Filtres discrets** : le panneau ne s'ouvre plus tout seul (replié par défaut, bouton en haut à droite).
 - [x] GR : inchangé, sous « Tracés » en bas de l'accueil des packs (jamais dans Montagne) — le tuto le dit désormais.
 
+## v74 (2026-07-18) — Packs disjoints + 4 catégories Paysages
+
+- [x] **Packs par défaut DISJOINTS** (retour utilisateur : une catégorie = UN pack ; les packs perso mélangent librement) : Montagne = exactement rando/VF/escalade/grotte/refuge ; 💧 Eau + plongée ; 🚐 Services = camping+toilettes ; nouveau pack 🌄 **Paysages** = panorama, sommet à croix, col mythique, ciel étoilé, arbre remarquable, phare. Compteur « … lieux » quand seules des couches lourdes non chargées. Tuto raccourci. Toast de placement après création de pack.
+- [x] **4 catégories (France)** : 🌄 Panorama **4 375** (viewpoints nommés, altitude + table d'orientation), 🌳 Arbre remarquable **3 020** (espèce, circonférence), 🤿 Plongée & snorkeling **362**, 🗼 Phare **338** (152 avec article Wikipédia). **Sommets à croix enrichis EN PLACE** (48 articles Wikipédia, ids conservés). points.geojson : ~21 200 points (9,9 Mo).
+- [x] Tests 35/35, 0 erreur console, vérification par le DOM (tuiles, contenus, fiches témoins Balise des Morées / Aiguille de Criou).
+
 ## Étape 2 — 📋 Publier sur le Play Store
 
 Guide existant : `docs/PLAYSTORE.md` (TWA/PWABuilder). Reste à faire :

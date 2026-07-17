@@ -23,23 +23,33 @@
  *    arbre-remarquable (cf. feuille de route V2-V5).
  */
 
-// Contenus VALIDÉS par l'utilisateur (v73) — les ids de packs restent stables
-// même quand le label change (nature → « Eau », road-trip → « Services »).
+// Contenus VALIDÉS par l'utilisateur (v73-v74) — les ids de packs restent
+// stables même quand le label change (nature → « Eau », road-trip →
+// « Services »). RÈGLE des packs PAR DÉFAUT : une catégorie ne vit que dans
+// UN SEUL pack (cocher deux packs qui se recouvrent est déroutant) — les
+// packs PERSO, eux, mélangent ce qu'ils veulent.
 export const PACKS = [
   {
     id: "montagne",
     label: "Montagne",
     icon: "🏔️",
     color: "#2d6a4f",
-    categories: ["randonnee", "via-ferrata", "escalade", "grotte", "refuge",
-                 "sommet-croix", "col-mythique"],
+    categories: ["randonnee", "via-ferrata", "escalade", "grotte", "refuge"],
   },
   {
     id: "nature",
     label: "Eau",
     icon: "💧",
     color: "#0096c7",
-    categories: ["cascade", "canyon", "lac", "eau"],
+    categories: ["cascade", "canyon", "lac", "eau", "plongee"],
+  },
+  {
+    id: "paysages",
+    label: "Paysages",
+    icon: "🌄",
+    color: "#b76935",
+    categories: ["panorama", "sommet-croix", "col-mythique", "ciel-etoile",
+                 "arbre-remarquable", "phare"],
   },
   {
     id: "culture",
@@ -53,7 +63,7 @@ export const PACKS = [
     label: "Services",
     icon: "🚐",
     color: "#606c38",
-    categories: ["camping", "toilettes", "eau", "refuge", "cite-caractere"],
+    categories: ["camping", "toilettes"],
   },
 ];
 
