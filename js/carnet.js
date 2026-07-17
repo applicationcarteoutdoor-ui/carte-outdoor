@@ -563,8 +563,10 @@ function htmlEntree(g, pourImpression = false) {
     .map((n) => {
       const pivot = `transform:rotate(${((alea() - 0.5) * 4).toFixed(1)}deg)`;
       // Hors impression : la photo est cliquable (visionneuse plein écran)
+      // Impression : chargement immédiat (une image lazy hors écran resterait
+      // blanche dans le PDF)
       const img = pourImpression
-        ? `<img class="page-photo" src="${n.photo}" alt="Photo de ${esc(g.nom)}" loading="lazy" style="${pivot}">`
+        ? `<img class="page-photo" src="${n.photo}" alt="Photo de ${esc(g.nom)}" style="${pivot}">`
         : `<img class="page-photo" src="${n.photo}" alt="Photo de ${esc(g.nom)}" loading="lazy" style="${pivot}"
              data-legende="${esc(legende)}" tabindex="0" role="button" title="Voir en grand">`;
       return pourImpression
@@ -978,12 +980,38 @@ export async function exporterCarnetPDF() {
     document.body.appendChild(zone);
   }
   const date = new Date().toLocaleDateString("fr-FR", MOIS_JOURS);
+  // APERÇU habillé comme le grimoire, affiché À L'ÉCRAN avant impression :
+  // ce que l'on voit est ce que l'on imprime (l'ancien window.print() direct
+  // sur une zone display:none sortait parfois une page blanche). Les fonds
+  // parchemin sont de VRAIES <img> : les navigateurs n'impriment pas les
+  // fonds CSS par défaut, une balise image s'imprime toujours.
+  const fermer = () => {
+    zone.textContent = "";
+    zone.classList.remove("ouvert");
+  };
   zone.innerHTML =
-    `<div class="print-garde"><h1>Carnet de sorties</h1>
-      <p>SpotMap — ${entrees.length} sortie(s), exporté le ${esc(date)}</p></div>` +
-    entrees.map((g) => htmlEntree(g, true)).join("");
-
-  // La zone est vidée après impression (libère les photos en mémoire)
-  window.addEventListener("afterprint", () => (zone.textContent = ""), { once: true });
-  window.print();
+    `<div class="print-outils">
+       <button type="button" class="btn print-lancer">🖨️ Imprimer / Enregistrer en PDF</button>
+       <button type="button" class="btn btn-secondary print-fermer">✕ Fermer</button>
+     </div>
+     <div class="print-page print-garde">
+       <img class="print-fond" src="img/carnet-couverture.jpg" alt="">
+       <div class="print-garde-texte">
+         <h1>Carnet de sorties</h1>
+         <p>${entrees.length} sortie(s) — ${esc(date)}</p>
+       </div>
+     </div>` +
+    entrees
+      .map(
+        (g, i) => `
+     <div class="print-page">
+       <img class="print-fond" src="img/carnet-page-${1 + (i % 4)}.jpg" alt="">
+       <div class="print-corps">${htmlEntree(g, true)}</div>
+     </div>`
+      )
+      .join("");
+  zone.classList.add("ouvert");
+  zone.querySelector(".print-fermer").addEventListener("click", fermer);
+  zone.querySelector(".print-lancer").addEventListener("click", () => window.print());
+  zone.scrollTop = 0;
 }

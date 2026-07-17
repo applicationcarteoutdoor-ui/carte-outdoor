@@ -33,6 +33,7 @@ import {
   deselectionnerGr,
   getFonds,
   setFond,
+  getMap,
 } from "./map.js";
 import { initFilters, renderFilters } from "./filters.js";
 import {
@@ -584,15 +585,38 @@ function initRecherche() {
     }
   });
 
-  /** Suggestions de VILLES (geo.api.gouv.fr), ajoutées sous les points. */
+  /** Suggestions de VILLES, ajoutées sous les points. France : geo.api.gouv.fr
+   *  (riche, boost population). Autres pays : Nominatim (OSM) restreint au
+   *  pays courant, en français (« Turin » comme « Torino » trouvent la ville). */
   async function proposerVilles(nom, jeton, conteneur) {
     let communes = [];
+    const paysId = paysActuel().id;
     try {
-      const res = await fetch(
-        `https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(nom)}` +
-          "&fields=nom,centre,departement&boost=population&limit=3"
-      );
-      communes = res.ok ? await res.json() : [];
+      if (paysId === "fr") {
+        const res = await fetch(
+          `https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(nom)}` +
+            "&fields=nom,centre,departement&boost=population&limit=3"
+        );
+        communes = res.ok ? await res.json() : [];
+      } else {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=3` +
+            `&countrycodes=${paysId}&featureType=settlement&accept-language=fr` +
+            `&q=${encodeURIComponent(nom)}`
+        );
+        const lieux = res.ok ? await res.json() : [];
+        // même forme que geo.api.gouv.fr → le rendu ci-dessous est commun.
+        // Nominatim renvoie souvent la ville en double (nœud + limite
+        // administrative) : on dédoublonne par nom.
+        const vus = new Set();
+        communes = lieux
+          .map((l) => ({
+            nom: (l.display_name || l.name || "").split(",")[0],
+            centre: { coordinates: [Number(l.lon), Number(l.lat)] },
+            region: (l.display_name || "").split(",").slice(1, 2).join("").trim(),
+          }))
+          .filter((c) => c.nom && !vus.has(c.nom) && vus.add(c.nom));
+      }
     } catch {
       return; // hors connexion : la recherche de points reste utilisable
     }
@@ -608,7 +632,7 @@ function initRecherche() {
         '<span class="group-icon" style="--pin-color:#2e7d52;--pin-text:#fff" aria-hidden="true">📍</span>' +
         '<span class="search-result-text"><strong></strong><small>Ville — aller sur la carte</small></span>';
       item.querySelector("strong").textContent =
-        c.nom + (c.departement ? ` (${c.departement.code})` : "");
+        c.nom + (c.departement ? ` (${c.departement.code})` : c.region ? ` (${c.region})` : "");
       item.addEventListener("click", () => {
         input.value = "";
         conteneur.textContent = "";
@@ -1132,11 +1156,11 @@ function chargerMonde() {
 // TEASER (survol = nom, clic = clin d'œil). Liste éditoriale, dans l'ordre
 // de nos envies — en ajouter un = une ligne.
 const PAYS_BIENTOT = [
-  ["Pérou", -9.2, -75.0], ["Pays-Bas", 52.2, 5.3], ["Népal", 28.2, 84.0],
+  ["Pérou", -9.2, -75.0], ["Népal", 28.2, 84.0],
   ["Singapour", 1.35, 103.82], ["Laos", 19.0, 103.0], ["Canada", 56.0, -106.0],
   ["Japon", 36.2, 138.3], ["Norvège", 61.0, 9.0], ["Islande", 64.9, -18.6],
   ["Maroc", 31.8, -6.5], ["Costa Rica", 9.7, -84.2], ["Australie", -25.3, 133.8],
-  ["Royaume-Uni", 54.0, -2.0],
+  ["Royaume-Uni", 54.0, -2.0], ["Autriche", 47.5, 14.1],
 ];
 
 /** Couleur d'un pays de la page de garde : teinte stable dérivée du nom —
@@ -1200,17 +1224,10 @@ function choisirPays(annulable = false) {
     overlay.hidden = false;
 
     // Bouton communauté de la page de garde (onclick assigné : choisirPays
-    // peut être rappelée, pas d'écouteurs empilés). Au tout premier boot le
-    // choix du pays reste prioritaire ; ensuite (annulable), on referme la
-    // page de garde et on ouvre la communauté.
-    document.getElementById("pays-btn-communaute").onclick = () => {
-      if (!annulable) {
-        toast("Choisissez d'abord votre pays 🙂");
-        return;
-      }
-      terminer(null);
-      ouvrirCommunaute("explorer");
-    };
+    // peut être rappelée, pas d'écouteurs empilés). Le dialogue s'ouvre
+    // PAR-DESSUS la carte du monde, même avant tout choix de pays — seul
+    // l'import attend qu'un pays soit choisi (garde-fou dans communaute.js).
+    document.getElementById("pays-btn-communaute").onclick = () => ouvrirCommunaute("explorer");
 
     // La carte du monde (après l'affichage : Leaflet doit mesurer le conteneur)
     const parIso = {};
@@ -1272,7 +1289,7 @@ function choisirPays(annulable = false) {
           .bindTooltip(`${esc(nom)} — bientôt`, {
             direction: "top", offset: [0, -8], className: "pays-tooltip",
           })
-          .on("click", () => toast(`${nom} arrive un jour 🌱 — la France et la Nouvelle-Zélande vous attendent déjà !`));
+          .on("click", () => toast(`${nom} arrive un jour 🌱 — dix pays vous attendent déjà !`));
       }
       // Monde sans l'Antarctique (vide et encombrant au zoom monde)
       setTimeout(() => {
@@ -1563,6 +1580,26 @@ async function demarrer() {
     ouvrirMonde();
   });
   document.getElementById("btn-home").addEventListener("click", ouvrirMonde);
+
+  // ✅ « Mes lieux faits » : la carte ne montre plus que les lieux ✓ Fait
+  // (mécanisme des filtres de suivi) et se cadre dessus. Re-cocher un statut
+  // ou une catégorie dans le panneau rend la vue normale.
+  document.getElementById("btn-vue-faits").addEventListener("click", () => {
+    const faits = state.allPoints.filter((f) => state.statuses[f.properties.id] === "fait");
+    if (!faits.length) {
+      toast("Aucun lieu marqué ✓ Fait pour l'instant — ouvrez une fiche et touchez ✓ !");
+      return;
+    }
+    state.statusFilters = new Set(["fait"]);
+    rafraichir();
+    const lats = faits.map((f) => f.geometry.coordinates[1]);
+    const lons = faits.map((f) => f.geometry.coordinates[0]);
+    getMap().fitBounds(
+      [[Math.min(...lats), Math.min(...lons)], [Math.max(...lats), Math.max(...lons)]],
+      { padding: [46, 46], maxZoom: 13 }
+    );
+    toast(`Vos ${faits.length} lieu(x) faits ✓`);
+  });
 
   // Catégories COMMUNAUTAIRES : partager les siennes / importer celles des
   // autres (js/communaute.js). L'import écrit les points comme des points

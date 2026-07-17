@@ -42,6 +42,18 @@ PAYS = {
     "ch": {"lang": "fr", "label": "Plus beaux villages de Suisse",
            "categories": ["Catégorie:Localité adhérant à l'association Les plus beaux villages de Suisse"],
            "bornes": (45.7, 47.9, 5.8, 10.6)},
+    "be": {"lang": "fr", "label": "Plus Beaux Villages de Wallonie",
+           "categories": ["Catégorie:Localité adhérant à l'association Les Plus Beaux Villages de Wallonie"],
+           "bornes": (49.4, 50.9, 2.5, 6.5)},
+    # Aucune structure Wikidata/catégorie exploitable : liste ÉDITORIALE du
+    # réseau officiel Aldeias Históricas de Portugal (12 villages).
+    "pt": {"lang": "pt", "label": "Aldeia Histórica de Portugal",
+           "titres": ["Almeida (vila)", "Belmonte (Portugal)", "Castelo Mendo", "Castelo Novo",
+                      "Castelo Rodrigo", "Idanha-a-Velha", "Linhares (Celorico da Beira)",
+                      "Marialva (Mêda)", "Monsanto (Idanha-a-Nova)", "Piódão", "Sortelha", "Trancoso"],
+           "bornes": (36.8, 42.2, -9.6, -6.1)},
+    # DE / NL / LU : pas de label national établi — catégorie villages absente
+    # pour ces pays (honnête), rien à récolter.
 }
 
 
@@ -115,16 +127,59 @@ def details(base, titres):
                 "photo": th if th.startswith("https://upload.wikimedia.org") else "",
                 "extrait": (p.get("extract") or "").strip()[:300],
             }
+        # un titre demandé redirigé garde son entrée sous le nom DEMANDÉ
+        for r in (d.get("query") or {}).get("redirects", []):
+            if r.get("to") in res:
+                res[r["from"]] = res[r["to"]]
         time.sleep(1.0)
+    # Repli WIKIDATA P625 : fréquent sur pt.wikipedia, les articles de
+    # freguesias n'exposent pas prop=coordinates alors que l'entité en a.
+    sans = [t for t, v in res.items() if not v.get("lat")]
+    if sans:
+        for t, (lat, lon) in _coords_wikidata(base, sans).items():
+            if t in res:
+                res[t]["lat"], res[t]["lon"] = lat, lon
     return res
 
 
-def recolter():
-    tout = {}
+def _coords_wikidata(base, titres):
+    """{titre: (lat, lon)} via pageprops.wikibase_item puis P625."""
+    coords = {}
+    for i in range(0, len(titres), 20):
+        lot = titres[i:i + 20]
+        q = urllib.parse.urlencode({"action": "query", "titles": "|".join(lot),
+                                    "redirects": 1, "prop": "pageprops", "format": "json"})
+        d = _get(f"{base}?{q}")
+        qids = {}
+        for p in (d.get("query") or {}).get("pages", {}).values():
+            qid = (p.get("pageprops") or {}).get("wikibase_item")
+            if qid:
+                qids[qid] = p.get("title", "")
+        if not qids:
+            continue
+        q2 = urllib.parse.urlencode({"action": "wbgetentities", "ids": "|".join(qids),
+                                     "props": "claims", "format": "json"})
+        d2 = _get(f"https://www.wikidata.org/w/api.php?{q2}")
+        for qid, ent in (d2.get("entities") or {}).items():
+            cl = (ent.get("claims", {}).get("P625") or [{}])[0]
+            val = cl.get("mainsnak", {}).get("datavalue", {}).get("value", {})
+            if val.get("latitude") is not None and qid in qids:
+                coords[qids[qid]] = (val["latitude"], val["longitude"])
+        time.sleep(0.6)
+    return coords
+
+
+def recolter(cibles=None):
+    """`cibles` (["be", "pt"]…) : ne récolte QUE ces pays et FUSIONNE dans le
+    fichier existant — re-récolter un pays déjà construit ferait dériver
+    l'ordre du cache, donc RENUMÉROTERAIT ses ids de villages (interdit)."""
+    tout = json.loads(SORTIE.read_text(encoding="utf-8")) if SORTIE.exists() else {}
     for iso, cfg in PAYS.items():
+        if cibles and iso not in cibles:
+            continue
         base = f"https://{cfg['lang']}.wikipedia.org/w/api.php"
-        titres = []
-        if cfg.get("wikidata"):
+        titres = list(cfg.get("titres", []))  # liste éditoriale explicite
+        if not titres and cfg.get("wikidata"):
             titres = titres_wikidata(cfg["wikidata"], cfg["lang"])
             print(f"{iso}: Wikidata {cfg['wikidata']} -> {len(titres)} articles", flush=True)
         for cat in cfg.get("categories", []):
@@ -156,4 +211,4 @@ def recolter():
 
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    recolter()
+    recolter([a.lower() for a in sys.argv[1:]] or None)

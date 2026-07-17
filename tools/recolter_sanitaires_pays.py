@@ -42,6 +42,14 @@ PAYS = {
                                    (-18.4, 27.4, -13.3, 29.5)],   # Canaries
            "pas": 3.0},
     "nz": {"iso": "NZ", "bboxes": None, "pas": None},
+    "pt": {"iso": "PT", "bboxes": [(-9.6, 36.8, -6.1, 42.2),       # continent
+                                   (-31.4, 36.8, -24.9, 39.9),     # Açores
+                                   (-17.4, 32.3, -16.2, 33.2)],    # Madère
+           "pas": 3.0},
+    "de": {"iso": "DE", "bboxes": [(5.8, 47.2, 15.1, 55.1)], "pas": 2.5},
+    "nl": {"iso": "NL", "bboxes": [(3.2, 50.7, 7.3, 53.6)], "pas": 2.0},
+    "lu": {"iso": "LU", "bboxes": None, "pas": None},              # petit : aire seule
+    "be": {"iso": "BE", "bboxes": [(2.5, 49.4, 6.5, 51.6)], "pas": 2.0},
 }
 
 SEL_TOILETTES = ['["amenity"="toilets"]']

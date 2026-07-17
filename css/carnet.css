@@ -1047,85 +1047,133 @@ body.mode-nuit #carnet-overlay:not(.carnet-theme-voyage):not(.carnet-theme-nuit)
 }
 
 /* --------------------------------------------------------------------------
-   Export PDF : zone #carnet-print, invisible à l'écran, seule imprimée.
-   Le navigateur propose « Enregistrer au format PDF » dans son dialogue
-   d'impression — aucune dépendance. Style sobre : les fonds ne sont pas
-   toujours imprimés, tout doit rester lisible sans eux.
+   Export PDF : APERÇU plein écran habillé comme le grimoire (une page
+   parchemin par sortie, fonds en VRAIES <img> — les fonds CSS ne s'impriment
+   pas par défaut), puis impression de l'aperçu tel quel. « Enregistrer au
+   format PDF » vit dans le dialogue d'impression du navigateur.
    -------------------------------------------------------------------------- */
 
 #carnet-print { display: none; }
+#carnet-print.ouvert {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 3200;
+  overflow-y: auto;
+  background: #241a12;
+  padding-bottom: 44px;
+}
+
+.print-outils {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(18, 12, 7, .93);
+}
+
+.print-page {
+  position: relative;
+  width: min(680px, 94vw);
+  aspect-ratio: 210 / 280;
+  margin: 16px auto;
+  overflow: hidden;
+  background: #f0e2bd; /* si l'image de fond tarde */
+  border-radius: 6px;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .5);
+  font-family: Georgia, "Times New Roman", serif;
+  color: #2c1c0c;
+}
+
+.print-fond {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.print-corps {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  padding: 9% 11%;
+}
+
+.print-garde-texte {
+  position: relative;
+  text-align: center;
+  margin-top: 44%;
+  color: #f4e3c0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, .65);
+}
+.print-garde-texte h1 { font-family: "Caveat", cursive; font-size: 2.1rem; margin: 0 0 6px; }
+.print-garde-texte p { font-size: .95rem; margin: 0; }
+
+#carnet-print .page-entete {
+  display: flex;
+  justify-content: space-between;
+  gap: 8pt;
+  font-size: .82rem;
+  color: #6b4d21;
+  border-bottom: none;
+  padding: 0;
+}
+#carnet-print .page-titre {
+  font-family: "Caveat", cursive;
+  font-size: 1.7rem;
+  margin: 4px 0;
+  color: var(--encre, #2c1c0c);
+}
+#carnet-print .page-coeur { color: #b0304f; }
+#carnet-print .page-mention {
+  font-family: "Caveat", cursive;
+  font-size: 1.1rem;
+  color: #2f5d2a;
+  margin: 2px 0;
+}
+#carnet-print .page-photos { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0; }
+#carnet-print .page-photo {
+  max-height: 150px;
+  max-width: 46%;
+  border: 5px solid #fffdf4;
+  border-bottom-width: 16px;
+  box-shadow: 0 3px 9px rgba(40, 20, 0, .35);
+}
+#carnet-print .page-note {
+  font-family: "Caveat", cursive;
+  font-size: 1.15rem;
+  line-height: 1.35;
+  margin: 6px 0;
+  color: var(--encre, #3c2a10);
+}
 
 @media print {
   body > *:not(#carnet-print) { display: none !important; }
 
-  #carnet-print {
-    display: block;
-    font-family: Georgia, "Times New Roman", serif;
-    color: #2c1c0c;
-  }
-
-  #carnet-print .print-garde {
-    text-align: center;
-    margin-top: 34vh;
-    page-break-after: always;
-  }
-
-  #carnet-print .print-garde h1 {
-    font-family: "Caveat", cursive;
-    font-size: 34pt;
-    margin: 0 0 8pt;
-  }
-
-  #carnet-print .print-garde p { color: #47617e; font-size: 11pt; }
-
-  #carnet-print .entree {
-    page-break-inside: avoid;
-    border-bottom: 1px dashed #a08050;
-    padding: 10pt 0 12pt;
-  }
-
-  #carnet-print .page-entete {
-    display: flex;
-    justify-content: space-between;
-    gap: 8pt;
-    font-size: 10pt;
-    color: #47617e;
-    border-bottom: none;
+  #carnet-print, #carnet-print.ouvert {
+    display: block !important;
+    position: static;
+    background: none;
     padding: 0;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
-
-  #carnet-print .page-titre {
-    font-family: "Caveat", cursive;
-    font-size: 20pt;
-    margin: 3pt 0;
-    color: #2c1c0c;
+  .print-outils { display: none !important; }
+  .print-page {
+    width: 100%;
+    aspect-ratio: auto;
+    height: 270mm;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+    break-after: page;
+    break-inside: avoid;
   }
-
-  #carnet-print .page-coeur { color: #b0304f; }
-
-  #carnet-print .page-mention {
-    font-family: "Caveat", cursive;
-    font-size: 13pt;
-    color: #2f5d2a;
-    margin: 2pt 0;
-  }
-
-  #carnet-print .page-photos { display: flex; flex-wrap: wrap; gap: 8pt; margin: 6pt 0; }
-
-  #carnet-print .page-photo {
-    height: 150pt;
-    width: auto;
-    border: 1pt solid #c9b88f;
-    border-radius: 2pt;
-  }
-
-  #carnet-print .page-note {
-    font-family: "Caveat", cursive;
-    font-size: 14pt;
-    line-height: 1.35;
-    margin: 4pt 0;
-    color: #3c2a10;
-  }
+  .print-page:last-child { break-after: auto; }
 }
 
 /* --------------------------------------------------------------------------

@@ -1592,6 +1592,14 @@ body.mode-nuit .import-errors { background: #3a2326; border-color: #5c3438; colo
 }
 .comm-onglet.actif { border-color: #2d6a4f; background: rgba(45, 106, 79, .12); font-weight: 700; }
 #comm-explorer, #comm-partager { display: grid; gap: 8px; max-height: 46dvh; overflow-y: auto; }
+.comm-section {
+  margin: 12px 0 6px;
+  font-size: .78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-2, #667);
+}
 .comm-carte {
   display: flex;
   align-items: center;

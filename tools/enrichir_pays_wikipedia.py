@@ -36,7 +36,9 @@ UA = {"User-Agent": "SpotMap/1.0 (cartographie outdoor personnelle ; contact bid
 CTX = ssl.create_default_context()
 CTX_NV = ssl.create_default_context(); CTX_NV.check_hostname = False; CTX_NV.verify_mode = ssl.CERT_NONE
 
-LANGUES = {"ch": ["fr", "de", "it"], "it": ["it"], "es": ["es"]}
+LANGUES = {"ch": ["fr", "de", "it"], "it": ["it"], "es": ["es"],
+           "pt": ["pt"], "de": ["de"], "nl": ["nl"],
+           "lu": ["fr", "de"], "be": ["fr", "nl"]}
 THEMES_CIBLES = ("refuge", "lac", "cascade", "grotte", "chateau", "culture")
 RAYON_KM = {"lac": 25.0}
 RAYON_DEFAUT = 10.0

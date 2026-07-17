@@ -19,7 +19,7 @@ const ETAPES = [
     titre: "Bienvenue sur SpotMap !",
     texte:
       "Votre carte de l'outdoor : randonnées, via ferrata, escalade, refuges, cascades, lacs, " +
-      "châteaux, villages… dans 5 pays (France, Suisse, Italie, Espagne, Nouvelle-Zélande). " +
+      "châteaux, villages… dans 10 pays, de la France à la Nouvelle-Zélande. " +
       "Deux minutes de visite — revoyez-la quand vous voulez avec le bouton 🎓.",
   },
   {

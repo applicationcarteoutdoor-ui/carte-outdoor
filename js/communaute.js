@@ -173,7 +173,11 @@ function construireColis(theme, points, description) {
  *  Renvoie { theme, points } prêts pour l'import, ou lève une erreur. */
 function controlerColis(colis, idPartage) {
   if (!colis || !Array.isArray(colis.points) || !colis.theme) throw new Error("colis illisible");
-  const themeId = `comm-${idPartage.slice(0, 8)}`;
+  // Serveur : idPartage = uuid (8 premiers caractères uniques). Sélection
+  // embarquée : ids « selection-… » — on retire le préfixe commun, sinon tous
+  // les colis donneraient le même thème « comm-selectio » (collision).
+  const brut = idPartage.startsWith("selection-") ? idPartage.slice(10) : idPartage;
+  const themeId = `comm-${brut.slice(0, 8)}`;
   const theme = {
     id: themeId,
     label: String(colis.theme.label || colis.nom || "Communauté").slice(0, 40),
@@ -230,47 +234,74 @@ function vignetteCalque(theme) {
     <span class="comm-calque-ico">${esc(icone)}</span></span>`;
 }
 
-async function rendreExplorer() {
-  const zone = dialog.querySelector("#comm-explorer");
-  zone.innerHTML = `<p class="menu-note">Chargement…</p>`;
-  let liste;
+/** La « Sélection SpotMap » : des colis PRÊTS À IMPORTER embarqués avec
+ *  l'app (data/communaute/selection.json) — visibles même sans serveur. */
+async function listerSelection() {
   try {
-    liste = await listerValidees();
-  } catch (e) {
-    zone.innerHTML =
-      e.message === "indisponible"
-        ? `<p class="menu-note">La bibliothèque communautaire n'est pas encore ouverte — elle arrive bientôt !</p>`
-        : e.message === "réseau"
-          ? `<p class="menu-note">Bibliothèque injoignable — êtes-vous en ligne ?</p>`
-          : `<p class="menu-note">Bibliothèque injoignable (${esc(e.message)}). Réessayez plus tard.</p>`;
-    return;
+    const res = await fetch("data/communaute/selection.json");
+    return res.ok ? await res.json() : [];
+  } catch {
+    return [];
   }
-  if (!liste.length) {
-    zone.innerHTML = `<p class="menu-note">Aucune catégorie publiée pour l'instant — partagez la vôtre !</p>`;
-    return;
-  }
-  zone.innerHTML = liste
-    .map((c) => {
-      const deja = cb.estImportee?.(`comm-${c.id.slice(0, 8)}`);
-      return `
+}
+
+function carteHTML(c, meta, deja, source) {
+  return `
       <div class="comm-carte">
         ${vignetteCalque(c.theme)}
         <div class="comm-infos">
           <strong>${drapeauPays(c.pays)} ${esc(c.nom)}</strong>
-          <span class="comm-meta">${c.nb_points} point(s) · ${c.telechargements} import(s)</span>
+          <span class="comm-meta">${meta}</span>
           ${c.description ? `<span class="comm-desc">${esc(c.description)}</span>` : ""}
         </div>
         <button type="button" class="btn btn-secondary comm-importer" data-id="${esc(c.id)}"
-          ${deja ? "disabled" : ""}>${deja ? "✓ Importée" : "📥 Importer"}</button>
+          data-source="${source}" ${deja ? "disabled" : ""}>${deja ? "✓ Importée" : "📥 Importer"}</button>
       </div>`;
-    })
-    .join("");
+}
+
+async function rendreExplorer() {
+  const zone = dialog.querySelector("#comm-explorer");
+  zone.innerHTML = `<p class="menu-note">Chargement…</p>`;
+  const selection = await listerSelection();
+  let liste = [];
+  let panne = "";
+  try {
+    liste = await listerValidees();
+  } catch (e) {
+    panne =
+      e.message === "indisponible"
+        ? "La bibliothèque communautaire n'est pas encore ouverte — elle arrive bientôt !"
+        : e.message === "réseau"
+          ? "Bibliothèque communautaire injoignable — êtes-vous en ligne ?"
+          : `Bibliothèque injoignable (${e.message}). Réessayez plus tard.`;
+  }
+  const htmlSelection = selection.length
+    ? `<p class="comm-section">⭐ Sélection SpotMap</p>` +
+      selection
+        .map((c) => carteHTML(c, `${c.points?.length || 0} point(s) · offerte avec l'app`,
+          cb.estImportee?.(`comm-${c.id.slice(0, 8)}`), "selection"))
+        .join("")
+    : "";
+  const htmlServeur = liste.length
+    ? `<p class="comm-section">🌍 Partagées par la communauté</p>` +
+      liste
+        .map((c) => carteHTML(c, `${c.nb_points} point(s) · ${c.telechargements} import(s)`,
+          cb.estImportee?.(`comm-${c.id.slice(0, 8)}`), "serveur"))
+        .join("")
+    : `<p class="menu-note">${panne ? esc(panne) : "Aucune catégorie publiée pour l'instant — partagez la vôtre !"}</p>`;
+  zone.innerHTML = htmlSelection + htmlServeur;
   zone.querySelectorAll(".comm-importer").forEach((btn) =>
     btn.addEventListener("click", async () => {
+      if (!cb.importerCategorie) {
+        toast("Choisissez d'abord votre pays sur la carte, l'import suivra 🙂");
+        return;
+      }
       btn.disabled = true;
       btn.textContent = "…";
       try {
-        const colis = await telechargerColis(btn.dataset.id);
+        const colis = btn.dataset.source === "selection"
+          ? selection.find((s) => s.id === btn.dataset.id)
+          : await telechargerColis(btn.dataset.id);
         const { theme, points } = controlerColis(colis, btn.dataset.id);
         await cb.importerCategorie(theme, points);
         btn.textContent = "✓ Importée";
@@ -295,7 +326,7 @@ async function rendrePartager() {
     zone.querySelector("#comm-connexion").addEventListener("click", () => demanderConnexion());
     return;
   }
-  const cats = await cb.getMesCategories();
+  const cats = await (cb.getMesCategories?.() ?? []);
   if (!cats.length) {
     zone.innerHTML = `<p class="menu-note">Créez d'abord une catégorie personnelle (bouton ➕ de la carte,
       ou import d'un fichier) — vous pourrez ensuite la partager ici.</p>`;
@@ -435,14 +466,10 @@ function basculerVolet(volet) {
   else rendreSuivi();
 }
 
-/** Ouvre le dialogue communauté sur le volet demandé. */
-export function ouvrirCommunaute(volet = "explorer") {
-  basculerVolet(volet);
-  dialog.showModal();
-}
-
-export function initCommunaute(callbacks) {
-  cb = callbacks;
+/** Câble le dialogue une seule fois — appelable AVANT initCommunaute :
+ *  la page de garde ouvre la communauté avant même le choix du pays. */
+function assurerDialogue() {
+  if (dialog) return;
   dialog = document.getElementById("communaute-dialog");
   dialog.querySelector(".communaute-close").addEventListener("click", () => dialog.close());
   dialog.querySelectorAll(".comm-onglet").forEach((o) =>
@@ -452,4 +479,16 @@ export function initCommunaute(callbacks) {
   dialog.addEventListener("click", (e) => {
     if (e.target === dialog) dialog.close();
   });
+}
+
+/** Ouvre le dialogue communauté sur le volet demandé. */
+export function ouvrirCommunaute(volet = "explorer") {
+  assurerDialogue();
+  basculerVolet(volet);
+  dialog.showModal();
+}
+
+export function initCommunaute(callbacks) {
+  cb = callbacks;
+  assurerDialogue();
 }

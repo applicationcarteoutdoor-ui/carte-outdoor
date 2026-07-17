@@ -73,6 +73,15 @@ Tenue par l'agent **chef-de-projet** (`.claude/agents/chef-de-projet.md`). Derni
 - [ ] ⚠️ **URGENT (action utilisateur)** : le domaine Supabase `xwrqqhvqyccgtkslexbu.supabase.co` ne résout plus (NXDOMAIN vérifié 2 fois) → sync, communauté et fréquentation MORTS aussi en production. Vérifier le tableau de bord Supabase (projet en pause ? supprimé ?) — un projet gratuit inactif est mis en pause et se réveille en un clic ; s'il a été supprimé, en recréer un et mettre à jour `js/config/supabase.js` + rejouer les 2 SQL (communaute + frequentation).
 - [ ] Ergonomie (retours testeur, à trancher) : le 🗑 du carnet laisse le ✓ Fait (la page « revient » en Date inconnue — proposer de retirer aussi le statut ?) ; l'auto-cochage de catégorie à l'ouverture d'une fiche s'accumule sans bruit (décocher au retour ou toast) ; compteur de couverture du carnet à confirmer (sorties vs notes orphelines).
 
+## v69 (2026-07-17) — 10 PAYS, recherche de villes, carnet imprimable, Sélection
+
+- [x] **5 nouveaux pays** : 🇵🇹 Portugal 3 754 (12 Aldeias Históricas) · 🇩🇪 Allemagne 27 502 (5 505 châteaux, 194 via ferrata, 6 159 fiches Wikipédia) · 🇳🇱 Pays-Bas 5 412 · 🇱🇺 Luxembourg 297 · 🇧🇪 Belgique 4 039 (31 Plus Beaux Villages de Wallonie) + **toilettes/eau partout** (DE 30 939/38 661…). Page de garde à 10 pays.
+- [x] **Recherche de villes multi-pays** (Turin/torino → Nominatim par pays, France inchangée).
+- [x] **Impression du carnet réparée et habillée** : aperçu grimoire plein écran (couverture cuir + parchemins), page blanche corrigée (fonds en `<img>`).
+- [x] **Tuile ✅ Mes lieux faits** (vue carte des seuls points faits, cadrée).
+- [x] **Communauté depuis la vue monde** (sans choisir de pays) + **⭐ Sélection SpotMap** embarquée : ♨️ Sources chaudes naturelles (289 pts, 9 pays).
+- [ ] Backlog nouveaux pays : randonnées éditoriales PT/DE/NL/LU/BE, fiches VF DE (klettersteig.de à évaluer), labels villages DE/NL si un jour officiels.
+
 ## Étape 2 — 📋 Publier sur le Play Store
 
 Guide existant : `docs/PLAYSTORE.md` (TWA/PWABuilder). Reste à faire :

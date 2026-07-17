@@ -32,6 +32,11 @@ PAYS = {
     "ch": {"nom": "Suisse", "recherche": "Switzerland"},
     "it": {"nom": "Italie", "recherche": "Italy"},
     "es": {"nom": "Espagne", "recherche": "Spain"},
+    "pt": {"nom": "Portugal", "recherche": "Portugal"},
+    "de": {"nom": "Allemagne", "recherche": "Germany"},
+    "nl": {"nom": "Pays-Bas", "recherche": "Netherlands"},
+    "lu": {"nom": "Luxembourg", "recherche": "Luxembourg"},
+    "be": {"nom": "Belgique", "recherche": "Belgium"},
 }
 # catégorie OSM -> (theme, abréviation d'id)
 THEMES = {
