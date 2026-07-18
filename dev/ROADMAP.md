@@ -137,7 +137,8 @@ Tenue par l'agent **chef-de-projet** (`.claude/agents/chef-de-projet.md`). Derni
 ## v77 (2026-07-18) — Profil + badges (100 % local) & catégories des autres pays
 
 - [x] **Profil utilisateur + badges** (`js/profil.js` + `js/config/badges.js`) : tuile 👤 Profil dans Réglages ; pseudo + avatar (emoji cyclable) en prefs ; **stats calculées EN LOCAL** (lieux visités, sorties, pays, catégories, km/D+ GPX) depuis statuts/carnet/traces — rien sur un serveur ; **16 badges** à jauge (paliers sur les métriques, `theme:x+y` pour compter par catégorie) ; rétrospective annuelle. PIÈGE corrigé : id château FR « ch-0002 » (ch=château) ≠ Suisse → regex pays `<iso>-<abr>-<num>`.
-- [~] **Nouvelles catégories pour les 9 pays** (panorama, sommet-croix, col-mythique, phare, arbre-remarquable, plongée, observatoires) : `recolter_pays_osm.py` + `construire_pays.py` étendus (col filtré sur altitude, noms de repli croix/arbres, descriptions factuelles). Récolte OSM des 8 pays génériques EN COURS (CH fait : +1126 panoramas, +679 cols, +367 plongées…). Build + ajout aux `pays.categories` + géo-recherche photos → **v78**.
+- [x] **Nouvelles catégories pour les 8 pays européens (v78)** : panorama, sommet à croix, col mythique (filtré sur altitude), phare, arbre remarquable, plongée, observatoires (ciel étoilé). Ajoutées aux `pays.categories` (seulement là où présentes) → rangées auto dans les packs Paysages/Eau. Ex. Italie : +2 892 panoramas, +991 croix, +3 651 cols, +2 744 arbres, +194 phares. Chaque point : lien 🔎 + description factuelle (règle qualité) ; photos par géo-recherche en fond. **NZ à part** (pipeline dédié — à faire).
+- [ ] Photos géo-recherche des nouvelles catégories : en cours (fond) → rebuild ultérieur.
 
 ## Étape 2 — 📋 Publier sur le Play Store
 
