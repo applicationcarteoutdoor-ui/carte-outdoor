@@ -1104,6 +1104,32 @@ button.glossary-term { text-decoration: none; }
 .details-links a { color: var(--accent); font-weight: 600; text-decoration: none; line-height: 1.5; }
 .details-links a:hover { text-decoration: underline; }
 
+/* Prévisions météo à 3 jours (Open-Meteo) — planification des sorties */
+.details-meteo:empty { display: none; }
+.meteo-titre { font-size: 0.92rem; font-weight: 700; margin: 12px 0 8px; }
+.meteo-jours { display: flex; gap: 8px; }
+.meteo-jour {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 4px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--accent-soft);
+  text-align: center;
+}
+.meteo-jour-nom { font-weight: 700; font-size: 0.76rem; color: var(--text-2); }
+.meteo-ico { font-size: 1.65rem; line-height: 1; }
+.meteo-temp { font-size: 0.92rem; }
+.meteo-temp strong { color: var(--text); }
+.meteo-tmin { color: var(--text-2); margin-left: 4px; }
+.meteo-ligne { font-size: 0.7rem; color: var(--text-2); }
+.meteo-source { font-size: 0.7rem; color: var(--text-2); margin: 6px 0 0; }
+.meteo-source a { color: var(--accent); text-decoration: none; }
+.meteo-note { font-size: 0.82rem; color: var(--text-2); margin: 10px 0; }
+
 .details-photos {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));

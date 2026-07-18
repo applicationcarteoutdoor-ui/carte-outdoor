@@ -14,7 +14,7 @@
  *    pour invalider l'ancien cache.
  */
 
-const VERSION = "v79";
+const VERSION = "v80";
 const CACHE_SHELL = `carte-outdoor-shell-${VERSION}`;
 const CACHE_TUILES = "carte-outdoor-tuiles-v1";
 const MAX_TUILES = 600;
@@ -45,6 +45,7 @@ const SHELL = [
   "./js/tuto.js",
   "./js/ideas.js",
   "./js/addpoint.js",
+  "./js/meteo.js",
   "./js/partage.js",
   "./js/communaute.js",
   "./js/profil.js",

@@ -9,6 +9,7 @@
 
 import { getTheme } from "./config/themes.js";
 import { paysActuel } from "./config/pays.js";
+import { chargerMeteo } from "./meteo.js";
 import { glossaireHTML } from "./config/glossaire.js";
 import { SUR_ANDROID, SUR_IOS } from "./config/platform.js";
 import * as storage from "./storage.js";
@@ -224,6 +225,8 @@ export function openDetails(feature, statut) {
         : ""}
     </div>
 
+    <section class="details-meteo" aria-label="Prévisions météo à 3 jours"></section>
+
     ${p.description ? `<p class="details-description">${glossaireHTML(p.description).replaceAll("\n", "<br>")}</p>` : ""}
 
     ${lignes.length ? `<dl class="details-fields">${lignes.join("")}</dl>` : ""}
@@ -318,6 +321,10 @@ export function openDetails(feature, statut) {
   });
 
   initCarnet(feature.properties.id);
+
+  // Prévisions météo à 3 jours (en ligne) — fire-and-forget, ne bloque pas
+  // l'ouverture de la fiche ; se remplit dès la réponse d'Open-Meteo.
+  chargerMeteo(lat, lon, panel.querySelector(".details-meteo"));
 
   panel.classList.add("open");
   panel.querySelector(".panel-body").scrollTop = 0;
