@@ -31,8 +31,11 @@ RAYON_DEFAUT = 300
 RAYONS = {"chateau": 500, "cathedrale": 500, "cite-caractere": 900, "culture": 250,
           "lac": 900, "cascade": 400, "grotte": 300, "refuge": 400, "camping": 200,
           "via-ferrata": 400, "randonnee": 500, "village-abandonne": 800}
-# catégories exclues : trop denses/anonymes pour la géo-recherche
-EXCLUES = {"toilettes", "eau", "escalade", "canyon", "autre"}
+# catégories exclues : trop denses/anonymes pour la géo-recherche.
+# `arbre-remarquable` ajouté v79 : un arbre isolé n'a quasi jamais d'article
+# Wikipédia dédié à < 300 m (rendement mesuré ≈ 0 % pour ~15 000 arbres UE) —
+# la règle qualité reste tenue par le lien de repli + la description factuelle.
+EXCLUES = {"toilettes", "eau", "escalade", "canyon", "autre", "arbre-remarquable"}
 
 
 def _mots(texte):
