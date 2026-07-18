@@ -90,7 +90,7 @@ const state = {
  *  `paysActuel().couchesLourdes` (js/config/pays.js) mappe id → fichier
  *  (v67 : toilettes/eau existent pour TOUS les pays ; grottes/musées = France,
  *  ces catégories restent ordinaires ailleurs). */
-const pointsCouches = { toilettes: [], eau: [], grotte: [], culture: [] };
+const pointsCouches = { toilettes: [], eau: [], grotte: [] };
 
 /** Indices du cycle « flèche ➤ » (clics successifs → point suivant). */
 const cycleUserPoint = {};
@@ -714,11 +714,8 @@ const COUCHES_LOURDES = {
     vide: "Aucune grotte à moins de 1 km",
     proche: "la plus proche", aucun: "Aucune grotte connue.",
   },
-  culture: {
-    dialog: "culture-dialog", pluriel: "musées", indisponible: "Musées indisponibles",
-    vide: "Aucun musée à moins de 1 km",
-    proche: "le plus proche", aucun: "Aucun musée connu.",
-  },
+  // (v76 : les musées ne sont plus une couche lourde — dans points.geojson,
+  //  catégorie normale sans avertissement, disponible hors ligne.)
 };
 
 /** Config de couche lourde pour `id` — ou undefined si le pays courant n'a
@@ -1655,6 +1652,13 @@ async function demarrer() {
     ouvrirMonde();
   });
   document.getElementById("btn-home").addEventListener("click", ouvrirMonde);
+
+  // Pastille du pays courant en bas à droite (drapeau + nom, sous le partage)
+  // — clic = carte du monde. Rappel visuel de « où l'on est » (demande v76).
+  const btnPaysActuel = document.getElementById("pays-actuel");
+  btnPaysActuel.querySelector(".pays-actuel-drapeau").textContent = pays.drapeau;
+  btnPaysActuel.querySelector(".pays-actuel-nom").textContent = pays.label;
+  btnPaysActuel.addEventListener("click", ouvrirMonde);
 
   // (La vue « lieux faits » vit dans le panneau des catégories : ligne
   // « ✓ Fait » — la tuile Réglages redondante a été retirée en v70.)

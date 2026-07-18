@@ -60,18 +60,24 @@ export function initIdeas() {
       render();
     }
     const idees = lireIdees();
-    const corps = idees.length
-      ? idees.map((i) => `- [${i.date.slice(0, 10)}] ${i.text}`).join("\r\n")
-      : "(aucune idée enregistrée)";
+    if (!idees.length) {
+      toast("Aucune idée à envoyer — écrivez-en une d'abord 🙂");
+      return;
+    }
+    const corps = idees.map((i) => `- [${i.date.slice(0, 10)}] ${i.text}`).join("\r\n");
     // Filet : certaines messageries (Android surtout) ouvrent le brouillon en
     // ignorant le corps du mailto — le texte est donc AUSSI copié, prêt à coller.
     try {
       await navigator.clipboard.writeText(corps);
-      toast("Vos idées sont aussi copiées — collez-les si le mail arrive vide.");
     } catch { /* presse-papiers refusé : le mailto reste tenté tel quel */ }
     location.href =
       `mailto:${EMAIL}?subject=${encodeURIComponent("Idées SpotMap")}` +
       `&body=${encodeURIComponent(corps)}`;
+    // Une fois envoyées, les idées sont VIDÉES automatiquement (demande v76) :
+    // plus besoin de les supprimer à la main. Copie de secours faite au cas où.
+    ecrireIdees([]);
+    render();
+    toast("Idées envoyées et effacées ✉️ (une copie reste dans le presse-papiers).");
   });
 }
 

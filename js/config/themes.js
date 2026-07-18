@@ -725,25 +725,6 @@ export const THEMES = [
     ],
   },
   {
-    id: "village-abandonne",
-    label: "Village abandonné",
-    color: "#6d597a",
-    icon: "🏚️",
-    fields: [],
-    filters: [
-      {
-        key: "fiche",
-        label: "Fiche",
-        type: "value",
-        field: "fiche",
-        options: [
-          { value: "Référencé", icon: "✅" },
-          { value: "À vérifier", icon: "🔍" },
-        ],
-      },
-    ],
-  },
-  {
     id: "ciel-etoile",
     label: "Ciel étoilé",
     color: "#1d3557",

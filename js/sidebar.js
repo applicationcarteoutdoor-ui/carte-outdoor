@@ -25,7 +25,6 @@ import {
   getPack,
   getDefaultPack,
   setPackOverrides,
-  setOrdrePacks,
   isCustomPack,
   packExists,
   PACK_MES_CATEGORIES,
@@ -60,6 +59,15 @@ export function initSidebar(callbacks) {
 
 export function closeSidebar() {
   panel.classList.remove("open");
+  // Fermer le panneau (croix, ou clic sur la carte) ramène TOUJOURS à
+  // l'accueil des packs : on ne rouvre jamais sur un pack ni sur la liste
+  // complète laissés ouverts (demande v76).
+  if (vueSidebar.mode !== "packs" || vueSidebar.packOuvert) {
+    vueSidebar = { mode: "packs", packOuvert: null };
+    editionPack = null;
+    if (etatCourant) renderSidebar(etatCourant);
+    cb.onSidebarViewChange?.(vueSidebar);
+  }
 }
 
 const STATUTS = [
@@ -272,8 +280,6 @@ function categoriesDuPack(packId, etat) {
   return ids.filter((id) => visibles.has(id));
 }
 
-let modeOrganiser = false; // ↕ : réordonner les TUILES de packs
-
 /** Vue « accueil » : la grille des tuiles de packs.
  *  CLIC sur la tuile = afficher/masquer TOUT le pack (les couches volumineuses
  *  restent à cocher individuellement — dialogue oblige) ; ▸ = entrer dedans. */
@@ -304,29 +310,21 @@ function renderAccueilPacks(liste, etat) {
           : total ? total.toLocaleString("fr-FR") + "+ lieux" : "… lieux"}</span>
       </button>
       ${nbCochees ? `<span class="pack-cochees" title="${nbCochees} catégorie(s) affichée(s)">${nbCochees} ✓</span>` : ""}
-      ${modeOrganiser
-        ? `<span class="pack-ordre">
-             <button type="button" class="btn-icon pack-monter" title="Monter">▲</button>
-             <button type="button" class="btn-icon pack-descendre" title="Descendre">▼</button>
-           </span>`
-        : `<button type="button" class="btn-icon pack-ouvrir" title="Voir les catégories du pack" aria-label="Voir les catégories de ${esc(pack.label)}">▸</button>`}`;
+      <button type="button" class="btn-icon pack-ouvrir" title="Voir les catégories du pack" aria-label="Voir les catégories de ${esc(pack.label)}">▸</button>`;
     // clic = tout afficher / tout masquer (bascule)
     tuile.querySelector(".pack-corps").addEventListener("click", () =>
       cb.onTogglePack?.(cats, nbCochees === 0));
-    tuile.querySelector(".pack-ouvrir")?.addEventListener("click", () => ouvrirPack(packId));
-    tuile.querySelector(".pack-monter")?.addEventListener("click", () => bougerPack(packId, -1));
-    tuile.querySelector(".pack-descendre")?.addEventListener("click", () => bougerPack(packId, 1));
+    tuile.querySelector(".pack-ouvrir").addEventListener("click", () => ouvrirPack(packId));
     grille.appendChild(tuile);
   }
   liste.appendChild(grille);
 
-  // Actions sous la grille : liste complète, création, organisation
+  // Actions sous la grille : liste complète, création
   const actions = document.createElement("div");
   actions.className = "pack-actions";
   actions.innerHTML = `
     <button type="button" class="pack-action pack-tout">☰ Toutes les catégories</button>
-    <button type="button" class="pack-action pack-creer">＋ Créer un pack</button>
-    <button type="button" class="pack-action pack-organiser${modeOrganiser ? " actif" : ""}">${modeOrganiser ? "✓ Terminé" : "↕ Organiser"}</button>`;
+    <button type="button" class="pack-action pack-creer">＋ Créer un pack</button>`;
   actions.querySelector(".pack-tout").addEventListener("click", () => {
     vueSidebar = { mode: "liste", packOuvert: null };
     renderSidebar(etatCourant);
@@ -334,10 +332,6 @@ function renderAccueilPacks(liste, etat) {
   });
   actions.querySelector(".pack-creer").addEventListener("click", () => {
     editionPack = "nouveau";
-    renderSidebar(etatCourant);
-  });
-  actions.querySelector(".pack-organiser").addEventListener("click", () => {
-    modeOrganiser = !modeOrganiser;
     renderSidebar(etatCourant);
   });
   liste.appendChild(actions);
@@ -348,18 +342,6 @@ function renderAccueilPacks(liste, etat) {
     liste.appendChild(zone);
     renderEditeurPack(zone, null, etat);
   }
-}
-
-/** Déplace une tuile dans l'ordre des packs (mode ↕ Organiser). */
-function bougerPack(packId, sens) {
-  const ids = allPacks().map((p) => p.id);
-  const i = ids.indexOf(packId);
-  const j = i + sens;
-  if (i < 0 || j < 0 || j >= ids.length) return;
-  [ids[i], ids[j]] = [ids[j], ids[i]];
-  setOrdrePacks(ids);
-  renderSidebar(etatCourant);
-  cb.onOrdrePacks?.(ids);
 }
 
 /** Vue « pack ouvert » : en-tête ← + les catégories du pack. */
@@ -410,35 +392,64 @@ function renderEditeurPack(zone, packId, etat) {
   const visibles = categoriesVisibles(etat).map((d) => d.id);
   const cochees = new Set((pack.categories || []).filter((id) => visibles.includes(id)));
 
-  const lignesHtml = () => visibles.map((id) => {
+  // Catégories = grandes pastilles cochables (pictogramme + nom), plus
+  // agréables que des cases (l'écran a de la place depuis la v76).
+  const chipsHtml = () => visibles.map((id) => {
     const t = getTheme(id);
+    const on = cochees.has(id);
     return `
-      <div class="pack-cat-ligne" data-id="${esc(id)}">
-        <label><input type="checkbox" ${cochees.has(id) ? "checked" : ""}>
-          <span class="group-icon" style="--pin-color:${t.color};--pin-text:${t.textColor}" aria-hidden="true">${t.icon}</span>
-          ${esc(t.label)}</label>
-      </div>`;
+      <button type="button" class="pack-chip${on ? " on" : ""}" data-id="${esc(id)}"
+        style="--chip-color:${t.color}" aria-pressed="${on}">
+        <span class="pack-chip-ico" aria-hidden="true">${t.icon}</span>
+        <span class="pack-chip-nom">${esc(t.label)}</span>
+        <span class="pack-chip-check" aria-hidden="true">✓</span>
+      </button>`;
   }).join("");
 
   zone.innerHTML = `
-    <label>Nom du pack <input type="text" class="edit-label" value="${esc(pack.label)}" maxlength="30" placeholder="Mon pack"></label>
-    <label>Icône (emoji) <input type="text" class="edit-icon" value="${esc(pack.icon)}" maxlength="4"></label>
-    <label>Couleur <input type="color" class="edit-color" value="${pack.color}"></label>
-    <p class="editor-note">Cochez les catégories à inclure dans ce pack.</p>
-    <div class="pack-cats">${lignesHtml()}</div>
-    <div class="editor-actions">
+    <div class="pack-edit-entete">
+      <span class="pack-edit-apercu" aria-hidden="true"></span>
+      <div class="pack-edit-titre">
+        <input type="text" class="edit-label" value="${esc(pack.label)}" maxlength="30" placeholder="Nom du pack…">
+        <span class="pack-edit-compte"></span>
+      </div>
+    </div>
+    <div class="pack-edit-reglages">
+      <label class="pack-edit-mini">Icône<input type="text" class="edit-icon" value="${esc(pack.icon)}" maxlength="4"></label>
+      <label class="pack-edit-mini">Couleur<input type="color" class="edit-color" value="${pack.color}"></label>
+    </div>
+    <p class="editor-note">Touchez les catégories à mettre dans ce pack :</p>
+    <div class="pack-chips">${chipsHtml()}</div>
+    <div class="editor-actions pack-edit-actions">
       ${!creation && isCustomPack(packId)
-        ? '<button type="button" class="btn btn-danger edit-delete">🗑 Supprimer</button>' : ""}
+        ? '<button type="button" class="btn btn-danger edit-delete">🗑</button>' : ""}
       ${!creation && !isCustomPack(packId)
         ? '<button type="button" class="btn btn-secondary edit-reset">Réinitialiser</button>' : ""}
       <button type="button" class="btn btn-secondary edit-annuler">Annuler</button>
-      <button type="button" class="btn edit-save">Enregistrer</button>
+      <button type="button" class="btn edit-save">${creation ? "Créer le pack" : "Enregistrer"}</button>
     </div>`;
 
-  zone.querySelectorAll(".pack-cat-ligne input").forEach((input) => {
-    const id = input.closest(".pack-cat-ligne").dataset.id;
-    input.addEventListener("change", (e) => {
-      e.target.checked ? cochees.add(id) : cochees.delete(id);
+  const apercu = zone.querySelector(".pack-edit-apercu");
+  const compte = zone.querySelector(".pack-edit-compte");
+  const majApercu = () => {
+    const icon = zone.querySelector(".edit-icon").value.trim() || "🧭";
+    const color = zone.querySelector(".edit-color").value;
+    apercu.textContent = icon;
+    apercu.style.background = color;
+    const n = cochees.size;
+    compte.textContent = n ? `${n} catégorie${n > 1 ? "s" : ""}` : "aucune catégorie";
+  };
+  majApercu();
+  zone.querySelector(".edit-icon").addEventListener("input", majApercu);
+  zone.querySelector(".edit-color").addEventListener("input", majApercu);
+  zone.querySelectorAll(".pack-chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const id = chip.dataset.id;
+      if (cochees.has(id)) cochees.delete(id);
+      else cochees.add(id);
+      chip.classList.toggle("on");
+      chip.setAttribute("aria-pressed", cochees.has(id));
+      majApercu();
     });
   });
 
@@ -457,8 +468,7 @@ function renderEditeurPack(zone, packId, etat) {
       const packs = await storage.getCustomPacks();
       if (creation) {
         packs.push({ id: `pack-perso-${Date.now().toString(36)}`, label, icon, color, categories });
-        // la tuile naît en fin de grille : ↕ Organiser la place où on veut
-        cb.onToast?.(`Pack « ${label} » créé — placez sa tuile avec ↕ Organiser.`);
+        cb.onToast?.(`Pack « ${label} » créé !`);
       } else {
         const p = packs.find((x) => x.id === packId);
         if (p) Object.assign(p, { label, icon, color, categories });

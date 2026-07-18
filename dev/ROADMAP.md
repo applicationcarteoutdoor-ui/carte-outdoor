@@ -123,6 +123,17 @@ Tenue par l'agent **chef-de-projet** (`.claude/agents/chef-de-projet.md`). Derni
 - [x] **Photos par géo-recherche Wikipédia** (`enrichir_geosearch_pays.py`, anti-homonyme mot≥4 lettres OU <150 m ; cache `geosearch-<iso>.json` rejoué au build) : FR +1 710, CH/PT/BE/LU/NZ appliqués (photos ch 22→34 %, be 18→38 %, nz 2→11 %). IT/ES/DE/NL en cours (background) → rebuild v76.
 - [x] Arbres/plongée qui n'avaient « rien » : désormais 100 % liens + descriptions factuelles.
 
+## v76 (2026-07-18) — Gros lot de retours packs + musées hors ligne
+
+- [x] **Musées = catégorie normale** (5 051, fusionnés dans points.geojson pré-caché) : plus d'avertissement, fiche normale, **disponibles hors ligne**. Retirés de couchesLourdes FR + COUCHES_LOURDES.
+- [x] **Villages abandonnés supprimés** (thème + 30 points). **Fontaines/sources ajoutées à Services**. **Ciel étoilé retiré de Paysages** (reste dans « Toutes les catégories »).
+- [x] **Clic tuile = tout afficher** (inchangé), **▸ = entrer** ; **option Organiser SUPPRIMÉE** ; **flèche retour agrandie** (38 px ronde contrastée + « ☰ Retour aux packs » encadré) ; **fermeture (croix/clic carte) → retour accueil packs** (jamais liste complète ni pack ouvert).
+- [x] **Écran Créer un pack refondu** (DA) : aperçu live de la tuile, nom en titre, catégories en grandes pastilles cochables (plus de cases), compteur live.
+- [x] **Pastille pays** (drapeau + nom) en bas à droite sous le partage → clic = carte du monde.
+- [x] **Boîte à idées** : idées **effacées automatiquement** après envoi (copie presse-papiers de secours).
+- Tests 35/35, 0 erreur console. points.geojson 25 917 features / 14,7 Mo (pré-caché — surveiller le poids).
+- ⏳ IT/ES/DE/NL géo-recherche photos toujours en fond → rebuild à venir.
+
 ## Étape 2 — 📋 Publier sur le Play Store
 
 Guide existant : `docs/PLAYSTORE.md` (TWA/PWABuilder). Reste à faire :

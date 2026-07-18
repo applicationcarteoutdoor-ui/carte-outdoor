@@ -29,12 +29,12 @@ export const PAYS = {
     categoriesExclues: ["camping"],
     // Couches volumineuses à la demande (id de catégorie → fichier de points,
     // NON pré-caché). v67 : toilettes + eau existent pour TOUS les pays ;
-    // grottes (Grottocenter) et musées restent des couches France.
+    // grottes (Grottocenter) = couche France. v76 : les MUSÉES ont rejoint
+    // points.geojson (catégorie normale, sans avertissement, hors ligne).
     couchesLourdes: {
       toilettes: "data/toilettes.geojson",
       eau: "data/eau.geojson",
       grotte: "data/grottes.geojson",
-      culture: "data/culture.geojson",
     },
     vue: { center: [46.5, 2.6], zoom: 6 },
     wikiLang: "fr",

@@ -163,6 +163,12 @@
         <path d="M8.3 10.8 15.7 6.2M8.3 13.2 15.7 17.8"/>
       </svg>
     </button>
+    <!-- Pays courant (drapeau + nom) sous le partage : clic = carte du monde.
+         Rempli et câblé par app.js (choisirPays). -->
+    <button type="button" id="pays-actuel" class="fab fab-pays" title="Changer de pays" aria-label="Changer de pays">
+      <span class="pays-actuel-drapeau" aria-hidden="true"></span>
+      <span class="pays-actuel-nom"></span>
+    </button>
   </div>
 
   <!-- Pastille de la randonnée épinglée : le tracé reste sur la carte après

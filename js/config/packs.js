@@ -48,22 +48,21 @@ export const PACKS = [
     label: "Paysages",
     icon: "🌄",
     color: "#b76935",
-    categories: ["panorama", "sommet-croix", "col-mythique", "ciel-etoile",
-                 "arbre-remarquable", "phare"],
+    categories: ["panorama", "sommet-croix", "col-mythique", "arbre-remarquable", "phare"],
   },
   {
     id: "culture",
     label: "Culture & patrimoine",
     icon: "🏛️",
     color: "#780000",
-    categories: ["chateau", "cathedrale", "culture", "cite-caractere", "village-abandonne"],
+    categories: ["chateau", "cathedrale", "culture", "cite-caractere"],
   },
   {
     id: "road-trip",
     label: "Services",
     icon: "🚐",
     color: "#606c38",
-    categories: ["camping", "toilettes"],
+    categories: ["camping", "toilettes", "eau"],
   },
 ];
 
