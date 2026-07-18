@@ -134,6 +134,11 @@ Tenue par l'agent **chef-de-projet** (`.claude/agents/chef-de-projet.md`). Derni
 - Tests 35/35, 0 erreur console. points.geojson 25 917 features / 14,7 Mo (pré-caché — surveiller le poids).
 - ⏳ IT/ES/DE/NL géo-recherche photos toujours en fond → rebuild à venir.
 
+## v77 (2026-07-18) — Profil + badges (100 % local) & catégories des autres pays
+
+- [x] **Profil utilisateur + badges** (`js/profil.js` + `js/config/badges.js`) : tuile 👤 Profil dans Réglages ; pseudo + avatar (emoji cyclable) en prefs ; **stats calculées EN LOCAL** (lieux visités, sorties, pays, catégories, km/D+ GPX) depuis statuts/carnet/traces — rien sur un serveur ; **16 badges** à jauge (paliers sur les métriques, `theme:x+y` pour compter par catégorie) ; rétrospective annuelle. PIÈGE corrigé : id château FR « ch-0002 » (ch=château) ≠ Suisse → regex pays `<iso>-<abr>-<num>`.
+- [~] **Nouvelles catégories pour les 9 pays** (panorama, sommet-croix, col-mythique, phare, arbre-remarquable, plongée, observatoires) : `recolter_pays_osm.py` + `construire_pays.py` étendus (col filtré sur altitude, noms de repli croix/arbres, descriptions factuelles). Récolte OSM des 8 pays génériques EN COURS (CH fait : +1126 panoramas, +679 cols, +367 plongées…). Build + ajout aux `pays.categories` + géo-recherche photos → **v78**.
+
 ## Étape 2 — 📋 Publier sur le Play Store
 
 Guide existant : `docs/PLAYSTORE.md` (TWA/PWABuilder). Reste à faire :

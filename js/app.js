@@ -64,6 +64,7 @@ import { initSync, finaliserPopupAuth } from "./sync.js";
 import { initCarnet, exporterCarnetPDF, ouvrirCarnetPourPoint } from "./carnet.js";
 import { initPartage } from "./partage.js";
 import { initFrequentation, statsFrequentation } from "./frequentation.js";
+import { initProfil } from "./profil.js";
 import { SUR_ANDROID, SUR_IOS } from "./config/platform.js";
 import { esc } from "./util.js";
 import { passeFiltre } from "./filtrage.js";
@@ -1705,6 +1706,21 @@ async function demarrer() {
     getStatuses: () => state.statuses,
     onVoirSurCarte: (feature) => allerAuPoint(feature),
     avantOuverture: chargerPointsAutresPays,
+  });
+
+  // 👤 Profil + badges (100 % local) : mêmes données que le carnet (tous pays).
+  initProfil({
+    getStatuses: () => state.statuses,
+    getSorties: () => storage.getSorties().catch(() => []),
+    getTracks: () => storage.getTracks().catch(() => []),
+    resoudrePoints: async () => {
+      await chargerPointsAutresPays(); // stats sur TOUS les pays
+      const m = new Map();
+      for (const f of [...state.allPoints, ...(pointsAutresPays || [])]) {
+        m.set(f.properties.id, f);
+      }
+      return m;
+    },
   });
 
   // Étape « filtres » du tuto : elle montre TOUJOURS les filtres des via

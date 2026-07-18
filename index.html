@@ -368,6 +368,8 @@
     </div>
     <!-- Écran façon téléphone : des tuiles d'icônes, 3 par ligne -->
     <div class="settings-list settings-grille">
+      <button type="button" id="btn-profil" class="tuile">
+        <span class="tuile-ico" aria-hidden="true">👤</span><span class="tuile-lbl">Profil</span></button>
       <button type="button" id="btn-import-category" class="tuile">
         <span class="tuile-ico" aria-hidden="true">📥</span><span class="tuile-lbl">Importer</span></button>
       <button type="button" id="btn-export" class="tuile">
@@ -414,6 +416,15 @@
         Les cotations, positions et données factuelles sont réutilisées ;
         les descriptions et photos restent propres à l'application ou proviennent de Wikimedia Commons.</p>
     </section>
+  </dialog>
+
+  <!-- Profil + badges (js/profil.js) — 100 % local (statuts, carnet, GPX) -->
+  <dialog id="profil-dialog" aria-labelledby="profil-title">
+    <div class="panel-header">
+      <h2 id="profil-title">👤 Mon profil</h2>
+      <button type="button" class="panel-close profil-close" title="Fermer" aria-label="Fermer le profil">✕</button>
+    </div>
+    <div class="profil-corps"></div>
   </dialog>
 
   <!-- Fréquentation anonyme : combien de personnes utilisent la carte

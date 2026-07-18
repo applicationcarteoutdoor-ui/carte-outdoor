@@ -48,7 +48,17 @@ THEMES = {
     "via-ferrata": ("via-ferrata", "vf"),
     "chateau": ("chateau", "chat"),
     "culture": ("culture", "mus"),
+    # Catégories v77 (préfixes d'id STABLES, propres à chaque pays)
+    "panorama": ("panorama", "pano"),
+    "sommet-croix": ("sommet-croix", "croix"),
+    "col-mythique": ("col-mythique", "col"),
+    "phare": ("phare", "phare"),
+    "arbre-remarquable": ("arbre-remarquable", "arbre"),
+    "plongee": ("plongee", "plon"),
+    "ciel-etoile": ("ciel-etoile", "ciel"),
 }
+# Noms de repli pour les catégories qui tolèrent l'anonymat
+NOM_REPLI = {"sommet-croix": "Croix sommitale", "arbre-remarquable": "Arbre remarquable"}
 
 
 def hav(la1, lo1, la2, lo2):
@@ -103,6 +113,32 @@ def vignette_sure(url):
     return url
 
 
+def description_factuelle(cat, d):
+    """Description composée des FAITS quand rien d'autre (règle qualité v75)."""
+    if cat == "sommet-croix":
+        return f"Sommet portant une croix sommitale ({d['altitude']})." if d.get("altitude") \
+            else "Sommet portant une croix sommitale."
+    if cat == "col-mythique":
+        return f"Col de montagne à {d['altitude']}." if d.get("altitude") else ""
+    if cat == "panorama":
+        base = f"Point de vue à {d['altitude']}" if d.get("altitude") else "Point de vue"
+        return base + (" avec table d'orientation." if d.get("equipement") else ".")
+    if cat == "phare":
+        return f"Phare de {d['hauteur']} de haut." if d.get("hauteur") else "Phare."
+    if cat == "arbre-remarquable":
+        bouts = []
+        if d.get("espece"):
+            bouts.append(d["espece"])
+        if d.get("circonference"):
+            bouts.append(f"circonférence {d['circonference']}")
+        return (" — ".join(bouts) + ".") if bouts else "Arbre remarquable."
+    if cat == "ciel-etoile":
+        return "Observatoire astronomique — un vrai spot pour observer le ciel."
+    if cat == "plongee":
+        return "Spot de plongée."
+    return ""
+
+
 def details_pour(cat, t):
     """FAITS des tags OSM -> details de fiche (mêmes clés que la France)."""
     d = {}
@@ -128,6 +164,20 @@ def details_pour(cat, t):
         d["horaires"] = t["opening_hours"][:200]
     if cat == "grotte":
         d["type"] = "Grotte"
+    if cat == "phare" and entier(t.get("height")):
+        d["hauteur"] = f"{entier(t.get('height'))} m"
+    if cat == "panorama" and ("orientation" in (t.get("information") or "")
+                              or t.get("board_type") == "orientation_table"):
+        d["equipement"] = "Table d'orientation"
+    if cat == "arbre-remarquable":
+        esp = (t.get("species:fr") or t.get("genus:fr") or t.get("species") or "").strip()
+        if esp:
+            d["espece"] = esp[:60]
+        circ = (t.get("circumference") or "").replace(",", ".")
+        if circ.replace(".", "").isdigit():
+            d["circonference"] = f"{circ} m"
+    if cat == "ciel-etoile":
+        d["label"] = "Observatoire astronomique"
     d["fiche"] = "Référencé" if (t.get("website") or t.get("image")) else "À vérifier"
     return d
 
@@ -168,6 +218,15 @@ def construire(iso):
         objets = osm.get(cat, [])
         if cat == "via-ferrata":
             objets = dedoublonner_vf(objets)
+        # « Col mythique » : les cols nommés OSM sont trop nombreux (jonctions
+        # de sentiers…) — on garde ceux qui ont une ALTITUDE (vrais cols) ;
+        # la géo-recherche ajoutera photo/article aux plus notables.
+        if cat == "col-mythique":
+            objets = [o for o in objets if entier(o.get("tags", {}).get("ele"))]
+        # noms de repli pour les catégories anonymes (croix, arbres)
+        for o in objets:
+            if not o.get("nom"):
+                o["nom"] = NOM_REPLI.get(cat, "Sans nom")
         objets = sorted(objets, key=lambda o: (o["nom"], o["lat"]))
         for n, o in enumerate(objets, start=1):
             t = o.get("tags", {})
@@ -204,7 +263,7 @@ def construire(iso):
                 photos = [g["photo"]]
             photos = [vignette_sure(u) for u in photos]
             description = (t.get("description") or "")[:300] or w.get("description", "") \
-                or g.get("desc", "")
+                or g.get("desc", "") or description_factuelle(cat, details)
             feats.append({
                 "type": "Feature",
                 "geometry": {"type": "Point", "coordinates": [o["lon"], o["lat"]]},

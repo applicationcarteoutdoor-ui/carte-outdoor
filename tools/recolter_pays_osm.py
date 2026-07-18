@@ -40,9 +40,21 @@ SELECTEURS = {
     "via-ferrata": '(nwr["sport"="via_ferrata"]["name"](area.p);nwr["highway"="via_ferrata"]["name"](area.p););',
     "chateau": '(nwr["historic"="castle"]["name"](area.p););',
     "culture": '(nwr["tourism"="museum"]["name"](area.p););',
+    # Catégories v77 (mêmes tags OSM que la France, cf. recolter_categories_v72/v74)
+    "panorama": '(nwr["tourism"="viewpoint"]["name"](area.p););',
+    "sommet-croix": '(nwr["natural"="peak"]["summit:cross"="yes"](area.p););',
+    "col-mythique": '(nwr["mountain_pass"="yes"]["name"](area.p););',
+    "phare": '(nwr["man_made"="lighthouse"]["name"](area.p););',
+    "arbre-remarquable": '(nwr["natural"="tree"]["denotation"="natural_monument"](area.p););',
+    "plongee": '(nwr["sport"="scuba_diving"]["name"](area.p););',
+    "ciel-etoile": '(nwr["man_made"="observatory"]["name"](area.p););',
 }
+# certaines catégories tolèrent l'absence de nom (croix/arbres souvent anonymes)
+SANS_NOM = {"sommet-croix", "arbre-remarquable"}
 TAGS_UTILES = ("ele", "capacity", "height", "website", "contact:website", "opening_hours",
-               "via_ferrata_scale", "castle_type", "description", "image", "fee", "ruins")
+               "via_ferrata_scale", "castle_type", "description", "image", "fee", "ruins",
+               "summit:cross", "information", "board_type", "circumference",
+               "species:fr", "genus:fr", "species", "mountain_pass")
 
 
 def _post(corps):
@@ -83,7 +95,7 @@ def recolter(iso):
             lon = el.get("lon") or (el.get("center") or {}).get("lon")
             t = el.get("tags", {})
             nom = (t.get("name") or "").strip()
-            if lat is None or not nom:
+            if lat is None or (not nom and cat not in SANS_NOM):
                 continue
             cle = f"{el['type'][0]}{el['id']}"
             if cle in vus:
