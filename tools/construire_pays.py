@@ -156,6 +156,9 @@ def construire(iso):
     osm = json.loads((RACINE / "tools" / f"pays-{iso}-osm.json").read_text(encoding="utf-8"))
     villages = json.loads((RACINE / "tools" / "pays-villages.json").read_text(encoding="utf-8")).get(iso, [])
     wiki = _charger_json(RACINE / "tools" / f"pays-wiki-{iso}.json", {})
+    # géo-recherche v75 (enrichir_geosearch_pays.py) : résultats DÉJÀ contrôlés
+    # (anti-homonyme), rejoués au build — clé « nom|lat4 » comme le wiki
+    geo = _charger_json(RACINE / "tools" / f"geosearch-{iso}.json", {})
     vf_liens = _charger_json(RACINE / "tools" / f"vf-liens-{iso}.json", {})
     randos = _charger_json(RACINE / "tools" / "randos-pays-resolues.json", {}).get(iso, [])
     feats = []
@@ -178,8 +181,11 @@ def construire(iso):
             if (t.get("website") or "").startswith("http"):
                 # les tags OSM charrient parfois des espaces parasites
                 links.append({"label": "🌐 Site officiel", "url": t["website"].replace(" ", "")[:300]})
+            g = geo.get(cle) or {}
             if w.get("wiki"):
                 links.append({"label": "🔗 Wikipédia", "url": w["wiki"]})
+            elif g.get("url"):
+                links.append({"label": "🔗 Wikipédia", "url": g["url"]})
             links.append({"label": "🔎 Infos", "url": "https://www.google.com/search?q=" +
                           quote(f"{o['nom']} {cfg['recherche']}")})
             details = details_pour(cat, t)
@@ -189,13 +195,16 @@ def construire(iso):
                 else: details.pop("cotation")
             if vfl and vfl.get("k") and not details.get("cotation"):
                 details["cotation"] = vfl["k"]        # cotation K de deandar (fait)
-            if (vfl or w.get("wiki")) and details.get("fiche") == "À vérifier":
+            if (vfl or w.get("wiki") or g.get("url")) and details.get("fiche") == "À vérifier":
                 details["fiche"] = "Référencé"
             photos = [t["image"]] if t.get("image") else []
             if not photos and w.get("photo"):
                 photos = [w["photo"]]
+            if not photos and g.get("photo"):
+                photos = [g["photo"]]
             photos = [vignette_sure(u) for u in photos]
-            description = (t.get("description") or "")[:300] or w.get("description", "")
+            description = (t.get("description") or "")[:300] or w.get("description", "") \
+                or g.get("desc", "")
             feats.append({
                 "type": "Feature",
                 "geometry": {"type": "Point", "coordinates": [o["lon"], o["lat"]]},

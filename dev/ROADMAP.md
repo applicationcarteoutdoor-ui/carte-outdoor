@@ -116,6 +116,13 @@ Tenue par l'agent **chef-de-projet** (`.claude/agents/chef-de-projet.md`). Derni
 - [x] **4 catégories (France)** : 🌄 Panorama **4 375** (viewpoints nommés, altitude + table d'orientation), 🌳 Arbre remarquable **3 020** (espèce, circonférence), 🤿 Plongée & snorkeling **362**, 🗼 Phare **338** (152 avec article Wikipédia). **Sommets à croix enrichis EN PLACE** (48 articles Wikipédia, ids conservés). points.geojson : ~21 200 points (9,9 Mo).
 - [x] Tests 35/35, 0 erreur console, vérification par le DOM (tuiles, contenus, fiches témoins Balise des Morées / Aiguille de Criou).
 
+## v75 (2026-07-18) — RÈGLE QUALITÉ (1 lien + 1 photo + 1 description partout)
+
+- [x] **Règle codifiée** (CLAUDE.md) : chaque point VISE lien+photo+description, manques tolérés mais plus de catégorie « nue ». **100 % de liens sur les 122 500 points des 10 pays** (lien « 🔎 Infos » de repli quand rien d'autre). Descriptions FACTUELLES composées des faits (altitude, espèce, hauteur…), jamais inventées.
+- [x] **Ciel étoilé = vrais spots** (retour utilisateur : 7 centres de parcs ≠ observation) → +98 **observatoires astronomiques** (OSM man_made=observatory) : 105 lieux, 100 % décrits.
+- [x] **Photos par géo-recherche Wikipédia** (`enrichir_geosearch_pays.py`, anti-homonyme mot≥4 lettres OU <150 m ; cache `geosearch-<iso>.json` rejoué au build) : FR +1 710, CH/PT/BE/LU/NZ appliqués (photos ch 22→34 %, be 18→38 %, nz 2→11 %). IT/ES/DE/NL en cours (background) → rebuild v76.
+- [x] Arbres/plongée qui n'avaient « rien » : désormais 100 % liens + descriptions factuelles.
+
 ## Étape 2 — 📋 Publier sur le Play Store
 
 Guide existant : `docs/PLAYSTORE.md` (TWA/PWABuilder). Reste à faire :
