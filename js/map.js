@@ -73,7 +73,24 @@ export function initMap(prefs, { onPointClick, onViewChange, onGrClick }) {
 
   clusterGroup = L.markerClusterGroup({
     showCoverageOnHover: false,
-    maxClusterRadius: 50,
+    // Rayon de regroupement ADAPTATIF au zoom (v81). Les 50 px fixes d'avant
+    // collaient encore ensemble les spots d'un même quartier : il fallait
+    // zoomer au ras du sol pour les séparer. Le rayon fond donc à mesure
+    // qu'on zoome, tout en restant large en vue d'ensemble — là où 66 000
+    // toilettes doivent tenir sans faire ramer l'appareil.
+    //
+    // Mesuré (Chrome mobile 390 px, CPU bridé ×4, PIRE cas : 66 584 toilettes
+    // sur Paris au zoom 14) — avant → après :
+    //   épingles visibles  44 → 254   (les paquets frustrants disparaissent)
+    //   clusters restants  54 →   2
+    //   pire gel          174 → 194 ms (imperceptible)
+    // Ne pas réduire davantage sans refaire cette mesure : le temps total
+    // passé en « longtask » pendant un déplacement, lui, triple (0,5 → 1,8 s).
+    maxClusterRadius: (zoom) =>
+      zoom >= 13 ? 10 : zoom >= 11 ? 22 : zoom >= 9 ? 38 : 60,
+    // À l'échelle d'une VILLE (z14) et au-delà : plus AUCUN regroupement,
+    // chaque point est une épingle distincte, cliquable directement.
+    disableClusteringAtZoom: 14,
     spiderfyOnMaxZoom: true,
     // Pas de chunkedLoading : il n'affiche RIEN avant la fin du lot complet
     // (~25 s pour les 66 000 toilettes). setPoints fait son propre découpage
@@ -265,18 +282,16 @@ export function focusPoint(feature) {
   }
 }
 
-/** Cercle de recherche (ex. toilettes à moins de 1 km) : un seul à la fois. */
-let cercleRayon = null;
-
-export function montrerRayon(lat, lon, rayon, zoom = 15) {
-  if (cercleRayon) cercleRayon.remove();
-  cercleRayon = L.circle([lat, lon], {
-    radius: rayon,
-    color: "#2e7d52",
-    weight: 2,
-    dashArray: "6 6",
-    fillOpacity: 0.06,
-  }).addTo(map);
+/**
+ * Recentre la carte sur un lieu (ville, code postal, position…).
+ *
+ * Il y avait ici un cercle indicatif (1 km autour de soi, 3 km sur une
+ * commune) : retiré en v81 à la demande de l'utilisateur — il masquait la
+ * carte sans rien apprendre, et sur « toilettes autour de moi » on voyait le
+ * cercle mais PAS sa propre position, donc impossible de dire quel point
+ * était le plus proche. C'est `montrerPosition()` qui répond à ce besoin.
+ */
+export function centrerSur(lat, lon, zoom = 15) {
   // Sans animation : le centre doit être à jour IMMÉDIATEMENT, car le tri
   // par distance de setPoints (gros lots) lit map.getCenter() juste après.
   map.setView([lat, lon], zoom, { animate: false });
@@ -455,6 +470,38 @@ export function pickLocation() {
 
 let positionLayer = null;
 
+/**
+ * Pose (ou déplace) la pastille « vous êtes ici ».
+ *
+ * Partagée par le bouton 🏃 et par « autour de moi » des couches lourdes :
+ * sans elle, l'utilisateur voyait les toilettes mais pas SA position, donc
+ * ne pouvait pas juger laquelle était la plus proche (bug signalé en v81).
+ * `precision` = rayon d'incertitude du GPS en mètres (petit cercle discret),
+ * omis quand on ne le connaît pas.
+ */
+export function montrerPosition(lat, lon, precision) {
+  if (positionLayer) positionLayer.remove();
+  // Pastille « vous êtes ici » : un gros point vert bien visible, cerné de
+  // blanc, avec un halo qui pulse (divIcon → animation CSS .position-gps).
+  const iconePosition = L.divIcon({
+    className: "",
+    html: '<div class="position-gps"><span class="position-gps-halo"></span><span class="position-gps-point"></span></div>',
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+  });
+  const couches = [];
+  if (Number.isFinite(precision) && precision > 0) {
+    couches.push(L.circle([lat, lon], {
+      radius: precision,
+      color: "#2e7d52",
+      weight: 1,
+      fillOpacity: 0.12,
+    }));
+  }
+  couches.push(L.marker([lat, lon], { icon: iconePosition, keyboard: false, interactive: false }));
+  positionLayer = L.layerGroup(couches).addTo(map);
+}
+
 export async function toggleLocate() {
   if (positionLayer) {
     positionLayer.remove();
@@ -469,23 +516,7 @@ export async function toggleLocate() {
     });
   });
   const { latitude, longitude, accuracy } = pos.coords;
-  // Pastille « vous êtes ici » : un gros point vert bien visible, cerné de
-  // blanc, avec un halo qui pulse (divIcon → animation CSS .position-gps).
-  const iconePosition = L.divIcon({
-    className: "",
-    html: '<div class="position-gps"><span class="position-gps-halo"></span><span class="position-gps-point"></span></div>',
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
-  });
-  positionLayer = L.layerGroup([
-    L.circle([latitude, longitude], {
-      radius: accuracy,
-      color: "#2e7d52",
-      weight: 1,
-      fillOpacity: 0.12,
-    }),
-    L.marker([latitude, longitude], { icon: iconePosition, keyboard: false, interactive: false }),
-  ]).addTo(map);
+  montrerPosition(latitude, longitude, accuracy);
   map.flyTo([latitude, longitude], Math.max(map.getZoom(), 13), { duration: 0.8 });
   return "on";
 }

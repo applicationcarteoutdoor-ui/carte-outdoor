@@ -55,6 +55,13 @@ check("tokens : cotation ne contient pas ED", !passeFiltre({ type: "tokens", fie
 check("prefix : commence par", passeFiltre({ type: "prefix", field: "t" }, { t: "Site sportif équipé" }, S("Site sportif")));
 check("prefix : ne commence pas par", !passeFiltre({ type: "prefix", field: "t" }, { t: "Terrain d'aventure" }, S("Site sportif")));
 check("contains : inclut le motif", passeFiltre({ type: "contains", field: "c" }, { c: "poele à bois" }, S("poele")));
+const filtreListe = { type: "liste", field: "o" };
+check("liste : une des valeurs correspond", passeFiltre(filtreListe, { o: "N, NE" }, S("NE")));
+check("liste : valeur seule correspond", passeFiltre(filtreListe, { o: "S" }, S("S")));
+check("liste : valeur absente exclue", !passeFiltre(filtreListe, { o: "S, SO" }, S("N")));
+// le piège qui a motivé ce type : « N » ne doit PAS matcher « NE »/« NO »
+check("liste : « N » ne matche pas « NE »", !passeFiltre(filtreListe, { o: "NE, NO" }, S("N")));
+check("liste : champ absent exclu", !passeFiltre(filtreListe, {}, S("N")));
 const bucket = { type: "bucket", field: "n", options: [{ value: "v2", min: 20, max: 50 }] };
 check("bucket : 30 dans [20,50)", passeFiltre(bucket, { n: 30 }, S("v2")));
 check("bucket : 20 inclus (min inclusif)", passeFiltre(bucket, { n: 20 }, S("v2")));

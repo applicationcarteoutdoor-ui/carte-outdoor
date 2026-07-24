@@ -18,9 +18,9 @@
  * Toujours passer par getPack()/allPacks() pour l'affichage.
  *
  * Ids RÉSERVÉS (éternels — ne jamais renommer, comme les ids de thèmes) :
- *  - packs à venir : sport, gastronomie, loisirs, professionnel ;
- *  - catégories à venir : panorama, plongee, phare, cascade-glace,
- *    arbre-remarquable (cf. feuille de route V2-V5).
+ *  - packs à venir : sport, gastronomie, loisirs, professionnel.
+ *  (panorama, plongee, phare, arbre-remarquable et cascade-glace sont
+ *   désormais LIVRÉS — cf. themes.js.)
  */
 
 // Contenus VALIDÉS par l'utilisateur (v73-v74) — les ids de packs restent
@@ -34,7 +34,7 @@ export const PACKS = [
     label: "Montagne",
     icon: "🏔️",
     color: "#2d6a4f",
-    categories: ["randonnee", "via-ferrata", "escalade", "grotte", "refuge"],
+    categories: ["randonnee", "via-ferrata", "escalade", "cascade-glace", "grotte", "refuge"],
   },
   {
     id: "nature",
@@ -62,7 +62,7 @@ export const PACKS = [
     label: "Services",
     icon: "🚐",
     color: "#606c38",
-    categories: ["camping", "toilettes", "eau"],
+    categories: ["camping", "vidange", "toilettes", "eau"],
   },
 ];
 

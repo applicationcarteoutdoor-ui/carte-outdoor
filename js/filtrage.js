@@ -23,6 +23,14 @@ export function passeFiltre(filtre, details, selection) {
       const tokens = String(brut || "").match(RE_TOKENS) || [];
       return tokens.some((t) => selection.has(t));
     }
+    // Liste de valeurs séparées par des virgules, comparées à l'IDENTIQUE
+    // (« N, NE » → ["N","NE"]). À ne pas confondre avec `tokens`, réservé aux
+    // cotations alpines (regex figée), ni avec `contains` qui ferait matcher
+    // « N » dans « NE » et « NO ».
+    case "liste": {
+      const valeurs = String(brut || "").split(/\s*,\s*/).filter(Boolean);
+      return valeurs.some((v) => selection.has(v));
+    }
     case "prefix":
       return [...selection].some((v) => String(brut || "").startsWith(v));
     case "contains":

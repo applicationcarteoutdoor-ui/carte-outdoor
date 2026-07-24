@@ -27,6 +27,8 @@ import sys
 from pathlib import Path
 from urllib.parse import quote
 
+from points_glace_vidange import point_cascade_glace, point_vidange
+
 RACINE = Path(__file__).resolve().parent.parent
 DOC = RACINE / "tools" / "nz-doc.json"
 OSM = RACINE / "tools" / "nz-osm.json"
@@ -421,6 +423,21 @@ def construire():
                 "link": "https://www.doc.govt.nz/parks-and-recreation/things-to-do/walking-and-tramping/great-walks/",
             },
         })
+    # Cascades de glace (v81) — Camp to Camp, Mount Cook / Alpes du Sud.
+    glace_nz = json.loads((RACINE / "tools" / "cascade-glace-c2c.json")
+                          .read_text(encoding="utf-8")).get("nz", []) \
+        if (RACINE / "tools" / "cascade-glace-c2c.json").exists() else []
+    for n, s in enumerate(sorted(glace_nz, key=lambda x: (x["nom"], x["lat"])), start=1):
+        feats.append(point_cascade_glace(f"nz-glace-{n:04d}", s, "New Zealand"))
+
+    # Aires de vidange fourgon (v81) — le « freedom camping » néo-zélandais
+    # impose un véhicule self-contained : ces aires sont très utilisées.
+    chemin_vid = RACINE / "tools" / "vidange-nz.json"
+    vidanges_nz = json.loads(chemin_vid.read_text(encoding="utf-8")) if chemin_vid.exists() else []
+    for n, v in enumerate(sorted(vidanges_nz, key=lambda x: (x.get("nom") or "", x["lat"])), start=1):
+        feats.append(point_vidange(f"nz-vid-{n:04d}", v, "New Zealand"))
+    print(f"  cascades de glace {len(glace_nz)} | aires de vidange {len(vidanges_nz)}")
+
     return feats, wfeats, {"huts": nb_huts, "camps_doc": len(camps), "camps_osm": ajoutes_osm,
                            "lacs": len(lacs), "cascades": len(cascades), "casc_osm": nb_casc_osm,
                            "grottes": nb_grottes, "grottes_wiki": nb_wiki_grot,

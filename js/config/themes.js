@@ -14,8 +14,12 @@
  *
  * Schéma d'un filtre :
  *   { key, label, type, field, options: [{value, label?, icon?, min?, max?}] }
- *   - type "tokens" : le champ contient des cotations (F, PD, AD…) ; le point
- *                     passe si l'une des cotations sélectionnées y figure
+ *   - type "tokens" : le champ contient des cotations ALPINES (F, PD, AD, D,
+ *                     TD, ED — regex figée) ; le point passe si l'une des
+ *                     cotations sélectionnées y figure
+ *   - type "liste"  : le champ est une liste séparée par des virgules
+ *                     (« N, NE ») comparée à l'identique — pour tout autre
+ *                     champ multi-valeurs qu'une cotation alpine
  *   - type "prefix" : le champ commence par l'une des valeurs sélectionnées
  *   - type "value"  : le champ vaut exactement l'une des valeurs
  *   - type "bucket" : le champ (numérique, suffixe _n) tombe dans l'une des
@@ -773,6 +777,141 @@ export const THEMES = [
     icon: "🤿",
     fields: [],
     filters: [],
+  },
+  {
+    // Cascade de glace (v81) — source Camp to Camp (CC-BY-SA, FAITS seulement :
+    // OSM n'a que 47 objets pour les 10 pays). Pas de photo : les images C2C
+    // sont sur media.camptocamp.org, hors CSP — lien de fiche à la place.
+    id: "cascade-glace",
+    label: "Cascade de glace",
+    color: "#48cae4",
+    icon: "🧊",
+    fields: [
+      { key: "cotation", label: "Cotation glace" },
+      { key: "mixte", label: "Cotation mixte" },
+      { key: "hauteur", label: "Hauteur" },
+      { key: "altitude", label: "Altitude" },
+      { key: "orientation", label: "Orientation" },
+      { key: "voies", label: "Nombre de voies" },
+      { key: "engagement", label: "Engagement" },
+      { key: "type", label: "Type" },
+      { key: "avertissement", label: "⚠️ Sécurité" },
+    ],
+    filters: [
+      {
+        key: "cotation",
+        label: "Cotation glace",
+        type: "bucket",
+        field: "cotation_n",
+        options: [
+          { value: "g1", label: "WI 1-2 (découverte)", icon: "🌱", max: 3 },
+          { value: "g2", label: "WI 3", icon: "🧊", min: 3, max: 4 },
+          { value: "g3", label: "WI 4", icon: "❄️", min: 4, max: 5 },
+          { value: "g4", label: "WI 5", icon: "🥶", min: 5, max: 6 },
+          { value: "g5", label: "WI 6+", icon: "💀", min: 6 },
+        ],
+      },
+      {
+        key: "orientation",
+        label: "Orientation",
+        type: "liste",
+        field: "orientation",
+        options: [
+          { value: "N" }, { value: "NE" }, { value: "E" }, { value: "SE" },
+          { value: "S" }, { value: "SO" }, { value: "O" }, { value: "NO" },
+        ],
+      },
+      {
+        key: "hauteur",
+        label: "Hauteur",
+        type: "bucket",
+        field: "hauteur_n",
+        options: [
+          { value: "h1", label: "< 50 m", max: 50 },
+          { value: "h2", label: "50 à 100 m", min: 50, max: 100 },
+          { value: "h3", label: "100 à 300 m", min: 100, max: 300 },
+          { value: "h4", label: "> 300 m", min: 300 },
+        ],
+      },
+      {
+        key: "altitude",
+        label: "Altitude",
+        type: "bucket",
+        field: "altitude_n",
+        options: [
+          { value: "a1", label: "< 1 500 m", max: 1500 },
+          { value: "a2", label: "1 500 à 2 500 m", min: 1500, max: 2500 },
+          { value: "a3", label: "> 2 500 m", min: 2500 },
+        ],
+      },
+      {
+        key: "type",
+        label: "Type",
+        type: "value",
+        field: "type",
+        options: [
+          { value: "Glace pure", icon: "🧊" },
+          { value: "Mixte (glace et rocher)", icon: "🪨" },
+        ],
+      },
+    ],
+  },
+  {
+    // Aire de vidange fourgon / camping-car (v81) — OSM, 3 veines croisées.
+    // Le TARIF et l'ACCÈS ne sont renseignés que sur les aires DÉDIÉES : sur
+    // un polygone de camping, fee=yes veut dire que le CAMPING est payant,
+    // pas la vidange (piège mesuré — cf. tools/recolter_vidange.py).
+    id: "vidange",
+    label: "Vidange fourgon",
+    color: "#606c38",
+    icon: "🚐",
+    fields: [
+      { key: "type", label: "Type d'aire" },
+      { key: "tarif", label: "Tarif" },
+      { key: "acces", label: "Accès" },
+      { key: "eau", label: "Eau sur place" },
+      { key: "horaires", label: "Horaires" },
+      { key: "gestionnaire", label: "Gestionnaire" },
+    ],
+    filters: [
+      {
+        key: "tarif",
+        label: "Tarif",
+        type: "value",
+        field: "tarif",
+        options: [
+          { value: "Gratuit", icon: "🆓" },
+          { value: "Payant", icon: "💶" },
+        ],
+      },
+      {
+        key: "acces",
+        label: "Accès",
+        type: "value",
+        field: "acces",
+        options: [
+          { value: "Public", icon: "✅" },
+          { value: "Réservé aux clients", icon: "🔒" },
+        ],
+      },
+      {
+        key: "eau",
+        label: "Eau sur place",
+        type: "value",
+        field: "eau",
+        options: [{ value: "Oui", icon: "💧" }],
+      },
+      {
+        key: "type",
+        label: "Type d'aire",
+        type: "value",
+        field: "type",
+        options: [
+          { value: "Aire dédiée", icon: "🚐" },
+          { value: "Aire de camping", icon: "⛺" },
+        ],
+      },
+    ],
   },
   {
     id: "phare",

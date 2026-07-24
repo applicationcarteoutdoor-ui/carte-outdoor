@@ -27,6 +27,8 @@ import sys
 from pathlib import Path
 from urllib.parse import quote
 
+from points_glace_vidange import point_cascade_glace, point_vidange
+
 RACINE = Path(__file__).resolve().parent.parent
 PAYS = {
     "ch": {"nom": "Suisse", "recherche": "Switzerland"},
@@ -374,6 +376,20 @@ def construire(iso):
         }
         feats.append(f)
     stats["cite-caractere"] = len(villages)
+
+    # Cascades de glace (v81) — Camp to Camp, FAITS seulement (OSM n'a que
+    # 47 objets pour les 10 pays : inexploitable). Ids stables <iso>-glace-####.
+    glace = _charger_json(RACINE / "tools" / "cascade-glace-c2c.json", {}).get(iso, [])
+    for n, s in enumerate(sorted(glace, key=lambda x: (x["nom"], x["lat"])), start=1):
+        feats.append(point_cascade_glace(f"{iso}-glace-{n:04d}", s, cfg["recherche"]))
+    stats["cascade-glace"] = len(glace)
+
+    # Aires de vidange fourgon (v81) — OSM, 3 veines fusionnées à 150 m.
+    vidanges = _charger_json(RACINE / "tools" / f"vidange-{iso}.json", [])
+    for n, v in enumerate(sorted(vidanges, key=lambda x: (x.get("nom") or "", x["lat"])), start=1):
+        feats.append(point_vidange(f"{iso}-vid-{n:04d}", v, cfg["recherche"]))
+    stats["vidange"] = len(vidanges)
+
     return feats, traces, stats
 
 

@@ -23,7 +23,8 @@ import {
   toggleLocate,
   highlightPoint,
   clearHighlight,
-  montrerRayon,
+  centrerSur,
+  montrerPosition,
   montrerTraceRando,
   montrerTraceCanyon,
   cacherTraceRando,
@@ -646,7 +647,7 @@ function initRecherche() {
         input.value = "";
         conteneur.textContent = "";
         if (window.innerWidth < 900) closeSidebar();
-        montrerRayon(coords[1], coords[0], 3000, 12);
+        centrerSur(coords[1], coords[0], 12);
         toast(c.nom + (c.departement ? ` — ${c.departement.nom}` : ""));
       });
       conteneur.appendChild(item);
@@ -671,8 +672,8 @@ async function allerAuCodePostal(cp) {
     input.value = "";
     resultats.textContent = "";
     if (window.innerWidth < 900) closeSidebar();
-    // Vue d'ensemble de la commune (zoom 12) + cercle indicatif de 3 km.
-    montrerRayon(coords[1], coords[0], 3000, 12);
+    // Vue d'ensemble de la commune (zoom 12).
+    centrerSur(coords[1], coords[0], 12);
     toast(`Code postal ${cp} — ${arr[0].nom}`);
   } catch {
     toast("Impossible de localiser ce code postal (connexion ?).");
@@ -750,9 +751,9 @@ async function coucheAutourDeMoi(id) {
   if (!conf) return; // pays sans couches lourdes : bouton masqué, garde-fou
   try {
     toast("Recherche de votre position…");
-    const [lat, lon] = await new Promise((resolve, reject) => {
+    const [lat, lon, precision] = await new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(
-        (pos) => resolve([pos.coords.latitude, pos.coords.longitude]),
+        (pos) => resolve([pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy]),
         reject,
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
       );
@@ -760,7 +761,15 @@ async function coucheAutourDeMoi(id) {
     if (!(await chargerCouche(id))) return;
     // Le zoom se fait AVANT le rendu : les marqueurs se remplissent en priorité
     // autour de la position (tri par distance dans setPoints).
-    montrerRayon(lat, lon, 1000);
+    centrerSur(lat, lon, 15);
+    // ⚠️ La pastille « vous êtes ici » est INDISPENSABLE ici : sans elle on
+    // voit les toilettes sans savoir où l'on se trouve, donc sans pouvoir
+    // repérer la plus proche (bug signalé en v81).
+    montrerPosition(lat, lon, precision);
+    // Le bouton 🏃 partage CETTE couche de position : sans cette ligne il
+    // resterait éteint, et le clic suivant effacerait la pastille au lieu
+    // de l'afficher.
+    document.getElementById("btn-locate")?.classList.add("active");
     state.activeThemes = new Set([id]);
     state.statusFilters.clear();
     rafraichir();
