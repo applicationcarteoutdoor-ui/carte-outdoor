@@ -779,6 +779,57 @@ export const THEMES = [
     filters: [],
   },
   {
+    // Saut dans l'eau (v82) — AUCUN tag OSM exploitable (sport=cliff_diving =
+    // 153 objets dans le monde) : les spots viennent de sources humaines
+    // (forums, vidéos, blogs), d'où le LIEN VERS LA SOURCE en tête de fiche.
+    // Chaque position est contrôlée contre OSM avant publication
+    // (tools/verifier_spots_saut.py) : sans eau à moins de 150 m, le point
+    // est rejeté. L'avertissement de sécurité n'est PAS optionnel ici.
+    id: "saut-eau",
+    label: "Saut dans l'eau",
+    color: "#0077b6",
+    icon: "🤸",
+    fields: [
+      { key: "type", label: "Type de saut" },
+      { key: "hauteur", label: "Hauteur" },
+      { key: "plan_eau", label: "Plan d'eau" },
+      { key: "source", label: "Repéré via" },
+      // Interdictions et accidents sont AFFICHÉS et non masqués : c'est
+      // l'information la plus utile de la fiche (choix utilisateur v82).
+      { key: "interdiction", label: "⛔ Réglementation" },
+      { key: "accident", label: "☠️ Accidents recensés" },
+      { key: "remarque", label: "À savoir" },
+      { key: "avertissement", label: "⚠️ Sécurité" },
+    ],
+    filters: [
+      {
+        key: "type",
+        label: "Type de saut",
+        type: "value",
+        field: "type",
+        options: [
+          { value: "Pont", icon: "🌉" },
+          { value: "Falaise", icon: "🧗" },
+          { value: "Rocher", icon: "🪨" },
+          { value: "Cascade / vasque", icon: "💦" },
+          { value: "Carrière", icon: "⛏️" },
+        ],
+      },
+      {
+        key: "hauteur",
+        label: "Hauteur",
+        type: "bucket",
+        field: "hauteur_n",
+        options: [
+          { value: "s1", label: "≤ 5 m (découverte)", icon: "🌱", max: 5 },
+          { value: "s2", label: "5 à 10 m", icon: "💧", min: 5, max: 10 },
+          { value: "s3", label: "10 à 15 m", icon: "😮", min: 10, max: 15 },
+          { value: "s4", label: "> 15 m (expert)", icon: "💀", min: 15 },
+        ],
+      },
+    ],
+  },
+  {
     // Cascade de glace (v81) — source Camp to Camp (CC-BY-SA, FAITS seulement :
     // OSM n'a que 47 objets pour les 10 pays). Pas de photo : les images C2C
     // sont sur media.camptocamp.org, hors CSP — lien de fiche à la place.

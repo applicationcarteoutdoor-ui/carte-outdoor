@@ -18,7 +18,7 @@ import json
 import sys
 from pathlib import Path
 
-from points_glace_vidange import point_cascade_glace, point_vidange
+from points_glace_vidange import point_cascade_glace, point_vidange, point_saut_eau
 
 RACINE = Path(__file__).resolve().parent.parent
 DOSSIER = Path(__file__).resolve().parent
@@ -46,11 +46,19 @@ def integrer(ecrire):
         cles_connues[f'{p["theme"]}|{p["name"].lower()}|'
                      f'{round(lat, 4)}|{round(lon, 4)}'] = p["id"]
 
+    # Spots de saut (v82) : déjà filtrés par verifier_spots_saut.py — on ne
+    # prend QUE le fichier vérifié, jamais la récolte brute.
+    chemin_saut = DOSSIER / "spots-saut-verifies.json"
+    sauts = json.loads(chemin_saut.read_text(encoding="utf-8")) if chemin_saut.exists() else []
+    sauts_fr = [s for s in sauts if (s.get("pays") or "fr").lower() == "fr"]
+
     lots = [
         ("cascade-glace", "glace", sorted(glace, key=lambda x: (x["nom"], x["lat"])),
          lambda pid, o: point_cascade_glace(pid, o, "France")),
         ("vidange", "vid", sorted(vidanges, key=lambda x: (x.get("nom") or "", x["lat"])),
          lambda pid, o: point_vidange(pid, o, "France")),
+        ("saut-eau", "saut", sorted(sauts_fr, key=lambda x: (x["nom"], x["lat"])),
+         lambda pid, o: point_saut_eau(pid, o, "France")),
     ]
     for theme, abr, objets, fabrique in lots:
         suivant = 1 + max([int(i.split("-")[-1]) for i in existants

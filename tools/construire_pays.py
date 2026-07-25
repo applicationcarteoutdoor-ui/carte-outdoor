@@ -27,7 +27,7 @@ import sys
 from pathlib import Path
 from urllib.parse import quote
 
-from points_glace_vidange import point_cascade_glace, point_vidange
+from points_glace_vidange import point_cascade_glace, point_vidange, point_saut_eau
 
 RACINE = Path(__file__).resolve().parent.parent
 PAYS = {
@@ -389,6 +389,14 @@ def construire(iso):
     for n, v in enumerate(sorted(vidanges, key=lambda x: (x.get("nom") or "", x["lat"])), start=1):
         feats.append(point_vidange(f"{iso}-vid-{n:04d}", v, cfg["recherche"]))
     stats["vidange"] = len(vidanges)
+
+    # Spots de saut dans l'eau (v82) — sources humaines (forums, vidéos…),
+    # déjà passées au contrôle de position par verifier_spots_saut.py.
+    sauts = [s for s in _charger_json(RACINE / "tools" / "spots-saut-verifies.json", [])
+             if (s.get("pays") or "").lower() == iso]
+    for n, s in enumerate(sorted(sauts, key=lambda x: (x["nom"], x["lat"])), start=1):
+        feats.append(point_saut_eau(f"{iso}-saut-{n:04d}", s, cfg["recherche"]))
+    stats["saut-eau"] = len(sauts)
 
     return feats, traces, stats
 

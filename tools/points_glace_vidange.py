@@ -18,6 +18,7 @@ Règle qualité v75 respectée pour les deux catégories :
               erreur visible). Les aires de vidange n'ont pas de photo libre.
 """
 
+import re
 from urllib.parse import quote
 
 # Camp to Camp cote la glace sur l'échelle WI ; on en dérive un numérique
@@ -32,6 +33,110 @@ AVERTISSEMENT_GLACE = ("Conditions très variables : la formation de la glace ch
                        "chaque jour. La présence d'une cascade ici ne signifie pas "
                        "qu'elle est en condition. Vérifiez les conditions récentes et "
                        "le bulletin d'avalanche avant de partir.")
+
+# Le saut dans l'eau blesse et tue chaque été : profondeur qui varie avec les
+# crues et les saisons, rochers immergés invisibles depuis le haut. Ces spots
+# sont RAPPORTÉS par des sources publiques, jamais vérifiés sur le terrain —
+# l'avertissement doit le dire franchement, il est posé sur CHAQUE point.
+AVERTISSEMENT_SAUT = ("Spot rapporté par des sources publiques, jamais vérifié sur "
+                      "le terrain. La profondeur change avec les saisons et les crues, "
+                      "et des rochers peuvent être immergés juste sous la surface. "
+                      "Sondez toujours la vasque avant de sauter, ne sautez jamais "
+                      "seul, et vérifiez la réglementation locale : de nombreux sites "
+                      "sont interdits par arrêté municipal.")
+
+TYPE_SAUT = {"pont": "Pont", "falaise": "Falaise", "rocher": "Rocher",
+             "cascade": "Cascade / vasque", "carriere": "Carrière",
+             "ponton": "Ponton", "autre": "Autre"}
+# libellé lisible de la source, pour le champ « Repéré via »
+SOURCE_LBL = {"forum": "Forum", "video": "Vidéo", "blog": "Blog",
+              "presse": "Presse locale", "topo": "Topo", "carte": "Carte collaborative",
+              "institutionnel": "Source officielle"}
+
+
+# Notes de TRAÇABILITÉ laissées par la recherche (« Coordonnées = pont OSM
+# (way 54977984) », « rivière vérifiée à 51 m »…) : utiles pour auditer la
+# récolte, illisibles dans une fiche. On les retire phrase par phrase.
+MARQUEURS_TECHNIQUES = ("coordonn", "osm (", " osm", "node ", "way ", "relation ",
+                        "vérifié", "verifie", "sport=", "tagué", "tague ",
+                        "point retenu", "la donnée osm", "la donnee osm")
+
+
+def _nettoyer_remarque(texte, limite=300):
+    """Garde les phrases utiles au lecteur, coupe proprement à la fin d'une
+    phrase (jamais au milieu d'un mot, comme le faisait un simple [:300])."""
+    phrases = re.split(r"(?<=[.!?])\s+", (texte or "").strip())
+    gardees = []
+    for p in phrases:
+        bas = p.lower()
+        if any(m in bas for m in MARQUEURS_TECHNIQUES):
+            continue
+        if len(" ".join(gardees + [p])) > limite:
+            break
+        gardees.append(p)
+    return " ".join(gardees).strip()
+
+
+def point_saut_eau(pid, s, pays_recherche):
+    """`s` = un spot VÉRIFIÉ issu de tools/spots-saut-verifies.json.
+
+    La règle qualité v75 est tenue par le LIEN VERS LA SOURCE (demande
+    explicite de l'utilisateur : « tu les mettras en lien ») + une description
+    factuelle. Pas de photo : les images de forums et de vidéos sont sous
+    droits et hors CSP.
+    """
+    d = {"type": TYPE_SAUT.get(s.get("type"), "Autre")}
+    h = s.get("hauteur_m")
+    if isinstance(h, (int, float)) and 0 < h < 100:
+        d["hauteur"] = f"{int(h)} m"
+        d["hauteur_n"] = int(h)
+    if s.get("plan_eau"):
+        d["plan_eau"] = str(s["plan_eau"])[:60]
+    d["source"] = SOURCE_LBL.get(s.get("source_type"), "Source publique")
+    remarque = _nettoyer_remarque(s.get("remarque_securite"), 300)
+    if remarque:
+        d["remarque"] = remarque
+    # Interdictions et accidents sont AFFICHÉS, pas masqués (décision v82) :
+    # ce sont les informations les plus utiles de la fiche. Un spot interdit
+    # ou meurtrier reste visible, mais le lecteur sait à quoi s'en tenir.
+    interdiction = _nettoyer_remarque(s.get("interdiction"), 400)
+    if interdiction:
+        d["interdiction"] = interdiction
+    accident = _nettoyer_remarque(s.get("accident_connu"), 400)
+    if accident:
+        d["accident"] = accident
+    d["avertissement"] = AVERTISSEMENT_SAUT
+
+    liens = [{"label": "🔗 " + SOURCE_LBL.get(s.get("source_type"), "Source"),
+              "url": s["source_url"]},
+             _infos(s["nom"], pays_recherche)]
+
+    bouts = [d["type"].lower()]
+    if d.get("hauteur"):
+        bouts.append(f'environ {d["hauteur"]}')
+    if d.get("plan_eau"):
+        bouts.append(d["plan_eau"])
+    desc = "Spot de saut dans l'eau — " + ", ".join(bouts) + "."
+    # la mention d'interdiction remonte dans la DESCRIPTION : elle doit se
+    # voir dès l'aperçu, pas seulement en dépliant la fiche
+    if d.get("interdiction"):
+        desc += " ⛔ Site réglementé ou interdit — voir le détail."
+    if d.get("accident"):
+        desc += " ☠️ Accidents graves recensés sur ce site."
+
+    return {
+        "type": "Feature",
+        "geometry": {"type": "Point", "coordinates": [s["lon"], s["lat"]]},
+        "properties": {
+            "id": pid,
+            "name": s["nom"],
+            "theme": "saut-eau",
+            "description": desc,
+            "links": liens,
+            "photos": [],
+            "details": d,
+        },
+    }
 
 
 def _infos(nom, pays_recherche):

@@ -41,7 +41,7 @@ export const PACKS = [
     label: "Eau",
     icon: "💧",
     color: "#0096c7",
-    categories: ["cascade", "canyon", "lac", "eau", "plongee"],
+    categories: ["cascade", "canyon", "lac", "eau", "plongee", "saut-eau"],
   },
   {
     id: "paysages",
