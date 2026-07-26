@@ -62,6 +62,36 @@ MARQUEURS_TECHNIQUES = ("coordonn", "osm (", " osm", "node ", "way ", "relation 
                         "point retenu", "la donnée osm", "la donnee osm")
 
 
+# La recherche écrit souvent « Aucune interdiction relevée » ou « Aucun
+# accident trouvé » au lieu de laisser le champ VIDE. Publier ça tel quel
+# afficherait « ⛔ Site réglementé » sur un spot libre — et décrédibiliserait
+# l'alerte sur les ~137 spots réellement réglementés. On retire donc les
+# clauses de négation, en gardant ce qui suit une nuance (« aucun accident
+# ici, MAIS une noyade juste à côté » : la seconde partie compte).
+NEGATION = re.compile(
+    r"^\s*(aucune?\b|pas d[eu']|nulle\b|rien\b|non relev|néant|neant|"
+    r"sans interdiction|sans restriction|n'a pas)", re.I)
+NUANCE = re.compile(r"\b(mais|en revanche|toutefois|cependant|néanmoins|neanmoins)\b", re.I)
+
+
+def _sans_negation(texte):
+    """Vide le champ si la source dit seulement « il n'y a rien à signaler »."""
+    t = (texte or "").strip()
+    if not t or not NEGATION.match(t):
+        return t
+    # découpe en clauses : on jette celles qui nient, on garde les autres
+    clauses = [c.strip() for c in re.split(r"\s*[;.]\s+", t) if c.strip()]
+    gardees = [c for c in clauses if not NEGATION.match(c)]
+    if not gardees:
+        return ""
+    # une clause gardée peut commencer par la nuance (« mais une noyade… ») :
+    # on la retire pour que la phrase se tienne seule
+    sortie = " ".join(gardees)
+    sortie = NUANCE.sub("", sortie, count=1).strip() if NUANCE.match(sortie) else sortie
+    sortie = sortie.lstrip(",; ").strip()
+    return (sortie[0].upper() + sortie[1:]) if sortie else ""
+
+
 def _nettoyer_remarque(texte, limite=300):
     """Garde les phrases utiles au lecteur, coupe proprement à la fin d'une
     phrase (jamais au milieu d'un mot, comme le faisait un simple [:300])."""
@@ -99,10 +129,10 @@ def point_saut_eau(pid, s, pays_recherche):
     # Interdictions et accidents sont AFFICHÉS, pas masqués (décision v82) :
     # ce sont les informations les plus utiles de la fiche. Un spot interdit
     # ou meurtrier reste visible, mais le lecteur sait à quoi s'en tenir.
-    interdiction = _nettoyer_remarque(s.get("interdiction"), 400)
+    interdiction = _nettoyer_remarque(_sans_negation(s.get("interdiction")), 400)
     if interdiction:
         d["interdiction"] = interdiction
-    accident = _nettoyer_remarque(s.get("accident_connu"), 400)
+    accident = _nettoyer_remarque(_sans_negation(s.get("accident_connu")), 400)
     if accident:
         d["accident"] = accident
     d["avertissement"] = AVERTISSEMENT_SAUT
