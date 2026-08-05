@@ -107,6 +107,56 @@ def _nettoyer_remarque(texte, limite=300):
     return " ".join(gardees).strip()
 
 
+EQUIP_LBL = {"toilettes": "Toilettes", "table": "Table", "eau": "Eau potable",
+             "poubelle": "Poubelle", "jeux": "Jeux enfants", "banc": "Banc",
+             "abri": "Abri", "barbecue": "Barbecue"}
+ORDRE_EQ = ["toilettes", "table", "eau", "poubelle", "jeux", "banc", "abri", "barbecue"]
+NOM_REPLI_AIRE = {"Bord de route": "Aire de repos", "En ville": "Aire de pique-nique",
+                  "Nature": "Aire de pique-nique"}
+DESC_AIRE = {"Bord de route": "Aire de repos en bord de route",
+             "En ville": "Aire de pique-nique en zone habitée",
+             "Nature": "Aire de pique-nique en pleine nature"}
+
+
+def point_aire_repos(pid, a, cadre, pays_recherche):
+    """Aire de repos (v86). `a` = entrée de aires-repos-enrichies-<iso>.json.
+
+    ⚠️ Les équipements viennent du VOISINAGE, pas des tags de l'aire (quasi
+    vides). Un équipement listé est donc CONSTATÉ ; son absence signifie
+    « non renseigné », jamais « absent » — et la fiche le dit, sans quoi on
+    laisserait croire qu'il n'y a rien sur place.
+
+    Le cadre « En ville » n'est calculé que pour la FRANCE (il s'appuie sur
+    tools/communes.json) : ailleurs une aire hors bord de route est classée
+    « Nature », faute de référentiel équivalent. Mieux vaut une valeur juste
+    et grossière qu'une valeur fine et fausse.
+    """
+    t = a.get("tags", {})
+    eq = [EQUIP_LBL[e] for e in ORDRE_EQ if e in (a.get("equipements") or [])]
+    d = {"cadre": cadre}
+    if eq:
+        d["equipements"] = ", ".join(eq)
+    acces = (t.get("access") or "").lower()
+    if acces in ("private", "no"):
+        d["acces"] = "Privé"
+    elif acces == "customers":
+        d["acces"] = "Réservé aux clients"
+    d["note"] = ("Équipements relevés à proximité immédiate ; la liste peut être incomplète."
+                 if eq else "Équipements non renseignés pour cette aire.")
+
+    nom = (t.get("name") or "").strip() or NOM_REPLI_AIRE[cadre]
+    liens = [{"label": "🗺️ Source OpenStreetMap (ODbL)",
+              "url": "https://www.openstreetmap.org/" + _osm_url(a.get("osm"))},
+             _infos(nom, pays_recherche)]
+    desc = DESC_AIRE[cadre] + (" — " + ", ".join(e.lower() for e in eq) + "." if eq else ".")
+    return {
+        "type": "Feature",
+        "geometry": {"type": "Point", "coordinates": [a["lon"], a["lat"]]},
+        "properties": {"id": pid, "name": nom, "theme": "aire-repos",
+                       "description": desc, "links": liens, "photos": [], "details": d},
+    }
+
+
 def point_saut_eau(pid, s, pays_recherche):
     """`s` = un spot VÉRIFIÉ issu de tools/spots-saut-verifies.json.
 

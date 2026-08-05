@@ -136,18 +136,31 @@ def recolter_voisins(iso="FR"):
     return deja
 
 
-def enrichir():
-    aires_par_veine = json.loads((DOSSIER / "aires-repos-fr.json").read_text(encoding="utf-8"))
-    voisins = recolter_voisins("FR")
+def _fichier_pays(iso, nom):
+    """toilettes/eau : la France est à la racine de data/, les autres pays
+    dans data/<iso>/ (cf. pays.couchesLourdes)."""
+    p = (RACINE / "data" / nom) if iso == "fr" else (RACINE / "data" / iso / nom)
+    return p if p.exists() else None
 
-    # les toilettes sont DÉJÀ dans l'application : aucun appel réseau
-    wc = json.loads((RACINE / "data" / "toilettes.geojson").read_text(encoding="utf-8"))
-    g_wc = grille([(f["geometry"]["coordinates"][1], f["geometry"]["coordinates"][0])
-                   for f in wc["features"]])
-    eau = json.loads((RACINE / "data" / "eau.geojson").read_text(encoding="utf-8"))
-    g_eau = grille([(f["geometry"]["coordinates"][1], f["geometry"]["coordinates"][0])
-                    for f in eau["features"]])
-    grilles = {"toilettes": g_wc, "eau": g_eau}
+
+def enrichir(iso="fr"):
+    iso = iso.lower()
+    aires_par_veine = json.loads(
+        (DOSSIER / f"aires-repos-{iso}.json").read_text(encoding="utf-8"))
+    voisins = recolter_voisins(iso.upper())
+
+    # Toilettes et points d'eau sont DÉJÀ dans l'application pour les 10 pays
+    # (récoltés en v67/v69) : ce croisement ne coûte aucun appel réseau.
+    grilles = {}
+    for cle, fichier in (("toilettes", "toilettes.geojson"), ("eau", "eau.geojson")):
+        chemin = _fichier_pays(iso, fichier)
+        if chemin:
+            d = json.loads(chemin.read_text(encoding="utf-8"))
+            grilles[cle] = grille([(f["geometry"]["coordinates"][1],
+                                    f["geometry"]["coordinates"][0])
+                                   for f in d["features"]])
+        else:
+            print(f"  (pas de {fichier} pour {iso} — équipement ignoré)", flush=True)
     for cle, pts in voisins.items():
         grilles[cle] = grille([(a, b) for a, b in pts])
 
@@ -186,12 +199,20 @@ def enrichir():
     sans = sum(1 for p in enrichies if not p["equipements"])
     print(f"  {'(aucun)':12} {sans:6}  ({100*sans/n:5.1f} %)")
 
-    (DOSSIER / "aires-repos-enrichies.json").write_text(
-        json.dumps(enrichies, ensure_ascii=False), encoding="utf-8")
-    print("ÉCRIT tools/aires-repos-enrichies.json")
+    sortie = ("aires-repos-enrichies.json" if iso == "fr"
+              else f"aires-repos-enrichies-{iso}.json")
+    (DOSSIER / sortie).write_text(json.dumps(enrichies, ensure_ascii=False),
+                                  encoding="utf-8")
+    print(f"ÉCRIT tools/{sortie}")
     return enrichies
 
 
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    enrichir()
+    cibles = [a.lower() for a in sys.argv[1:] if not a.startswith("--")] or ["fr"]
+    for iso in cibles:
+        print(f"\n########## {iso.upper()} ##########", flush=True)
+        try:
+            enrichir(iso)
+        except FileNotFoundError as e:
+            print(f"  récolte absente pour {iso} : {e}", flush=True)

@@ -27,7 +27,7 @@ import sys
 from pathlib import Path
 from urllib.parse import quote
 
-from points_glace_vidange import point_cascade_glace, point_vidange
+from points_glace_vidange import point_cascade_glace, point_vidange, point_aire_repos
 
 RACINE = Path(__file__).resolve().parent.parent
 DOC = RACINE / "tools" / "nz-doc.json"
@@ -437,6 +437,16 @@ def construire():
     for n, v in enumerate(sorted(vidanges_nz, key=lambda x: (x.get("nom") or "", x["lat"])), start=1):
         feats.append(point_vidange(f"nz-vid-{n:04d}", v, "New Zealand"))
     print(f"  cascades de glace {len(glace_nz)} | aires de vidange {len(vidanges_nz)}")
+
+    # Aires de repos (v86) — OSM, equipements constates par voisinage.
+    chemin_aires = RACINE / "tools" / "aires-repos-enrichies-nz.json"
+    aires_nz = json.loads(chemin_aires.read_text(encoding="utf-8")) if chemin_aires.exists() else []
+    retenues_nz = [a for a in aires_nz
+                   if (a.get("tags", {}).get("name") or "").strip() or a.get("equipements")]
+    for n, a in enumerate(sorted(retenues_nz, key=lambda x: (x["lat"], x["lon"])), start=1):
+        cadre = "Bord de route" if a.get("veine") in ("rest_area", "services") else "Nature"
+        feats.append(point_aire_repos(f"nz-aire-{n:04d}", a, cadre, "New Zealand"))
+    print(f"  aires de repos {len(retenues_nz)}")
 
     return feats, wfeats, {"huts": nb_huts, "camps_doc": len(camps), "camps_osm": ajoutes_osm,
                            "lacs": len(lacs), "cascades": len(cascades), "casc_osm": nb_casc_osm,

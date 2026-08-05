@@ -27,7 +27,8 @@ import sys
 from pathlib import Path
 from urllib.parse import quote
 
-from points_glace_vidange import point_cascade_glace, point_vidange, point_saut_eau
+from points_glace_vidange import (point_cascade_glace, point_vidange,
+                                  point_saut_eau, point_aire_repos)
 
 RACINE = Path(__file__).resolve().parent.parent
 PAYS = {
@@ -397,6 +398,18 @@ def construire(iso):
     for n, s in enumerate(sorted(sauts, key=lambda x: (x["nom"], x["lat"])), start=1):
         feats.append(point_saut_eau(f"{iso}-saut-{n:04d}", s, cfg["recherche"]))
     stats["saut-eau"] = len(sauts)
+
+    # Aires de repos (v86) — OSM, équipements CONSTATÉS par voisinage.
+    # Qualité : une aire n'est retenue que si elle a un NOM ou au moins un
+    # équipement ; sans cela elle n'apprend rien à l'utilisateur.
+    aires = _charger_json(RACINE / "tools" / f"aires-repos-enrichies-{iso}.json", [])
+    retenues = [a for a in aires
+                if (a.get("tags", {}).get("name") or "").strip() or a.get("equipements")]
+    for n, a in enumerate(sorted(retenues, key=lambda x: (x["lat"], x["lon"])), start=1):
+        cadre = ("Bord de route" if a.get("veine") in ("rest_area", "services")
+                 else "Nature")
+        feats.append(point_aire_repos(f"{iso}-aire-{n:04d}", a, cadre, cfg["recherche"]))
+    stats["aire-repos"] = len(retenues)
 
     return feats, traces, stats
 
