@@ -62,7 +62,7 @@ export const PACKS = [
     label: "Services",
     icon: "🚐",
     color: "#606c38",
-    categories: ["camping", "vidange", "toilettes", "eau"],
+    categories: ["camping", "aire-repos", "restaurant", "vidange", "toilettes", "eau"],
   },
 ];
 

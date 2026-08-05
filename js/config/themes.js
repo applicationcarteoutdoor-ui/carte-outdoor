@@ -779,6 +779,105 @@ export const THEMES = [
     filters: [],
   },
   {
+    // Aire de repos (v84) — vraies aires AMÉNAGÉES seulement (les tables
+    // isolées sont écartées). Les équipements ne viennent PAS des tags de
+    // l'aire (quasi vides : table 1 %, poubelle 0,2 %, ombre 1 objet en
+    // France) mais des objets VOISINS — cf. tools/enrichir_aires_repos.py.
+    // Un équipement listé est donc CONSTATÉ ; son absence veut dire « non
+    // renseigné », jamais « absent ».
+    id: "aire-repos",
+    label: "Aire de repos",
+    color: "#588157",
+    icon: "⛱️",
+    fields: [
+      { key: "cadre", label: "Cadre" },
+      { key: "equipements", label: "Équipements constatés" },
+      { key: "acces", label: "Accès" },
+      { key: "note", label: "À savoir" },
+    ],
+    filters: [
+      {
+        key: "cadre",
+        label: "Cadre",
+        type: "value",
+        field: "cadre",
+        options: [
+          { value: "En ville", icon: "🏙️" },
+          { value: "Bord de route", icon: "🛣️" },
+          { value: "Nature", icon: "🌳" },
+        ],
+      },
+      {
+        key: "equipements",
+        label: "Équipements",
+        type: "liste",
+        field: "equipements",
+        options: [
+          // ⚠️ Pas de filtre « Ombre » : le tag OSM correspondant n'existe que
+          // sur UN objet dans toute la France, et déduire l'ombre en croisant
+          // les massifs forestiers fait tomber Overpass (union de tous les
+          // bois du pays, testé). Mieux vaut pas de filtre qu'un filtre vide.
+          { value: "Toilettes", icon: "🚻" },
+          { value: "Table", icon: "🪑" },
+          { value: "Eau potable", icon: "💧" },
+          { value: "Poubelle", icon: "🗑️" },
+          { value: "Jeux enfants", icon: "🧒" },
+          { value: "Banc", icon: "🪑" },
+        ],
+      },
+    ],
+  },
+  {
+    // Restaurant distingué (v84) — source DATAtourisme (Licence Ouverte).
+    // ⚠️ Michelin / Gault&Millau / Petit Futé sont des bases PROPRIÉTAIRES :
+    // on ne les récolte jamais. Les mentions ci-dessous proviennent de la
+    // base publique des offices de tourisme, sans note ni commentaire.
+    id: "restaurant",
+    label: "Bonne table",
+    color: "#bc6c25",
+    icon: "🍽️",
+    fields: [
+      { key: "distinction", label: "Distinctions" },
+      // `famille` sert au filtre : sans cette ligne il s'afficherait en clé
+      // brute dans la fiche (« familleTitre d'État »).
+      { key: "famille", label: "Type" },
+      { key: "adresse", label: "Adresse" },
+      { key: "commune", label: "Commune" },
+      { key: "maj", label: "Mise à jour" },
+    ],
+    filters: [
+      {
+        key: "famille",
+        label: "Type de distinction",
+        type: "value",
+        field: "famille",
+        options: [
+          { value: "Titre d'État", icon: "🇫🇷" },
+          { value: "Label", icon: "🏅" },
+          { value: "Guide", icon: "📕" },
+        ],
+      },
+      {
+        key: "distinction",
+        label: "Distinction",
+        type: "liste",
+        field: "distinction",
+        options: [
+          { value: "Maître Restaurateur", icon: "👨‍🍳" },
+          { value: "Logis", icon: "🏨" },
+          { value: "Gault&Millau", icon: "📗" },
+          { value: "Tables et Auberges de France", icon: "🍲" },
+          { value: "Guide Michelin", icon: "📕" },
+          { value: "Collège culinaire de France", icon: "🎓" },
+          { value: "Restaurant Gourmand", icon: "😋" },
+          { value: "Bottin Gourmand", icon: "📙" },
+          { value: "Le Fooding", icon: "🥘" },
+          { value: "Bistrot de Pays", icon: "🍷" },
+        ],
+      },
+    ],
+  },
+  {
     // Saut dans l'eau (v82) — AUCUN tag OSM exploitable (sport=cliff_diving =
     // 153 objets dans le monde) : les spots viennent de sources humaines
     // (forums, vidéos, blogs), d'où le LIEN VERS LA SOURCE en tête de fiche.
