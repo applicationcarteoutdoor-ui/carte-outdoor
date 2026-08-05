@@ -723,8 +723,33 @@ body.mode-nuit .tuile:hover { box-shadow: 0 6px 16px rgba(0, 0, 0, .4); }
   0% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
   100% { transform: translate(-50%, -50%) scale(3); opacity: 0; }
 }
+/* Flèche de cap (v85) : le conteneur pivote autour du CENTRE du point — d'où
+   `inset: 0` plutôt qu'un positionnement du triangle lui-même, sinon la
+   rotation se ferait autour d'un coin et la flèche décrirait un cercle.
+   Masquée tant que le cap est inconnu (boussole refusée, appareil sans
+   magnétomètre) : mieux vaut pas de flèche qu'une flèche qui pointe au nord
+   par défaut et trompe l'utilisateur. */
+.position-gps-cap {
+  position: absolute;
+  inset: 0;
+  transform: rotate(var(--cap, 0deg));
+  transition: transform 0.15s linear;
+}
+.position-gps-cap::before {
+  content: "";
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  margin-left: -8px;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 11px solid #2e7d52;
+  filter: drop-shadow(0 1px 2px rgba(15, 23, 32, 0.5));
+}
+.position-gps:not(.a-un-cap) .position-gps-cap { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .position-gps-halo { animation: none; }
+  .position-gps-cap { transition: none; }
 }
 
 .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {

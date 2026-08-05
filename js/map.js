@@ -469,54 +469,159 @@ export function pickLocation() {
 /* ------------------------------------------------------------------ */
 
 let positionLayer = null;
+let marqueurPosition = null;   // gardés pour DÉPLACER au lieu de recréer
+let cerclePosition = null;
+let veilleGps = null;          // id de watchPosition
+let veilleCap = null;          // écouteur de boussole (fonction de retrait)
+let dernierCap = null;
+let capBoussoleLe = 0;         // horodatage du dernier cap VENU de la boussole
 
 /**
- * Pose (ou déplace) la pastille « vous êtes ici ».
+ * Pose (ou DÉPLACE) la pastille « vous êtes ici ».
  *
  * Partagée par le bouton 🏃 et par « autour de moi » des couches lourdes :
  * sans elle, l'utilisateur voyait les toilettes mais pas SA position, donc
  * ne pouvait pas juger laquelle était la plus proche (bug signalé en v81).
- * `precision` = rayon d'incertitude du GPS en mètres (petit cercle discret),
- * omis quand on ne le connaît pas.
+ *
+ * ⚠️ En suivi continu, on ne recrée PAS le marqueur à chaque point GPS : on
+ * le déplace. Recréer ferait clignoter la pastille et repartirait l'animation
+ * du halo à chaque seconde.
+ *
+ * `precision` = rayon d'incertitude GPS (m). `cap` = direction du regard en
+ * degrés (0 = nord), ou null si l'appareil ne sait pas.
  */
-export function montrerPosition(lat, lon, precision) {
-  if (positionLayer) positionLayer.remove();
-  // Pastille « vous êtes ici » : un gros point vert bien visible, cerné de
-  // blanc, avec un halo qui pulse (divIcon → animation CSS .position-gps).
-  const iconePosition = L.divIcon({
-    className: "",
-    html: '<div class="position-gps"><span class="position-gps-halo"></span><span class="position-gps-point"></span></div>',
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
-  });
-  const couches = [];
-  if (Number.isFinite(precision) && precision > 0) {
-    couches.push(L.circle([lat, lon], {
-      radius: precision,
-      color: "#2e7d52",
-      weight: 1,
-      fillOpacity: 0.12,
-    }));
+export function montrerPosition(lat, lon, precision, cap) {
+  if (!positionLayer) {
+    const icone = L.divIcon({
+      className: "",
+      html: '<div class="position-gps"><span class="position-gps-halo"></span>' +
+            '<span class="position-gps-cap"></span><span class="position-gps-point"></span></div>',
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+    });
+    marqueurPosition = L.marker([lat, lon], { icon: icone, keyboard: false, interactive: false });
+    cerclePosition = L.circle([lat, lon], {
+      radius: Number.isFinite(precision) && precision > 0 ? precision : 0,
+      color: "#2e7d52", weight: 1, fillOpacity: 0.12,
+    });
+    positionLayer = L.layerGroup([cerclePosition, marqueurPosition]).addTo(map);
+  } else {
+    marqueurPosition.setLatLng([lat, lon]);
+    cerclePosition.setLatLng([lat, lon]);
   }
-  couches.push(L.marker([lat, lon], { icon: iconePosition, keyboard: false, interactive: false }));
-  positionLayer = L.layerGroup(couches).addTo(map);
+  if (Number.isFinite(precision) && precision > 0) cerclePosition.setRadius(precision);
+  if (cap !== undefined) appliquerCap(cap);
 }
 
+/** Oriente la flèche. `null` la masque (cap inconnu : ne jamais laisser
+ *  croire qu'on pointe au nord alors qu'on n'en sait rien). */
+function appliquerCap(cap) {
+  dernierCap = cap;
+  const el = marqueurPosition && marqueurPosition.getElement();
+  const pastille = el && el.querySelector(".position-gps");
+  if (!pastille) return;
+  if (Number.isFinite(cap)) {
+    pastille.style.setProperty("--cap", `${cap}deg`);
+    pastille.classList.add("a-un-cap");
+  } else {
+    pastille.classList.remove("a-un-cap");
+  }
+}
+
+/**
+ * Boussole. iOS 13+ exige une autorisation demandée DEPUIS UN GESTE
+ * UTILISATEUR — d'où l'appel depuis le clic sur 🏃 et pas au chargement.
+ * iOS fournit `webkitCompassHeading` (déjà relevé par rapport au nord) ;
+ * ailleurs on lit `alpha`, qui tourne dans l'autre sens (d'où 360 - alpha).
+ * Rafraîchissement limité à 10 images/s : le capteur tire beaucoup plus vite
+ * et redessiner à chaque événement ne se verrait pas mais coûterait.
+ */
+async function demarrerBoussole() {
+  const DOE = window.DeviceOrientationEvent;
+  if (!DOE) return null;
+  try {
+    if (typeof DOE.requestPermission === "function") {
+      const reponse = await DOE.requestPermission();
+      if (reponse !== "granted") return null;
+    }
+  } catch {
+    return null; // refus ou contexte non autorisé : on reste sans flèche
+  }
+  let dernier = 0;
+  const surOrientation = (e) => {
+    const maintenant = Date.now();
+    if (maintenant - dernier < 100) return;
+    dernier = maintenant;
+    let cap = null;
+    if (Number.isFinite(e.webkitCompassHeading)) cap = e.webkitCompassHeading;
+    else if (e.absolute && Number.isFinite(e.alpha)) cap = 360 - e.alpha;
+    if (cap !== null) {
+      capBoussoleLe = maintenant;
+      appliquerCap((cap + 360) % 360);
+    }
+  };
+  const type = "ondeviceorientationabsolute" in window
+    ? "deviceorientationabsolute" : "deviceorientation";
+  window.addEventListener(type, surOrientation, true);
+  return () => window.removeEventListener(type, surOrientation, true);
+}
+
+/** Arrête le suivi et retire la pastille. */
+function arreterSuivi() {
+  if (veilleGps !== null) {
+    navigator.geolocation.clearWatch(veilleGps);
+    veilleGps = null;
+  }
+  if (veilleCap) {
+    veilleCap();
+    veilleCap = null;
+  }
+  if (positionLayer) positionLayer.remove();
+  positionLayer = marqueurPosition = cerclePosition = null;
+  dernierCap = null;
+  capBoussoleLe = 0;
+}
+
+/**
+ * Bouton 🏃 : active/désactive le SUIVI de position.
+ *
+ * `watchPosition` (et non `getCurrentPosition`) : la pastille suit
+ * l'utilisateur tant que le suivi est actif. Le rythme est laissé à l'OS,
+ * qui n'émet que sur déplacement réel — c'est plus économe en batterie
+ * qu'un intervalle fixe, et plus réactif quand on bouge vraiment.
+ * `maximumAge: 1000` autorise une position d'une seconde, ce qui évite de
+ * réveiller la puce GPS pour rien.
+ */
 export async function toggleLocate() {
   if (positionLayer) {
-    positionLayer.remove();
-    positionLayer = null;
+    arreterSuivi();
     return "off";
   }
-  const pos = await new Promise((resolve, reject) => {
+  const premier = await new Promise((resolve, reject) => {
     navigator.geolocation.getCurrentPosition(resolve, reject, {
-      enableHighAccuracy: true,
-      timeout: 12000,
-      maximumAge: 30000,
+      enableHighAccuracy: true, timeout: 12000, maximumAge: 30000,
     });
   });
-  const { latitude, longitude, accuracy } = pos.coords;
+  const { latitude, longitude, accuracy } = premier.coords;
   montrerPosition(latitude, longitude, accuracy);
   map.flyTo([latitude, longitude], Math.max(map.getZoom(), 13), { duration: 0.8 });
+
+  veilleCap = await demarrerBoussole();
+  veilleGps = navigator.geolocation.watchPosition(
+    (pos) => {
+      const c = pos.coords;
+      // Le cap GPS prend le relais quand la BOUSSOLE SE TAIT — et pas
+      // seulement quand elle est absente : sur un appareil sans
+      // magnétomètre, l'écouteur est bien posé mais n'émet jamais rien, et
+      // se fier à sa seule présence laissait la flèche masquée à vie.
+      // Le cap GPS n'a de sens qu'en mouvement : à l'arrêt il dérive.
+      const boussoleVivante = Date.now() - capBoussoleLe < 3000;
+      const capGps = (!boussoleVivante && Number.isFinite(c.heading) && c.speed > 0.5)
+        ? c.heading : undefined;
+      montrerPosition(c.latitude, c.longitude, c.accuracy, capGps);
+    },
+    () => {},
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 1000 }
+  );
   return "on";
 }
